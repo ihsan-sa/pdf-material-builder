@@ -1,0 +1,64 @@
+% Course-notes driver template. Replace <COURSE>, <COURSE TITLE>, <PROF>, <TERM>,
+% <NAME>, <YEAR>, and the \input stubs to match the course's taxonomy.
+%
+% The orchestrator (NOT a subagent) should write this file before spawning the
+% parallel section writers, so that Part numbering and the shared preamble are
+% already locked in.
+
+% === INSERT FULL PREAMBLE FROM assets/preamble-template.tex HERE ===
+%
+% (Copy everything from preamble-template.tex between \documentclass and
+% \begin{document}, adapting colours, footer text, and margins.)
+
+\begin{document}
+
+% ------------------------------------------------------------------
+% Title page
+% ------------------------------------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{1.5in}
+{\Huge\bfseries\color{gold} <COURSE>}\\[6pt]
+{\Huge\bfseries <COURSE TITLE>}\\[18pt]
+{\LARGE Course Notes}\\[36pt]
+{\large\color{muted} A pedagogical narrative covering every examinable topic,\\
+with emphasis on <WEAK AREA 1>, <WEAK AREA 2>, and <WEAK AREA 3>.}\\[48pt]
+{\color{muted} Companion to:}\\
+{\small\color{muted}
+\texttt{<course>\_reference.pdf} $\cdot$
+\texttt{<course>\_formula\_sheet\_annotated.pdf} $\cdot$
+\texttt{<course>\_visual\_intuition.pdf} $\cdot$
+\texttt{<course>\_worked\_examples.pdf}}\\[36pt]
+{\color{muted} Based on lectures by Prof.\ <PROF>}\\
+{\color{muted} University of <INSTITUTION>, <TERM>}
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+% ------------------------------------------------------------------
+% Sections -- one file per Part / Category
+% ------------------------------------------------------------------
+
+% Each parallel section writer produces one of these files. The orchestrator
+% locks in the Part numbering by controlling which files declare \part{...}
+% vs which continue an existing Part as a trailing \section.
+%
+% For ECE 250 (A-G taxonomy, 7 Parts):
+\input{course_notes/00_preface}         % \section*{Preface}; no \part
+\input{course_notes/01_analysis}        % \part{...} Cat A
+\input{course_notes/02_linear}          % \part{...} Cat B
+\input{course_notes/03_trees_bst}       % \part{...} Cat C, first half
+\input{course_notes/04_balanced_trees}  % no \part; continues Cat C
+\input{course_notes/05_heaps}           % no \part; continues Cat C
+\input{course_notes/06_hashing}         % \part{...} Cat D
+\input{course_notes/07_sorting}         % \part{...} Cat E
+\input{course_notes/08_graphs}          % \part{...} Cat F
+\input{course_notes/09_paradigms}       % \part{...} Cat G
+\input{course_notes/99_appendix}        % \section*{Appendix ...}; no \part
+
+% For ECE 204 / ECE 205 (A-D, 4 Parts), use 4 \part'd files plus preface and
+% appendix. Adapt as needed.
+
+\end{document}

@@ -1,0 +1,185 @@
+% Canonical preamble for course-pdf-builder.
+% Replace <COURSE>, <COURSE TITLE>, <NAME>, <YEAR>, and category colour map as needed.
+% Meant to be copy-adapted into each doc's driver; not \input'd as-is.
+
+\documentclass[10pt,letterpaper]{article}
+\usepackage[letterpaper,margin=0.65in]{geometry}
+% For the landscape reference, use instead:
+%   \usepackage[letterpaper,landscape,margin=0.55in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{array,booktabs,tabularx,multirow}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,shapes.misc,backgrounds,fit,calc,decorations.pathreplacing}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage[hidelinks,colorlinks=true,linkcolor=catC,urlcolor=catC]{hyperref}
+
+% --- Colour palette ------------------------------------------------
+\definecolor{gold}{HTML}{B8943E}
+\definecolor{muted}{HTML}{555555}
+\definecolor{softbg}{HTML}{F7F4EC}
+\definecolor{tool}{HTML}{5C8A5C}
+\definecolor{intuitrose}{HTML}{D4708A}
+\definecolor{fsheetgreen}{HTML}{5CB85C}
+\definecolor{connectblue}{HTML}{3E6FB8}
+\definecolor{optorange}{HTML}{C97A1E}
+
+% Category colours -- adapt per course
+\definecolor{catA}{HTML}{2B8A8A}    % teal
+\definecolor{catB}{HTML}{B8943E}    % amber
+\definecolor{catC}{HTML}{C05A7A}    % rose
+\definecolor{catD}{HTML}{7A5AC0}    % violet
+\definecolor{catE}{HTML}{3E6FB8}    % blue     (add if 5+ categories)
+\definecolor{catF}{HTML}{2E8B57}    % emerald  (add if 6+)
+\definecolor{catG}{HTML}{8B5A2B}    % brown    (add if 7+)
+
+% --- Spacing --------------------------------------------------------
+\setlength{\parskip}{3pt plus 1pt}
+\setlist{nosep,leftmargin=1.4em,topsep=2pt,partopsep=0pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+
+% --- Titles ---------------------------------------------------------
+\titleformat{\part}{\normalfont\LARGE\bfseries\color{gold}}{Part \thepart.}{0.6em}{}
+\titleformat{\section}{\normalfont\large\bfseries\color{gold}}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{10pt}{3pt}
+\titleformat{\subsection}{\normalfont\bfseries\color{black!80}}{\thesubsection}{0.4em}{}
+\titlespacing*{\subsection}{0pt}{6pt}{1pt}
+\titleformat{\subsubsection}{\normalfont\small\bfseries\color{black!70}}{}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{4pt}{0pt}
+
+% --- Page header/footer -- copyright on every page ----------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\footnotesize\color{muted}\textcopyright{} <YEAR> <NAME>. All rights reserved.}
+\fancyfoot[C]{\footnotesize\color{muted}<COURSE> <DOC>\ \textperiodcentered\ \leftmark}
+\fancyfoot[R]{\footnotesize\color{muted}\thepage}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+
+% --- Tool chips / category labels ---------------------------------
+\newcommand{\tool}[1]{\textcolor{tool}{\textsf{\scriptsize\textbf{[T#1]}}}}
+\newcommand{\tools}[1]{\textcolor{tool}{\textsf{\scriptsize\textbf{[#1]}}}}
+\newcommand{\cat}[1]{\textcolor{cat#1}{\textsf{\textbf{Cat.\ #1}}}}
+
+% --- Category banner ----------------------------------------------
+\newcommand{\catbanner}[2]{%
+  \begin{tcolorbox}[enhanced,colback=#1,colframe=#1,boxrule=0pt,
+    arc=2pt,left=8pt,right=8pt,top=3pt,bottom=3pt,
+    fontupper=\bfseries\color{white}\normalsize]
+  #2
+  \end{tcolorbox}%
+}
+
+% --- Grey-fill step box (derivations) -----------------------------
+\newtcolorbox{step}{enhanced,colback=softbg,colframe=muted,
+  boxrule=0.3pt,arc=1.5pt,left=9pt,right=9pt,top=4pt,bottom=4pt,
+  breakable}
+
+% --- Pink insight / pictureit boxes -------------------------------
+% NB: named \pictureit because \picture is a LaTeX built-in env.
+\newtcolorbox{insight}{enhanced,frame hidden,colback=pink!14,
+  boxrule=0pt,arc=1.5pt,
+  borderline west={2.2pt}{0pt}{intuitrose},
+  left=11pt,right=9pt,top=3pt,bottom=3pt,
+  fontupper=\small\itshape\color{black!75}}
+
+\newtcolorbox{pictureit}{enhanced,frame hidden,colback=pink!14,
+  boxrule=0pt,arc=1.5pt,
+  borderline west={2.2pt}{0pt}{intuitrose},
+  left=11pt,right=9pt,top=3pt,bottom=3pt,
+  fontupper=\small\color{black!80}}
+
+% --- Formula-sheet green stripe -----------------------------------
+\newtcolorbox{fsheet}{enhanced,frame hidden,colback=green!4,
+  boxrule=0pt,arc=1pt,
+  borderline west={2.2pt}{0pt}{fsheetgreen},
+  left=10pt,right=6pt,top=3pt,bottom=3pt}
+
+% --- Blue connect stripe ------------------------------------------
+\newtcolorbox{connect}{enhanced,frame hidden,colback=connectblue!6,
+  boxrule=0pt,arc=1pt,
+  borderline west={1.8pt}{0pt}{connectblue},
+  left=10pt,right=6pt,top=2pt,bottom=2pt,
+  fontupper=\small\color{black!75}}
+
+% --- Orange optional stripe ---------------------------------------
+\newtcolorbox{optional}{enhanced,frame hidden,colback=orange!7,
+  boxrule=0pt,arc=1pt,
+  borderline west={2.2pt}{0pt}{optorange},
+  left=11pt,right=6pt,top=2pt,bottom=2pt,
+  fontupper=\small\color{black!75}}
+
+\newcommand{\opt}{\hspace{2pt}\textcolor{optorange}{\textsf{\scriptsize\textbf{[optional]}}}}
+
+% --- Problem heading (worked examples) ----------------------------
+\newcommand{\probhead}[3]{%
+  \vspace{4pt}
+  \noindent\colorbox{softbg}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
+    \small\color{muted}\textbf{#1} \quad\textperiodcentered\quad \textit{#2} \quad\textperiodcentered\quad \textbf{\color{gold}#3}}}%
+  \vspace{2pt}
+}
+
+% --- Tight tabularx -----------------------------------------------
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% --- Shorthand -----------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\RR}[1]{\mathbb{R}^{#1}}
+\newcommand{\grad}{\nabla}
+\newcommand{\Hess}{H_f}
+
+% Bold vectors -- define all lowercase so agents can grab any letter
+\newcommand{\ba}{\mathbf{a}}  \newcommand{\bb}{\mathbf{b}}  \newcommand{\bc}{\mathbf{c}}
+\newcommand{\bd}{\mathbf{d}}  \newcommand{\be}{\mathbf{e}}  \newcommand{\bff}{\mathbf{f}}
+\newcommand{\bg}{\mathbf{g}}  \newcommand{\bh}{\mathbf{h}}  \newcommand{\bi}{\mathbf{i}}
+\newcommand{\bj}{\mathbf{j}}  \newcommand{\bk}{\mathbf{k}}  \newcommand{\bl}{\mathbf{l}}
+\newcommand{\bm}{\mathbf{m}}  \newcommand{\bn}{\mathbf{n}}  \newcommand{\bp}{\mathbf{p}}
+\newcommand{\bq}{\mathbf{q}}  \newcommand{\br}{\mathbf{r}}  \newcommand{\bs}{\mathbf{s}}
+\newcommand{\bt}{\mathbf{t}}  \newcommand{\bu}{\mathbf{u}}  \newcommand{\bv}{\mathbf{v}}
+\newcommand{\bw}{\mathbf{w}}  \newcommand{\bx}{\mathbf{x}}  \newcommand{\by}{\mathbf{y}}
+\newcommand{\bz}{\mathbf{z}}  \newcommand{\bzero}{\mathbf{0}}
+
+% Transpose: braces (not ^) so X^\trans gives X^{\!\top}
+\newcommand{\trans}{{\!\top}}
+
+% Partial derivatives
+\newcommand{\pderiv}[2]{\dfrac{\partial #1}{\partial #2}}
+\newcommand{\ppderiv}[2]{\dfrac{\partial^2 #1}{\partial #2^2}}
+\newcommand{\pmderiv}[3]{\dfrac{\partial^2 #1}{\partial #2 \, \partial #3}}
+
+% Big-O -- use \Oh{n} or \Ohof{n \log n} everywhere; never bare $O()$
+\newcommand{\Oh}{\mathcal{O}}
+\newcommand{\Ohof}[1]{\mathcal{O}\!\left(#1\right)}
+
+% Differential d
+\newcommand{\diff}[1]{\mathop{}\!\mathrm{d}#1}
+
+% --- C++ listings style (if course has code) ----------------------
+\lstdefinestyle{cpp}{
+  language=C++,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{catD},
+  commentstyle=\color{muted}\itshape,
+  stringstyle=\color{catC},
+  showstringspaces=false,
+  breaklines=true,
+  tabsize=2,
+  frame=single,
+  rulecolor=\color{muted!50},
+  backgroundcolor=\color{softbg!40},
+  xleftmargin=6pt,
+  xrightmargin=2pt,
+  aboveskip=4pt,
+  belowskip=4pt
+}
+\lstset{style=cpp}
