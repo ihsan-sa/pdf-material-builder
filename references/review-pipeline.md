@@ -1,6 +1,20 @@
 # Review pipeline
 
-Five parallel reviewers, each catching a distinct class of issue. Scale member count to doc size: 40-70pp course notes get all five; a 7pp reference may only need two.
+Five parallel reviewers, each catching a distinct class of issue. Which of them run is set by the recipe's build size in `references/recipes.md`, not by taste.
+
+## Which reviewers run
+
+**A `large` build runs all five.** 40-70pp course notes, a worked-examples set, a reference: the document is long, its content was re-derived from source materials, and nobody has read it before.
+
+**A `small` build runs two: the math verification agent and the cold-edit reviewer.** A companion, a cheat sheet or a short technical doc is 2-6pp, and for a companion its content arrived already reviewed inside the lesson. The three reviewers a small build skips, and why:
+
+- *Full-context content reviewer* -- for a companion, lesson-builder's `content-review-agent` already ran the accuracy and discourse passes over this exact content. Running it again reviews the lesson, not the handout.
+- *Student-peer brutal review* -- it looks for coverage gaps against an exam. A handout is not supposed to have coverage; its scope is one lesson.
+- *Cross-doc consistency reviewer* -- there is one document.
+
+The two that stay are the two whose failure mode survives condensing: a number can be copied wrong, and a `.tex` file can fail to compile. For a small technical doc, swap the student-peer reviewer in as a third if the document makes a recommendation somebody will act on.
+
+The filter phase below is mandatory at both sizes.
 
 ## The five reviewers
 
@@ -8,10 +22,10 @@ Five parallel reviewers, each catching a distinct class of issue. Scale member c
 
 Knows the doc's purpose, the target student's learning preferences, the conventions doc, and recent fixes. Verifies:
 
-- **Equation / algorithm correctness** — every recurrence, complexity claim, pseudocode step
-- **Convention fidelity** — prof-specific naming, numbering, signs, notations
-- **Scope alignment** — banned-optional topics either absent or `\opt`-tagged
-- **Pedagogy boxes** — every major concept has a `pictureit`; derivations in `step`; cross-references via `connect`
+- **Equation / algorithm correctness** -- every recurrence, complexity claim, pseudocode step
+- **Convention fidelity** -- prof-specific naming, numbering, signs, notations
+- **Scope alignment** -- banned-optional topics either absent or `\opt`-tagged
+- **Pedagogy boxes** -- every major concept has a `pictureit`; derivations in `step`; cross-references via `connect`
 - **Common traps** the specific prof is known to test (e.g., sign of ghost-point Neumann BC; last-cell pivot on sorted input; unit-weight Dijkstra-vs-BFS framing)
 
 Output: structured findings grouped by file, each tagged CRITICAL / MAJOR / MINOR with location and proposed fix. Cap ~40 findings; surface the top 10 MINOR items only.
@@ -20,10 +34,14 @@ Output: structured findings grouped by file, each tagged CRITICAL / MAJOR / MINO
 
 Framed as a past student who took the course and got a B or C; brutal, not polite. Asks:
 
-- **Coverage gaps**: what would appear on the final that the doc set doesn't cover? Check every verb in the review guide — does each have a drilled worked example somewhere?
+- **Coverage gaps**: what would appear on the final that the doc set doesn't cover? Check every verb in the review guide -- does each have a drilled worked example somewhere?
 - **Undercovered weak areas**: does the doc cover "the definition" but not "the application"? Every weak area should have at least 4 distinct problem textures (standard / ugly forcing / edge case / non-standard BC).
 - **Notation collisions**: where does a student flipping between docs get lost?
-- **Pedagogy misses**: are known traps warned about? (Sign conventions; implementation-dependent counter-examples; "tightest upper bound" Θ-in-disguise.)
+- **Pedagogy misses**: are known traps warned about? (Sign conventions; implementation-dependent counter-examples; "tightest upper bound" Theta-in-disguise.) Rhetorical traps seen across courses, all of which this reviewer flags:
+  - "iff" for a sufficient condition ("gradient descent converges iff `s < 2/L`" is `if`, not `iff`).
+  - Theta-in-disguise: "tightest upper bound" is strictly a Theta characterisation. Warn the student that outside this course `n = O(n^2)` is correct, if loose.
+  - "Formally equivalent" for methods that mirror but do not literally equal (Simpson and RK4; Prim and Dijkstra). Prefer "mirrors" or "corresponds to".
+  - "Dijkstra generalises BFS" via "extract-min reduces to FIFO": the mechanism is still priority-based; the order happens to match on unit weights.
 - **Coding prep**: if the final has coding questions, does the doc set give enough C++ / pseudocode to write the expected functions from scratch under time pressure?
 - **Rubric alignment**: does pseudocode have enough structure to earn 60-80% partial credit?
 
@@ -59,7 +77,7 @@ Typical verification list for a numerical-methods or data-structures pack:
 - Counter-example correctness (greedy 0/1 knapsack; Dijkstra on negative edges)
 - Closed-form identities (Knuth linear-probe formulas; Stirling applied to `log(N!)`)
 
-Give the agent Python/SymPy via Bash. Demand derivation summaries, not just "looks right". For graph-algo traces, have the agent simulate the trace by hand; for numerical closed forms, use SymPy symbolically and check a few α values.
+Give the agent Python/SymPy via Bash. Demand derivation summaries, not just "looks right". For graph-algo traces, have the agent simulate the trace by hand; for numerical closed forms, use SymPy symbolically and check a few alpha values.
 
 ### 5. Cold-edit reviewer (`general-purpose`, minimal context)
 
@@ -80,11 +98,11 @@ Minimal context = catches issues insiders overlook.
 
 Reviewers hallucinate in predictable ways:
 
-- **Sign errors from re-derivation** — the reviewer inverted, not the doc. Re-derive from scratch; if the doc is correct, reject.
-- **Quote claims for text that doesn't exist** — "the doc says X" where X never appears. Grep the file; if absent, reject.
-- **Stylistic preferences as defects** — reviewer disagrees with word choice but it's not wrong. Reject unless two reviewers independently agree.
-- **Section-convention misreads** — e.g., confusing `n` = nodes with `n` = polynomial degree in a problem that uses both. Reject; the doc is self-consistent within its own convention.
-- **Cascading cross-refs** — one finding's "fix" introduces breaks in 3 other places. Evaluate the blast radius before accepting.
+- **Sign errors from re-derivation** -- the reviewer inverted, not the doc. Re-derive from scratch; if the doc is correct, reject.
+- **Quote claims for text that doesn't exist** -- "the doc says X" where X never appears. Grep the file; if absent, reject.
+- **Stylistic preferences as defects** -- reviewer disagrees with word choice but it's not wrong. Reject unless two reviewers independently agree.
+- **Section-convention misreads** -- e.g., confusing `n` = nodes with `n` = polynomial degree in a problem that uses both. Reject; the doc is self-consistent within its own convention.
+- **Cascading cross-refs** -- one finding's "fix" introduces breaks in 3 other places. Evaluate the blast radius before accepting.
 
 ### Filter protocol
 
@@ -103,7 +121,7 @@ Apply only fixes that survive independent verification. Expect 20-40% rejection 
 - Apply CRITICAL fixes first; recompile; re-run math verification on just that section.
 - Apply MAJOR fixes in priority order; recompile once at the end of the batch.
 - Apply MINOR fixes opportunistically; only recompile at the end.
-- Don't apply all findings from one reviewer in one pass — interleave across reviewers so you notice when two reviewers disagree (often: the student-peer says "add this" and the full-context says "this is fine as-is"; the cross-doc reviewer arbitrates).
+- Don't apply all findings from one reviewer in one pass -- interleave across reviewers so you notice when two reviewers disagree (often: the student-peer says "add this" and the full-context says "this is fine as-is"; the cross-doc reviewer arbitrates).
 
 ## Iteration cadence
 
@@ -136,7 +154,7 @@ Build a running list for your course. Initial seeds from ECE 204 / 205 / 250:
 
 **ECE 250 (data structures)**
 - Reviewers inventing "Part 5" cross-references when a section was actually Part 3. The reviewer misread; grep confirmed the labels. The `\ref` resolves correctly.
-- Reviewers claiming amortised bound of `3` was wrong. Close reading confirmed `3(N-1)` was correct for a specific definition of "element writes"; the reviewer assumed 2-write swaps. Accepted partially — clarify "three writes per temp-based swap".
+- Reviewers claiming amortised bound of `3` was wrong. Close reading confirmed `3(N-1)` was correct for a specific definition of "element writes"; the reviewer assumed 2-write swaps. Accepted partially -- clarify "three writes per temp-based swap".
 
 Track your course's recurring false positives; over time the list becomes a quick filter.
 
