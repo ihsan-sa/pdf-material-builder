@@ -15,14 +15,15 @@
 #   scripts/voice-drift.sh [--source DIR] [--refresh]
 #   PMB_LESSON_BUILDER=/path/to/lesson-builder scripts/voice-drift.sh
 #
-# Source resolution: --source, else $PMB_LESSON_BUILDER, else ../lesson-builder
-# relative to this repo.
+# Source resolution: --source, else $PMB_LESSON_BUILDER, else the first of
+# ../lesson-builder (relative to this repo), ~/.claude/skills/lesson-builder and
+# ~/dev/lesson-builder that holds references/teaching-communication.md.
 #
 # Exit: 0 in sync (or refreshed), 1 drift, 2 bad usage, 3 source not found.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SOURCE_DIR="${PMB_LESSON_BUILDER:-$REPO/../lesson-builder}"
+SOURCE_DIR="${PMB_LESSON_BUILDER:-}"
 MODE=check
 
 while [ $# -gt 0 ]; do
@@ -34,6 +35,13 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if [ -z "$SOURCE_DIR" ]; then
+  for cand in "$REPO/../lesson-builder" "$HOME/.claude/skills/lesson-builder" "$HOME/dev/lesson-builder"; do
+    if [ -f "$cand/references/teaching-communication.md" ]; then SOURCE_DIR="$cand"; break; fi
+  done
+  : "${SOURCE_DIR:=$REPO/../lesson-builder}"
+fi
+
 SRC="$SOURCE_DIR/references/teaching-communication.md"
 if [ ! -f "$SRC" ]; then
   echo "voice-drift: canonical spec not found at $SRC"
@@ -41,9 +49,16 @@ if [ ! -f "$SRC" ]; then
 fi
 
 python3 - "$SRC" "$REPO/references/teaching-communication.md" "$MODE" <<'PYEOF'
-import sys, difflib, unicodedata
+import sys, os, stat, difflib, unicodedata
 
 src_path, copy_path, mode = sys.argv[1], sys.argv[2], sys.argv[3]
+
+# The copy must be a regular file in this repo. A symlink is drift in itself,
+# and --refresh must never write through one to somewhere else.
+if os.path.lexists(copy_path) and not stat.S_ISREG(os.lstat(copy_path).st_mode):
+    print(f'voice-drift: {copy_path} is not a regular file; restore it from git, '
+          'then run --refresh if needed.')
+    sys.exit(1)
 
 # The one transliteration table. Every non-ASCII character the canonical spec
 # uses must appear here; an unmapped one stops a refresh rather than writing a
@@ -97,7 +112,11 @@ if mode == 'refresh':
     if have == expected:
         print('voice-drift: copy already matches the canonical spec.')
     else:
-        open(copy_path, 'w', encoding='utf-8').write(expected)
+        tmp = copy_path + '.tmp'
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+            fh.write(expected)
+        os.replace(tmp, copy_path)
         print(f'voice-drift: refreshed {copy_path} from {src_path}.')
     sys.exit(0)
 

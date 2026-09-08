@@ -143,6 +143,26 @@ selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=white}\n' \
                       b.tex '\\newtcolorbox{pictureit}{colback=white}\n'
 
 # --- 5. voice drift ----------------------------------------------------------
+# Selfcheck first, so the drift detector is proved on every machine, not only
+# where lesson-builder is on disk. The vendored copy is the canonical file put
+# through an ASCII table under a six-line banner, so the copy minus its banner
+# is a source the check must accept, and that plus one line is one it must not.
+sc="$TMPROOT/sc-voice-drift"; mkdir -p "$sc/clean/references" "$sc/dirty/references"
+tail -n +7 "$REPO/references/teaching-communication.md" > "$sc/clean/references/teaching-communication.md"
+{ cat "$sc/clean/references/teaching-communication.md"; printf '\nA line the vendored copy does not have.\n'; } \
+  > "$sc/dirty/references/teaching-communication.md"
+out=$("$REPO/scripts/voice-drift.sh" --source "$sc/dirty" 2>&1); rc=$?
+if [ "$rc" -ne 1 ]; then
+  fail "selfcheck voice-drift: a mutated source exited $rc, expected 1"; printf '%s\n' "$out" | sed 's/^/  /'
+else
+  out=$("$REPO/scripts/voice-drift.sh" --source "$sc/clean" 2>&1); rc=$?
+  if [ "$rc" -ne 0 ]; then
+    fail "selfcheck voice-drift: the matching source exited $rc, expected 0"; printf '%s\n' "$out" | sed 's/^/  /'
+  else
+    pass "selfcheck voice-drift: flags a mutated source, accepts a matching one"
+  fi
+fi
+
 out=$("$REPO/scripts/voice-drift.sh" 2>&1); rc=$?
 case "$rc" in
   0) pass "voice drift: vendored spec matches lesson-builder" ;;
@@ -203,7 +223,7 @@ PYEOF
     for job in preamble-smoke driver-smoke; do
       ok=1
       for pass_n in 1 2 3; do
-        if ! TEXINPUTS="$D:" "$PDFLATEX" -interaction=nonstopmode -halt-on-error \
+        if ! TEXINPUTS="$D:" "$PDFLATEX" -no-shell-escape -interaction=nonstopmode -halt-on-error \
              -output-directory="$D" "$D/$job.tex" > "$D/$job.log" 2>&1; then
           fail "$job: pdflatex failed on pass $pass_n"
           grep -E '^!' "$D/$job.log" | head -5 | sed 's/^/  /'

@@ -37,7 +37,11 @@ Framed as a past student who took the course and got a B or C; brutal, not polit
 - **Coverage gaps**: what would appear on the final that the doc set doesn't cover? Check every verb in the review guide -- does each have a drilled worked example somewhere?
 - **Undercovered weak areas**: does the doc cover "the definition" but not "the application"? Every weak area should have at least 4 distinct problem textures (standard / ugly forcing / edge case / non-standard BC).
 - **Notation collisions**: where does a student flipping between docs get lost?
-- **Pedagogy misses**: are known traps warned about? (Sign conventions; implementation-dependent counter-examples; "tightest upper bound" Theta-in-disguise.)
+- **Pedagogy misses**: are known traps warned about? (Sign conventions; implementation-dependent counter-examples; "tightest upper bound" Theta-in-disguise.) Rhetorical traps seen across courses, all of which this reviewer flags:
+  - "iff" for a sufficient condition ("gradient descent converges iff `s < 2/L`" is `if`, not `iff`).
+  - Theta-in-disguise: "tightest upper bound" is strictly a Theta characterisation. Warn the student that outside this course `n = O(n^2)` is correct, if loose.
+  - "Formally equivalent" for methods that mirror but do not literally equal (Simpson and RK4; Prim and Dijkstra). Prefer "mirrors" or "corresponds to".
+  - "Dijkstra generalises BFS" via "extract-min reduces to FIFO": the mechanism is still priority-based; the order happens to match on unit weights.
 - **Coding prep**: if the final has coding questions, does the doc set give enough C++ / pseudocode to write the expected functions from scratch under time pressure?
 - **Rubric alignment**: does pseudocode have enough structure to earn 60-80% partial credit?
 

@@ -148,7 +148,7 @@ See `assets/preamble-template.tex` for the complete preamble.
 
 8. **TOC entries for starred sections.** Use `\phantomsection` + `\addcontentsline{toc}{section}{<title>}` before a `\section*`. For counter-driven custom entries (like `Problem N`), use `\refstepcounter{probnum}` before the `\addcontentsline`.
 
-9. **Em-dashes and unicode.** `--` (U+2014) breaks some setups and is a user style preference. Grep for them post-build; replace with `--` or commas/semicolons.
+9. **Em-dashes and unicode.** The em-dash character (U+2014) breaks some setups and is a user style preference. Grep for it post-build (`scripts/style-check.sh` does); replace with `--` or commas/semicolons.
 
 10. **No emojis.** Zero tolerance. Grep high-unicode code points after every build.
 

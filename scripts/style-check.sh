@@ -31,8 +31,10 @@ files = []
 for d, dirs, fs in os.walk(root):
     dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS)
     for f in sorted(fs):
-        if f.endswith(('.tex', '.md', '.sh')):
-            files.append(os.path.join(d, f))
+        p = os.path.join(d, f)
+        # Regular files only: a symlink could point at /dev/zero or outside the tree.
+        if f.endswith(('.tex', '.md', '.sh')) and os.path.isfile(p) and not os.path.islink(p):
+            files.append(p)
 
 # A bare O( inside math: not \Oh, not \Ohof, not part of a longer identifier.
 BARE_O = re.compile(r'\$[^$]*?(?<![\\A-Za-z])O\s*\(')

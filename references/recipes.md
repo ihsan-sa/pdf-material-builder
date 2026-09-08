@@ -19,6 +19,8 @@ Pick the recipe before anything else. It decides how much pipeline runs: see "Bu
 
 **"Build the PDFs for `<course>`" means the first five**, in that order, as one coordinated set: the default manifest, not a fixed set. Drop one the course does not need, add a `cheat-sheet` if the reader wants one, and say which manifest you are building before you start.
 
+**Where a course-level set lands and how it is published.** The set sits in `<course_dir>/` beside `claude_lessons/`. If the workspace has a deploy pipeline, wire the set in after the build: confirm `build-all.sh` copies each PDF into the deploy output (it walks `<COURSE>/*.pdf`; older layouts needed a `mkdir -p`/`cp` block per course); add a `<div class="pdf-banner">` with links to the PDFs under the course card in the landing page that script writes; un-ignore the tracked `.tex` and `.pdf` files and the `course_notes/`, `worked_examples/` and `viz_src/` subdirectories in `.gitignore`; push and check the deploy picked up the commit.
+
 ## reference
 
 Page 1 is the framework: the tools table and a decision tree that routes a problem to a method. Pages 2 to N are one page per category, each a `tabularx` of method / form / when to reach for it / key equation / watch-out, under a `\catbanner` in that category's colour. Landscape, 0.55in margins.
