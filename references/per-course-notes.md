@@ -2,7 +2,7 @@
 
 Distilled from building ECE 204 (Harder), ECE 205 (Kotecha), and ECE 250 (Huang) at University of Waterloo. Use as a pattern library when starting a new course.
 
-## ECE 204 — Numerical Methods (Prof Harder)
+## ECE 204 -- Numerical Methods (Prof Harder)
 
 ### Taxonomy
 - **A** Approximating expressions (interpolation, LS, Horner, Simpson)
@@ -25,7 +25,7 @@ Distilled from building ECE 204 (Harder), ECE 205 (Kotecha), and ECE 250 (Huang)
 - nD Newton
 - nD optimization
 - Gradient-descent mechanics
-- Higher-order → first-order system conversion
+- Higher-order -> first-order system conversion
 
 ### Banned-optional content (per Prof Harder's summary)
 Brief mention OK with `[optional]` tag:
@@ -39,17 +39,17 @@ Brief mention OK with `[optional]` tag:
 - Hooke-Jeeves detailed algorithm (general idea OK)
 
 ### Course conventions worth preserving
-- Tolerance criterion `E ≤ tol · h` (Harder-specific; scales error budget per step so total error over `[t_0, T]` is `tol · (T − t_0)`)
-- Ghost-point accuracy is not uniform: BVP Neumann and heat-equation insulation use centered O(h²); Laplace insulated uses first-order one-sided
-- "Forward" one-sided stencil vs "backward" — Harder uses "one-sided"
+- Tolerance criterion `E <= tol * h` (Harder-specific; scales error budget per step so total error over `[t_0, T]` is `tol * (T - t_0)`)
+- Ghost-point accuracy is not uniform: BVP Neumann and heat-equation insulation use centered O(h^2); Laplace insulated uses first-order one-sided
+- "Forward" one-sided stencil vs "backward" -- Harder uses "one-sided"
 
 ### Classic exam traps to warn about
-- Richardson extrapolation sign: `z_{2n} - y(T) ≈ (y_n - z_{2n})/(2^p - 1)` — numerator is coarser minus finer
-- Ghost-point Neumann: moving `p_0 · (-2h α)` across equals gives `+2h α p_0` on RHS. Mark the sign explicitly
+- Richardson extrapolation sign: `z_{2n} - y(T) ~= (y_n - z_{2n})/(2^p - 1)` -- numerator is coarser minus finer
+- Ghost-point Neumann: moving `p_0 * (-2h alpha)` across equals gives `+2h alpha p_0` on RHS. Mark the sign explicitly
 - Local vs global order: "order-p method" means global `O(h^p)`, local `O(h^{p+1})`
 - PSD vs PD: strict PD is sufficient for strict local min; PSD is necessary but not sufficient
 
-## ECE 205 — Advanced Calculus 1 (Prof Kotecha)
+## ECE 205 -- Advanced Calculus 1 (Prof Kotecha)
 
 ### Taxonomy
 - **A** First-order ODEs (linear / VoP / integrating factor / separable / exact)
@@ -76,7 +76,7 @@ Depends per student. Kotecha-specific likely candidates:
 
 ### Conventions (Kotecha vs textbooks)
 - **Damping coefficient**: plain $\gamma$ (not $2\gamma$ or $c$)
-- **Shift theorem letter**: $b$ (Kotecha) or $c$ (Dawkins) — pick per doc
+- **Shift theorem letter**: $b$ (Kotecha) or $c$ (Dawkins) -- pick per doc
 - **Separation constant**: $-\lambda$ in $X''/X = -\lambda$
 - **Wave speed letter**: $a$ (Kotecha) vs $c$ (most textbooks); pick one and enforce
 - **Heat diffusivity**: $\alpha$ (to avoid clash with Kotecha's $a$ for wave speed)
@@ -91,7 +91,7 @@ Depends per student. Kotecha-specific likely candidates:
 ### Exam-provides-formula-sheet workflow
 ECE 205's exam ships a Laplace + FT table. Build the **annotated formula sheet first** in this case (most deterministic doc); the other docs reference its entries.
 
-## ECE 250 — Data Structures and Algorithms (Prof Huang)
+## ECE 250 -- Data Structures and Algorithms (Prof Huang)
 
 ### Taxonomy
 - **A** Analysis (Big-O, ADT framing)
@@ -123,7 +123,7 @@ ECE 205's exam ships a Laplace + FT table. Build the **annotated formula sheet f
 - `Height(leaf) = 0`, `Height(NULL) = -1`, `Depth(root) = 0`
 - RB rules numbered **1-4** (not CLRS 5): the "every leaf NIL is Black" rule is folded into Rule 4 via virtual black
 - Heap root at index **1** with sentinel at `data[0]`; 0-based given as alternative
-- Graph adjacency type on final: **`map<int, map<int, int>>`** (outer = source, inner = dest → weight). This is THE final-coding-question type
+- Graph adjacency type on final: **`map<int, map<int, int>>`** (outer = source, inner = dest -> weight). This is THE final-coding-question type
 - Big-O only; $\Omega$ and $\Theta$ are ECE 406. **One admitted exception**: the comparison-sorting lower bound $\Omega(N \log N)$ is stated as a quoted result
 
 ### Banned-optional content
@@ -136,12 +136,12 @@ ECE 205's exam ships a Laplace + FT table. Build the **annotated formula sheet f
 - Bellman-Ford, Floyd-Warshall, A* (out of scope)
 
 ### Classic exam traps
-- Dijkstra negative-edge counter-example needs an extra edge (e.g., `B → D:1`) to make the failure persist in final `d[]`; the simplest 3-edge graph self-corrects under lazy insertion
+- Dijkstra negative-edge counter-example needs an extra edge (e.g., `B -> D:1`) to make the failure persist in final `d[]`; the simplest 3-edge graph self-corrects under lazy insertion
 - Quicksort last-cell pivot is $\Oh(N^2)$ on sorted input (not in-place on adversarial data)
 - BFS/DFS "path-storing" iterative variant is $\Oh(V(V+E))$ time, not $\Oh(V+E)$, because paths are copied per push and mark-on-dequeue allows multiple enqueues per vertex. To get the canonical $\Oh(V+E)$, switch to mark-on-enqueue + predecessor map
 - Selection sort makes $N-1$ swaps = $3(N-1)$ element writes with a temp, not $N-1$ writes
 - Primitive-op model: memory access is *slower* than addition (register adds are ~1 cycle, DRAM is ~100), not the reverse
-- "Tightest upper bound in the worst case" is strictly Θ; warn students not to carry this to ECE 406 or textbooks
+- "Tightest upper bound in the worst case" is strictly Theta; warn students not to carry this to ECE 406 or textbooks
 
 ### Exam format note
 Closed book, no formula sheet. The "formula sheet annotated" doc therefore becomes a consolidated complexity/invariant cheat sheet (role analog, not verbatim mirror).

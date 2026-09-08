@@ -1,10 +1,12 @@
-# Conventions — palette, macros, LaTeX traps
+# LaTeX house style
 
-This file is consulted during the build to get the canonical preamble elements right the first time, and during the review pipeline to check style compliance.
+The look and the build discipline every document in this skill shares, whatever its recipe: palette, box kit, macro kit, formatting, the three-pass compile, the traps, and the style gate. Read it before writing the first `.tex` line, and again during review.
+
+It stands alone. Nothing here is about teaching or voice -- for those see `references/voice.md` and `references/teaching-communication.md`; for which document to build, `references/recipes.md`.
 
 ## Palette
 
-All courses share the gold / category-colour structure. Add or rename category colours per course.
+Every document shares the gold / accent structure. Category colours are the per-document axis: a course names them after its taxonomy, a technical doc after its subsystems, a companion handout inherits its lesson's course colours.
 
 ```
 gold         #B8943E   primary accent, section headers
@@ -18,7 +20,7 @@ connectblue  #3E6FB8   blue stripe (cross-topic connections)
 optorange    #C97A1E   orange stripe (optional / out-of-scope content)
 ```
 
-Category colours — pick per course:
+Category colours -- worked examples from real builds; pick or invent per document:
 
 ```
 ECE 204 (A-D: numerical methods)
@@ -53,7 +55,7 @@ catG #8B5A2B brown   (paradigms)
 | Blue | `connect` | Cross-topic link. Foreshadows later material or recalls earlier. |
 | Orange | `optional` | Flagged as out of scope per course materials. Skip on first read. Inline `\opt` tag for brief mentions. |
 
-**Naming gotcha.** Never define a tcolorbox env named `picture` — it collides with LaTeX's built-in `picture` environment and silently breaks `\@iiiparbox`. Use `pictureit`.
+**Naming gotcha.** Never define a tcolorbox env named `picture` -- it collides with LaTeX's built-in `picture` environment and silently breaks `\@iiiparbox`. Use `pictureit`.
 
 ## Canonical macro kit
 
@@ -134,7 +136,7 @@ See `assets/preamble-template.tex` for the complete preamble.
 
 2. **`picture` env collision.** LaTeX has a built-in `picture` environment; redefining it via `\newtcolorbox{picture}` silently breaks `\@iiiparbox` later. Always name custom boxes something else (`pictureit`).
 
-3. **`\trans` macro design.** `\newcommand{\trans}{^{\!\top}}` then `X^\trans` expands to `X^^{\!\top}` (double `^`). Correct form: `\newcommand{\trans}{{\!\top}}`, so `X^\trans` → `X^{\!\top}`.
+3. **`\trans` macro design.** `\newcommand{\trans}{^{\!\top}}` then `X^\trans` expands to `X^^{\!\top}` (double `^`). Correct form: `\newcommand{\trans}{{\!\top}}`, so `X^\trans` -> `X^{\!\top}`.
 
 4. **`\bX` vector macros missing.** Agents use `\ba, \bb, \bc, \bd, \be, \bh, \bn, \br, \bs` freely. Define every lowercase letter in the preamble; don't wait to discover missing macros at compile.
 
@@ -146,7 +148,7 @@ See `assets/preamble-template.tex` for the complete preamble.
 
 8. **TOC entries for starred sections.** Use `\phantomsection` + `\addcontentsline{toc}{section}{<title>}` before a `\section*`. For counter-driven custom entries (like `Problem N`), use `\refstepcounter{probnum}` before the `\addcontentsline`.
 
-9. **Em-dashes and unicode.** `—` (U+2014) breaks some setups and is a user style preference. Grep for them post-build; replace with `--` or commas/semicolons.
+9. **Em-dashes and unicode.** `--` (U+2014) breaks some setups and is a user style preference. Grep for them post-build; replace with `--` or commas/semicolons.
 
 10. **No emojis.** Zero tolerance. Grep high-unicode code points after every build.
 
@@ -154,38 +156,16 @@ See `assets/preamble-template.tex` for the complete preamble.
 
 12. **Hyperref "Token not allowed in PDF string" warnings.** Math in `\section` titles generates benign warnings when building PDF bookmarks. Cosmetic only. Options: (a) wrap each with `\texorpdfstring{<math>}{<plain>}` (mechanical, ~1 hour of edits); (b) live with the warnings and add a one-line comment in the driver explaining they're benign. Option (b) is usually the right call.
 
-## Style-check script
+## Style gate
 
-Run after every agent-authored write. Expected final totals: all zero.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other high unicode, a `\lt` or `\gt`, a bare `$O()$` where `\Oh` belongs, and a tcolorbox named `picture`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
-```python
-import os, re
-skip_dirs = {'_extraction', 'course_materials', 'viz_src',
-             'node_modules', 'claude_lessons'}
-files = []
-for root, dirs, fs in os.walk('.'):
-    dirs[:] = [d for d in dirs if d not in skip_dirs]
-    for f in fs:
-        if f.endswith('.tex'):
-            files.append(os.path.join(root, f))
-
-lt_re = re.compile(r'\\lt(?=[\s$}\\])')
-gt_re = re.compile(r'\\gt(?=[\s$}\\])')
-t_em = t_lt = t_hi = 0
-for f in files:
-    with open(f, 'r', encoding='utf-8') as fh:
-        s = fh.read()
-    em = s.count('\u2014')
-    lt = len(lt_re.findall(s))
-    gt = len(gt_re.findall(s))
-    hi = sum(1 for c in s if ord(c) > 0x2000 and
-             ord(c) not in (0x2014, 0x2013, 0x2019, 0x201c, 0x201d))
-    if em or lt or gt or hi:
-        print(f'{f}: em={em}, lt/gt={lt+gt}, hi={hi}')
-    t_em += em; t_lt += lt + gt; t_hi += hi
-
-print(f'TOTAL: em={t_em}, lt/gt={t_lt}, hi={t_hi}, files={len(files)}')
+```bash
+scripts/style-check.sh                # this repo
+scripts/style-check.sh <course_dir>   # a build directory
 ```
+
+It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/` and `claude_lessons/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
 
 ## Compile recipe (idempotent; safe to re-run)
 
