@@ -8,7 +8,7 @@ tests/check.sh fails if this copy has drifted from the canonical source. -->
 
 Canonical source for the discourse layer of the skill: how an explanation unfolds idea by idea, which representation each idea takes, how long a teaching move runs, and when an analogy is allowed. Referenced by Phase 1 (relation recovery), Phase 2 (`teaching_arc`), Phase 3 (prose authoring), Phase 4 / `content-review-agent` (enforcement), and mirrored inline in the tutor prompt (`_lesson-core/chat/buildSystemPrompt.js`: `TEACHING_COMMUNICATION` + `TEACHING_EXEMPLARS` + the MEDIA SELECTION / MEDIA MENU block). Spec lineage: teaching-quality spec v3 + the v3->v4 delta (2026-08-15).
 
-Two questions stay separate: **`PEDAGOGY_POLICY` governs *when* the tutor reveals information** (retrieval-first, hint ladder, fading, question discipline, adaptive explicitness). **This file governs *how* anyone -- lesson prose or tutor -- communicates it.** Neither overrides the other.
+Two questions stay separate: **`PEDAGOGY_POLICY` governs *when* the tutor reveals information** (attempt-first with answers labelled independent / with help, hint ladder, fading, question discipline, adaptive explicitness). **This file governs *how* anyone -- lesson prose or tutor -- communicates it.** Neither overrides the other.
 
 Contents: Why this exists . Optimization target . Representation rules . Exposition rules (lesson prose) . Analogy policy . Teaching arc . Tutor: style block, response modes, turn control . Enforcement pointers . Guardrails . Evidence . Core rule.
 
