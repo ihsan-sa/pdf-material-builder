@@ -167,9 +167,10 @@ selfcheck definecolor a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
                       b.tex '\\textcolor{inkfiftyfive}{x} % a token the .sty defines\n'
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
-# A tint of a token is clean; a hue that is not a token is not, tinted or plain.
+# A tint is a violation in itself: the style allows no gradients and no tints,
+# only the eight tokens, so `accent!12` is as wrong as a hue that is no token.
 selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=accent!12] {x};\n' \
-                      b.tex '\\node[draw=accent,fill=accent!12] {x};\n'
+                      b.tex '\\node[draw=accent,fill=fill] {x};\n'
 selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
                      b.tex '% housestyle.sty paints the paper tint; a document never does\n'
 selfcheck sans-face  a.tex '{\\sffamily A label}\n' \

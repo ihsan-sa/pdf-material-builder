@@ -125,7 +125,7 @@ The foot's left slot is empty by default, which is why the copyright line can ha
 
 ## Style gate
 
-`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, inside a diagram as much as outside one (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint whose named parts are not tokens); a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, inside a diagram as much as outside one (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or any `!` tint at all, since the style allows no gradients and no tints); a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
 
 It also reads the composition defects the reference rendering exposed: an empty mandatory argument to `hsfigure`, `hstitleblock`, `hsclaim`, `hsprovenance`, `hslisting`, `hsnodetext`, `hsplate` or `hscallout`; an `hsnode` / `hswork` / `hsgate` whose body is not `\hsnodetext`; and a fifth `\hsstat` in one row. What no script can judge is the ten-point list at the end of `references/page-composition.md`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 

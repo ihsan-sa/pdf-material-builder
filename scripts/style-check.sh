@@ -139,15 +139,18 @@ for path in files:
             # \color{#1} in a macro body, or text=\foo, is not a literal.
             if name.startswith(('#', '\\')) or not name:
                 continue
-            # A `!` tint mixes tokens with percentages: every named part of
-            # `accent!12` or `ink!20!paper` has to be a token itself.
-            parts = [q for q in name.split('!') if not q.isdigit()]
-            bad = [q for q in parts if q not in TOKEN_NAMES]
-            if bad:
-                problems.append(f'{rel}:{n}: colour `{bad[0]}` is not a house-style '
+            # The spec allows no tints: `accent!12` and `ink!20!paper` are
+            # as wrong as a hue that is no token at all ("No gradients, no
+            # tints of the accent, no second hue"), so the `!` is itself the
+            # violation and the whole name is reported.
+            if '!' in name:
+                problems.append(f'{rel}:{n}: colour `{name}` is a tint; the '
+                                'style allows no gradients and no tints, only '
+                                'the eight tokens themselves')
+            elif name not in TOKEN_NAMES:
+                problems.append(f'{rel}:{n}: colour `{name}` is not a house-style '
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
-                                'fill, codefill, accent, rulegrey), or a tint '
-                                'of one')
+                                'fill, codefill, accent, rulegrey)')
         if SANS.search(line):
             problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
                             'Source Serif 4 and IBM Plex Mono, neither a sans')
