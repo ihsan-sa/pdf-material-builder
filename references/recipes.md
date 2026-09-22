@@ -1,12 +1,12 @@
 # Recipes
 
-One recipe per kind of document this skill builds. A recipe fixes the role, the length band, the structure and the build size; everything else comes from `references/latex-house-style.md` (the look) and `references/voice.md` plus `references/teaching-communication.md` (the writing).
+One recipe per kind of document this skill builds. A recipe fixes the role, the length band, the structure and the build size; everything else comes from `references/house-style/style-spec.md` and `references/latex-house-style.md` (the look and the build) and `references/voice.md` plus `references/teaching-communication.md` (the writing).
 
-Pick the recipe before anything else. It decides how much pipeline runs: see "Build size" below and the scaled pipeline in `SKILL.md`.
+Every recipe uses the one portrait geometry of the house style and builds with `scripts/build.sh` (lualatex, three passes). Pick the recipe before anything else. It decides how much pipeline runs: see "Build size" below and the scaled pipeline in `SKILL.md`.
 
 | Recipe | Length | Role | Build size |
 |---|---|---|---|
-| `reference` | 7-8pp landscape | Method-per-row landscape reference, organised by the document's taxonomy. | large |
+| `reference` | 7-8pp | Method-per-row reference, organised by the document's taxonomy. | large |
 | `formula-sheet` | 7-8pp | The official exam sheet mirrored verbatim with a one-line annotation under each entry. No official sheet: a consolidated complexity / invariant sheet. | large |
 | `visual-intuition` | 10-13pp | About fifteen mechanism figures, each with one caption saying what to picture. | large |
 | `worked-examples` | 25-30pp | Past-exam problems worked one per page, with a clickable contents. | large |
@@ -23,27 +23,27 @@ Pick the recipe before anything else. It decides how much pipeline runs: see "Bu
 
 ## reference
 
-Page 1 is the framework: the tools table and a decision tree that routes a problem to a method. Pages 2 to N are one page per category, each a `tabularx` of method / form / when to reach for it / key equation / watch-out, under a `\catbanner` in that category's colour. Landscape, 0.55in margins.
+Page 1 is the framework: the tools table and a decision tree that routes a problem to a method. Pages 2 to N are one page per category, each opened by `\catbanner{<letter>}{<title>}` and carrying a comparison table (`tabularx`, `\hstoprule`, `\hshead`) of method / form / when to reach for it / key equation / watch-out. Portrait, like every recipe: five columns fit the 34-em measure when the key equation column is the widest and the rest are short phrases.
 
-Build this first in a `large` build even though it is not the biggest: it forces the taxonomy and the colour map to be settled, and every later document cites its categories.
+Build this first in a `large` build even though it is not the biggest: it forces the taxonomy to be settled, and every later document cites its categories.
 
 ## formula-sheet
 
-Mirror the official sheet verbatim, entry for entry, in its order, with an italic grey one-line annotation under each: when it applies, how to use it, the trap. Never silently correct the official sheet; where it is wrong or unconventional, annotate the difference.
+Mirror the official sheet verbatim, entry for entry, in its order, with a one-line annotation under each in caption size (ink-70): when it applies, how to use it, the trap. Never silently correct the official sheet; where it is wrong or unconventional, annotate the difference.
 
-With no official sheet, the recipe becomes a consolidated sheet of the load-bearing essentials (complexities, invariants, closed forms) in `fsheet` boxes, same annotation discipline.
+With no official sheet, the recipe becomes a consolidated sheet of the load-bearing essentials (complexities, invariants, closed forms) as display equations marked `\onsheet`, same annotation discipline.
 
 When the course provides an official sheet, build this first instead of the reference: it is the most deterministic document in the set and it pins notation for everything after it.
 
 ## visual-intuition
 
-About fifteen figures. matplotlib for quantitative dependence, into `viz_src/` with a `generate_all.py` that regenerates every PNG; inline TikZ for trees, structures and small staged diagrams. One `pictureit` caption per figure saying what the reader should picture, in domain.
+About fifteen figures. matplotlib for quantitative dependence, into `viz_src/` with a `generate_all.py` that regenerates every PNG; inline TikZ in an `hsfigure` for trees, structures and small staged diagrams. Each figure is a figure plate (`\hsplate`) or `hsfigure` whose caption says what the reader should picture, in domain.
 
 A figure that only restates a sentence is deleted, not shrunk. Fifteen is a target, not a quota.
 
 ## worked-examples
 
-One problem per page. `\probhead{source}{method}{cat-tag}` at the top, the statement verbatim, then the derivation in `step` boxes. Clickable contents, category banner per section.
+One problem per page. `\probhead{source}{method}{cat-tag}` at the top, the statement verbatim, then the derivation in a `derivation` run. Clickable contents, a `\catbanner` per category.
 
 Two rules that have cost real rework: cherry-pick from the practice exams and problem-set solutions rather than inventing problems, and re-derive every numerical answer from scratch. Extractors hallucinate numbers; the reviewer catches only some of them.
 
@@ -71,14 +71,14 @@ Inputs, in this order:
 
 Structure, in order:
 
-- A header carrying the course code, the lesson title, and the lesson's URL.
+- A title block (`\hstitleblock`): the course code as eyebrow, the lesson title, and the lesson's URL in the lead.
 - **Objectives**, verbatim from the plan. Not paraphrased: the reader is told the same thing the lesson told them.
-- **The equations**, in `fsheet` boxes, each with the one sentence saying what the relation implies.
-- **One worked example**, the highest-value practice problem from the plan, with its source attribution, worked in `step` boxes. One, not the set: this is a handout, not the worked-examples recipe.
+- **The equations**, as display equations (`\onsheet` where they are formula-sheet facts), each with the sentence naming its symbols and saying what the relation implies.
+- **One worked example**, the highest-value practice problem from the plan, with its source attribution, worked in a `derivation` run. One, not the set: this is a handout, not the worked-examples recipe.
 - **The exit check**, from the arc's `exit_evidence`. It requires the compressed model and introduces nothing new.
 - **Neighbours**: one line each for the lesson before and after in the course, with their titles and URLs, so a printed page is not a dead end.
 
-`pictureit` at most twice; `connect` for the neighbour relation when it is structural rather than sequential. No teaching arc of its own, no new derivations, no new examples.
+A mental image at most twice, in prose; the neighbour relation in a sentence with a link when it is structural rather than sequential. No teaching arc of its own, no new derivations, no new examples.
 
 **Where it lands.** `<workspace_root>/<COURSE>/claude_lessons/<slug>/<course>_<slug>_companion.tex` and the compiled `.pdf` beside it, inside the lesson directory, so the handout travels with the lesson it belongs to.
 
@@ -89,7 +89,7 @@ Structure, in order:
 
 ## cheat-sheet
 
-One page, two at the outside. Decisions and shapes: the decision tree, the method-to-situation table, the handful of equations whose *form* must be recognised on sight. No derivations, no worked examples, no prose paragraphs.
+One page, two at the outside, portrait like every recipe. Decisions and shapes: the decision tree, the method-to-situation table, the handful of equations whose *form* must be recognised on sight. No derivations, no worked examples, no prose paragraphs.
 
 The test is whether it works face-up beside the work. If the reader has to read it rather than glance at it, it is a `reference`, not a cheat sheet.
 
@@ -101,6 +101,6 @@ What applies: the whole of `references/latex-house-style.md`, and from `referenc
 
 What does not apply, and must not be bolted on: the teaching arc, retrieval prompts, transfer items, exit checks, misconception repair, objectives, weak-area page budgets. A report with an exit check in it is a report nobody finished.
 
-Boxes, remapped: `insight` for a conclusion or a decision, once each; `step` for a derivation or a measurement procedure; `connect` for a cross-reference to another system or document; `optional` for depth a first reader can skip; `fsheet` for a specification or invariant that other work must hold to. `pictureit` is usually wrong here, because a colleague reading a design note wants the structure diagram, not a mental image of it.
+This is the recipe the twelve blocks were drawn for: the claim, the flow diagram, the stat row with its provenance footline, the callout for the objection, the numbered sources. Of the teaching affordances, `\insight` (the lead line) and `derivation` carry over; `\opt` marks depth a first reader can skip. A mental image is usually wrong here, because a colleague reading a design note wants the structure diagram, not a picture of it.
 
 Structure follows the document, not a template: a design note leads with the decision and its constraints; an incident write-up with what happened and what changed. Length band is wide because the recipe is: 5pp for a design note, 40pp for a full evaluation with results.

@@ -10,7 +10,7 @@ Present teaching material and technical documentation in LaTeX, at whatever leng
 Three things are settled before any writing starts, and each has its own reference:
 
 - **Which document.** `references/recipes.md` -- role, length band, structure and build size per recipe.
-- **How it looks.** `references/latex-house-style.md` -- palette, box kit, macro kit, three-pass compile, the traps, the style gate.
+- **How it looks.** `references/house-style/style-spec.md` is the look: one portrait page, two faces, five neutrals and one accent, twelve blocks. `references/latex-house-style.md` maps it onto macros and carries the build, the teaching affordances, the math kit, the traps and the style gate.
 - **How it explains.** `references/teaching-communication.md` is the canonical voice, shared with the lesson-builder skill. `references/voice.md` says which LaTeX construct carries each of its representations, and holds the three page-level rules the spec has no row for.
 
 ## Pick the recipe first
@@ -32,7 +32,7 @@ A small build is four steps, and the orchestrator does the first three itself:
 3. **Write the body.** One agent, or none. Condense the source; do not re-derive it.
 4. **Review.** Two reviewers, not five: the math verification agent and the cold-edit reviewer. `references/review-pipeline.md` says which three are skipped and why.
 
-Then compile three passes, run `scripts/style-check.sh`, and hand over.
+Then build with `scripts/build.sh`, run `scripts/style-check.sh`, and hand over.
 
 ## Large builds
 
@@ -62,13 +62,13 @@ Each batch also writes `_notation_L<range>.md` listing conventions worth propaga
 
 **Step 1.3 -- Exam and problem-set extraction.** In parallel with the lecture batches, spawn agents for the official formula sheet and reference tables, the practice midterms and finals (verbatim statements plus key numerical answers), and the problem-set solutions (one file per set, flagging which problems are high-value for `worked-examples`).
 
-**Step 1.4 -- Consolidate conventions.** Read all the `_notation_*.md` files and write `<build_dir>/_extraction/_<PROF>_CONVENTIONS.md` as the single source of truth: function-letter conventions, equation normalisation choices, signed-letter conflicts (wave speed $a$ vs Fourier coefficient $a_n$), taxonomy colour map, tools analogue, weak-area flags, banned-optional list, exam format.
+**Step 1.4 -- Consolidate conventions.** Read all the `_notation_*.md` files and write `<build_dir>/_extraction/_<PROF>_CONVENTIONS.md` as the single source of truth: function-letter conventions, equation normalisation choices, signed-letter conflicts (wave speed $a$ vs Fourier coefficient $a_n$), taxonomy, tools analogue, weak-area flags, banned-optional list, exam format.
 
 **Every downstream builder prompt cites this conventions doc as critical reading item #1.** Without it every builder re-derives conventions and the set drifts.
 
 ### Phase 2 -- The anchor document
 
-Build `reference` first: it forces the taxonomy and the colour map to be nailed down, and every later document cites its categories. Exception, per `references/recipes.md`: when the course provides an official formula sheet verbatim, build `formula-sheet` first, because it is the most deterministic document in the set.
+Build `reference` first: it forces the taxonomy to be nailed down, and every later document cites its categories. Exception, per `references/recipes.md`: when the course provides an official formula sheet verbatim, build `formula-sheet` first, because it is the most deterministic document in the set.
 
 Spawn one `general-purpose` agent with the conventions doc, the extraction markdowns, and a sibling course's reference as a voice sample. Outputs: `<name>_reference_body.tex` (shared body with `\if*` toggles), `<name>_reference.tex` (driver, all flags false), and optionally `<name>_reference_examples.tex` and `<name>_reference_formulas.tex` variants that flip the flags.
 
@@ -78,37 +78,37 @@ Once the anchor exists, spawn the remaining short-form builders in one message: 
 
 ### Phase 6 -- Course notes
 
-**Step 6.1 -- Write the driver first.** The orchestrator, not a subagent, writes `<name>_course_notes.tex` from `assets/driver-template.tex`: full preamble, palette, macros, title page, `\tableofcontents`, and `\input{course_notes/NN_name}` stubs. This settles Part ordering and label conventions before the writers run.
+**Step 6.1 -- Write the driver first.** The orchestrator, not a subagent, writes `<name>_course_notes.tex` from `assets/driver-template.tex`: full preamble, macros, title page, `\tableofcontents`, and `\input{course_notes/NN_name}` stubs. This settles Part ordering and label conventions before the writers run.
 
-**Step 6.2 -- Spawn 8-10 parallel section writers in one message.** One `course_notes/NN_name.tex` each: `00_preface.tex`, one per taxonomy category, `99_appendix.tex`. Weak-area sections get 8-11pp and explicit instructions to go deep with `step` and `pictureit` boxes; the rest get 4-6pp.
+**Step 6.2 -- Spawn 8-10 parallel section writers in one message.** One `course_notes/NN_name.tex` each: `00_preface.tex`, one per taxonomy category, `99_appendix.tex`. Weak-area sections get 8-11pp and explicit instructions to go deep with full `derivation` runs and figures; the rest get 4-6pp.
 
 **Step 6.3 -- Every writer brief carries these.** Do not economise; repeat them in each prompt.
 
 - The conventions doc path (mandatory critical reading)
-- The driver file path, which shows the macros available (`step`, `insight`, `pictureit`, `fsheet`, `connect`, `optional`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, the cpp listing style)
+- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead`), and the rule that nothing else is drawn: no boxes, no colour, no footnotes
 - `references/voice.md` and `references/teaching-communication.md`, plus a sibling section as a voice sample
 - The relevant extraction files, the target page count, and whether this is a weak-area section
-- Hard rules: no emojis, no em-dashes, no `\lt` / `\gt` (LaTeX is not KaTeX), `\Oh{...}` not bare `$O()$`
+- Hard rules: no emojis, no em-dashes, no `\footnote`, no colour but the tokens, at most one `\hsclaim` per document, no `\lt` / `\gt` (LaTeX is not KaTeX), `\Oh{...}` not bare `$O()$`
 - Cross-references to expect ("foreshadows Part 5", "cites Part 1's recurrence-tree method via `\ref{sec:...}`")
 - Banned-optional items to `\opt`-tag or skip
 
-**Step 6.4 -- The Part-numbering trap.** Parallel writers each independently claim `\part{}` labels, so two writers both opening a Part both get Part 1. Fix it one of two ways and be explicit in every brief: either only certain section files open new Parts (`01_`, `02_`, `04_`, `07_` do; `03_`, `05_`, `06_` continue theirs), or the driver pre-declares every Part and section files use only `\section` and `\subsection`.
+**Step 6.4 -- The Part-numbering trap.** Parallel writers each independently claim `\part{}` labels, so two writers both opening a Part both get Part 1. Fix it one of two ways and be explicit in every brief: either only certain section files open new Parts with `\catbanner` (`01_`, `02_`, `04_`, `07_` do; `03_`, `05_`, `06_` continue theirs), or the driver pre-declares every Part and section files use only `\section` and `\subsection`.
 
 ### Phase 7 -- Review
 
 Read `references/review-pipeline.md` before launching. Five parallel reviewers: full-context content, student-peer brutal, cross-doc consistency, math verification, cold-edit.
 
-**The filter phase is mandatory.** Reviewers hallucinate, and 20-40% of findings are false positives. Re-derive every math claim from scratch rather than trusting the reviewer's algebra; grep the file to confirm every quoted string exists verbatim; require two independent reviewers to agree before acting on a subjective claim. Apply only verified fixes, then recompile.
+**The filter phase is mandatory.** Reviewers hallucinate, and 20-40% of findings are false positives. Re-derive every math claim from scratch rather than trusting the reviewer's algebra; grep the file to confirm every quoted string exists verbatim; require two independent reviewers to agree before acting on a subjective claim. Apply only verified fixes, then rebuild.
 
 ## Traps that have cost real rework
 
 `references/latex-house-style.md` has the full list with fixes. The ones that have bitten more than once:
 
 - **`\lt` and `\gt` leak from KaTeX into LaTeX** and fail with "Undefined control sequence". Grep after every agent write. Replace with Python, not `sed`: regex edge cases corrupt `\Delta`.
-- **A tcolorbox named `picture`** collides with LaTeX's built-in `picture` environment and silently breaks `\@iiiparbox`. Name it `pictureit`.
+- **Old macros in a writer's head.** `step`, `pictureit`, `fsheet`, `connect` and the coloured boxes are gone, and no tcolorbox is loaded. Map each onto the affordance table in `references/latex-house-style.md`; never define them again.
 - **`\trans` must be `{\!\top}`, not `^{\!\top}`**, so `X^\trans` expands to `X^{\!\top}` and not a double `^`.
-- **Three compile passes for a multi-page TOC.** Two is not enough: pass 1 writes an empty TOC, pass 2 writes a populated one that shifts every page number, pass 3 re-resolves the cross-references against the shifted layout.
-- **PDF file-lock during compile.** Compile to `-jobname=_tmp_<round>`, then `cp` over the real name.
+- **Three compile passes for a multi-page TOC.** Two is not enough: pass 1 writes an empty TOC, pass 2 writes a populated one that shifts every page number, pass 3 re-resolves the cross-references against the shifted layout. `scripts/build.sh` runs three, and compiles to a `_tmp_<name>` jobname so an open PDF does not lock the build.
+- **The luaotfload font cache keeps the first path it saw.** A font first loaded through a relative path breaks later builds from another directory with "cannot find file ''" at shipout. The `.sty` uses an absolute path; if it happens, `touch assets/fonts/*.otf` forces a reload.
 - **Em-dashes and emojis are banned.** `scripts/style-check.sh` is the gate; run it after every agent-authored write, not only at the end.
 
 ## Agent orchestration
@@ -125,7 +125,7 @@ A large course build:
 <build_dir>/
   <name>_course_notes.tex          # driver: preamble + \input stubs
   course_notes/00_preface.tex ... 99_appendix.tex
-  <name>_reference.tex             # 1-line driver
+  <name>_reference.tex             # driver: preamble + flags
   <name>_reference_body.tex        # shared body with if-toggles
   <name>_formula_sheet_annotated.tex
   <name>_visual_intuition.tex
@@ -142,24 +142,28 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 
 ## Quality bar before declaring done
 
-**Compile.** `pdflatex` exits 0 on three passes; no `! Undefined control sequence`, no `! LaTeX Error`, no broken `\ref`; TOC populated (check by extracting the text of pages 2-3); page count inside the recipe's band.
+**Compile.** `scripts/build.sh` (lualatex, three passes) exits 0; no `! Undefined control sequence`, no `! LaTeX Error`, no broken `\ref`; TOC populated (check by extracting the text of pages 2-3); page count inside the recipe's band.
 
 **Style.** `scripts/style-check.sh` exits 0 over the build directory.
 
 **Content.** Every banned-optional topic absent or `\opt`-tagged; every math-heavy section re-derived by the verification agent; the reviewers the recipe calls for have all run and every critical and major finding is resolved; weak areas visibly deeper.
 
-**Hand-off.** No `_tmp_*` files, no helper scripts left behind, filenames canonical rather than temp jobnames, copyright footer on every PDF (`\fancyfoot[L]{\footnotesize\color{muted}\textcopyright{} YYYY <Name>. All rights reserved.}`), and the user told the page counts, the emphases and the follow-ups.
+**Hand-off.** No `_tmp_*` files, no helper scripts left behind, filenames canonical rather than temp jobnames, copyright line on every page in the kit's foot treatment (`\fancyfoot[L]{\hslabel{\textcopyright{} YYYY <Name>. All rights reserved.}}`), and the user told the page counts, the emphases and the follow-ups.
 
 ## Files
 
 - `references/recipes.md` -- the document types, their length bands, structures and build sizes.
-- `references/latex-house-style.md` -- palette, boxes, macros, formatting, compile discipline, traps, style gate.
+- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `example.tex`, and the rendered HTML target. Do not edit here.
+- `references/latex-house-style.md` -- the spec mapped onto macros, the build, teaching affordances, math kit, traps, style gate.
 - `references/teaching-communication.md` -- the canonical voice, vendored from lesson-builder. Do not edit here.
 - `references/voice.md` -- representation to LaTeX construct, and the three page-level rules.
 - `references/review-pipeline.md` -- the five reviewers, which run at which build size, the filter protocol, the false-positive catalogue.
 - `references/per-course-notes.md` -- case studies from ECE 204, ECE 205 and ECE 250: taxonomies, weak areas, banned-optional lists, scope quirks. A pattern library for a new course.
 - `assets/preamble-template.tex` -- the canonical preamble. Copy and adapt per document.
 - `assets/driver-template.tex` -- the multi-file `course-notes` driver.
+- `assets/fonts/` -- Source Serif 4 and IBM Plex Mono, vendored with their OFL licences.
+- `assets/luaotfload/` -- a vendored luaotfload and lualibs (GPL-2), used only when the system lualatex has none.
+- `scripts/build.sh` -- the build: three lualatex passes, temp jobname, fails on any `!` error.
 - `scripts/style-check.sh` -- the style gate.
 - `scripts/voice-drift.sh` -- reports drift of the vendored voice spec from lesson-builder; `--refresh` updates it.
 - `tests/check.sh` -- this repo's gate.

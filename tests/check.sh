@@ -197,17 +197,32 @@ else
   cat > "$D/preamble-smoke.tex" <<'TEXEOF'
 \input{preamble-template.tex}
 \begin{document}
-\section{Preamble smoke test}
-\catbanner{catA}{Part 1 \textperiodcentered\ Category A}
-\begin{step} $\Ohof{n \log n}$, $X^\trans$, $\bx$, $\pderiv{u}{t}$, $\diff{x}$, $\R$. \end{step}
-\begin{pictureit} An in-domain mental image. \end{pictureit}
-\begin{insight} One conclusion, once. \end{insight}
-\begin{fsheet} $e^{i\theta} = \cos\theta + i\sin\theta$ \end{fsheet}
-\begin{connect} Mirrors Part 2. \end{connect}
-\begin{optional} Out of scope.\opt \end{optional}
+\hstitleblock{Smoke}{Preamble smoke test}{One lead line.}
+\section{First section}\label{sec:first}
+\insight{One conclusion, once.}
+Body with \cat{A} \tool{5} \tools{T4,T5}. Out of scope here.\opt
+\opt An optional paragraph starts with the tag.
+\begin{derivation}
+\begin{equation} \Ohof{n \log n},\ X^\trans,\ \bx,\ \pderiv{u}{t},\ \ppderiv{u}{x},\ \pmderiv{u}{x}{y},\ \diff{x},\ \R,\ \RR{n},\ \grad f,\ \Hess,\ \bzero \label{eq:a}\end{equation}
+where $X$ is a matrix.
+\end{derivation}
+Text before a sheet equation.
+\onsheet
+\begin{equation} e^{i\theta} = \cos\theta + i\sin\theta \end{equation}
+See \eqref{eq:a} and \nameref{sec:first}.
 \probhead{Final 2024 Q3}{method}{A}
-\tool{5} \tools{T4,T5} \cat{A}
-\begin{tabularx}{\linewidth}{lY}\toprule a & b \\ \midrule c & d \\ \bottomrule\end{tabularx}
+\begin{tabularx}{\linewidth}{L{3cm}YR{2cm}}\hstoprule \hshead{Key} & \hsaccenthead{New} & \hshead{N} \\ \hstoprule a & b & 1 \\ \hline c & d & 2 \\ \hstoprule\end{tabularx}
+\begin{hscallout}{The objection} Not a box.\end{hscallout}
+\hslisting{Listing 1 / code}
+\begin{Verbatim}[bgcolor=codefill]
+int main() { return 0; }
+\end{Verbatim}
+\catbanner{B}{Category title}\label{part:b}
+\section{Next}
+\begin{hsstatrow}\hsstat{1}{a}\hsstat{2}{b}\hsstat{3}{c}\hsstat{4}{d}\end{hsstatrow}
+\hsclaim{The one claim.}{One per document}
+\begin{hssources}\item A source, read 2026-09-22. \end{hssources}
+\hsprovenance{built by smoke}
 \end{document}
 TEXEOF
 

@@ -1,137 +1,78 @@
 % Canonical preamble for this skill. See references/latex-house-style.md.
-% Replace <COURSE>, <COURSE TITLE>, <NAME>, <YEAR>, and category colour map as needed.
-% Meant to be copy-adapted into each doc's driver. It ends before
-% \begin{document}, so tests/check.sh also \input's it as-is to prove it compiles.
+% The look is references/house-style/ (style-spec.md, housestyle.sty); this
+% file adds only the teaching affordances and the math kit on top of it.
+% Replace <COURSE>, <DOC>, <NAME> and <YEAR> as needed.
+% It ends before \begin{document}, so a smoke document can \input it as-is.
+% Build with scripts/build.sh (lualatex, three passes); it puts housestyle.sty
+% on the search path and the .sty finds the vendored fonts itself.
 
-\documentclass[10pt,letterpaper]{article}
-\usepackage[letterpaper,margin=0.65in]{geometry}
-% For the landscape reference, use instead:
-%   \usepackage[letterpaper,landscape,margin=0.55in]{geometry}
-\usepackage{amsmath,amssymb,amsthm}
+\documentclass[11pt]{article}
+% A4: uncomment the next line; the margins stay the spec's.
+% \PassOptionsToPackage{a4paper}{geometry}
+\usepackage{housestyle}  % geometry, fonts, colour tokens, running head, the twelve blocks, hyperref (hidelinks)
+\usepackage{amssymb,amsthm}
 \usepackage{mathtools}
-\usepackage{array,booktabs,tabularx,multirow}
-\usepackage{enumitem}
-\usepackage[dvipsnames]{xcolor}
-\usepackage[most]{tcolorbox}
-\usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta,shapes.geometric,shapes.misc,backgrounds,fit,calc,decorations.pathreplacing}
-\usepackage{parskip}
-\usepackage{titlesec}
-\usepackage{fancyhdr}
-\usepackage{listings}
-\usepackage[hidelinks,colorlinks=true,linkcolor=catC,urlcolor=catC]{hyperref}
+\usepackage{tabularx,multirow}
 
-% --- Colour palette ------------------------------------------------
-\definecolor{gold}{HTML}{B8943E}
-\definecolor{muted}{HTML}{555555}
-\definecolor{softbg}{HTML}{F7F4EC}
-\definecolor{tool}{HTML}{5C8A5C}
-\definecolor{intuitrose}{HTML}{D4708A}
-\definecolor{fsheetgreen}{HTML}{5CB85C}
-\definecolor{connectblue}{HTML}{3E6FB8}
-\definecolor{optorange}{HTML}{C97A1E}
+% --- Running head and foot -------------------------------------------------
+% Slug at the left of the head; the section name at the right follows each
+% \section (override with \hssection{...}). Foot: the copyright line at the
+% left, the page number at the right. The first page has no head, per the spec.
+\hsslug{<COURSE> <DOC>}
+\fancyfoot[L]{\hslabel{\textcopyright{} <YEAR> <NAME>. All rights reserved.}}
+\makeatletter
+\renewcommand{\sectionmark}[1]{\gdef\@hssection{#1}}
+\makeatother
 
-% Category colours -- adapt per course
-\definecolor{catA}{HTML}{2B8A8A}    % teal
-\definecolor{catB}{HTML}{B8943E}    % amber
-\definecolor{catC}{HTML}{C05A7A}    % rose
-\definecolor{catD}{HTML}{7A5AC0}    % violet
-\definecolor{catE}{HTML}{3E6FB8}    % blue     (add if 5+ categories)
-\definecolor{catF}{HTML}{2E8B57}    % emerald  (add if 6+)
-\definecolor{catG}{HTML}{8B5A2B}    % brown    (add if 7+)
+% --- Headings --------------------------------------------------------------
+% Headings are unnumbered on the page (the .sty's \section). Cross-reference
+% a section by name with \nameref{sec:...}; a Part by its number, Part~\ref{part:...}.
+% A Part opens on a new page: its eyebrow, then the page heading at 28/34, no bold.
+\makeatletter
+\renewcommand{\thepart}{\arabic{part}}
+\newcommand{\hs@parteyebrow}{}
+\titleclass{\part}{top}
+\assignpagestyle{\part}{fancy}  % keep the head and the copyright foot on a Part page
+\titleformat{\part}[display]{\fontsize{28pt}{34pt}\selectfont\color{ink}}%
+  {\hsaccentlabel{Part \thepart\hs@parteyebrow}}{10pt}{}
+\titlespacing*{\part}{0pt}{0pt}{24pt}
+\titleformat{\subsection}{\fontsize{14pt}{19pt}\selectfont\color{ink}}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{18pt}{6pt}
+\titleformat{\subsubsection}{\itshape\color{ink}}{}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{12pt}{2pt}
 
-% --- Spacing --------------------------------------------------------
-\setlength{\parskip}{3pt plus 1pt}
-\setlist{nosep,leftmargin=1.4em,topsep=2pt,partopsep=0pt}
-\renewcommand{\arraystretch}{1.15}
-\setlength{\abovedisplayskip}{4pt}
-\setlength{\belowdisplayskip}{4pt}
-
-% --- Titles ---------------------------------------------------------
-\titleformat{\part}{\normalfont\LARGE\bfseries\color{gold}}{Part \thepart.}{0.6em}{}
-\titleformat{\section}{\normalfont\large\bfseries\color{gold}}{\thesection.}{0.5em}{}
-\titlespacing*{\section}{0pt}{10pt}{3pt}
-\titleformat{\subsection}{\normalfont\bfseries\color{black!80}}{\thesubsection}{0.4em}{}
-\titlespacing*{\subsection}{0pt}{6pt}{1pt}
-\titleformat{\subsubsection}{\normalfont\small\bfseries\color{black!70}}{}{0pt}{}
-\titlespacing*{\subsubsection}{0pt}{4pt}{0pt}
-
-% --- Page header/footer -- copyright on every page ----------------
-\pagestyle{fancy}
-\fancyhf{}
-\renewcommand{\headrulewidth}{0pt}
-\fancyfoot[L]{\footnotesize\color{muted}\textcopyright{} <YEAR> <NAME>. All rights reserved.}
-\fancyfoot[C]{\footnotesize\color{muted}<COURSE> <DOC>\ \textperiodcentered\ \leftmark}
-\fancyfoot[R]{\footnotesize\color{muted}\thepage}
-\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
-
-% --- Tool chips / category labels ---------------------------------
-\newcommand{\tool}[1]{\textcolor{tool}{\textsf{\scriptsize\textbf{[T#1]}}}}
-\newcommand{\tools}[1]{\textcolor{tool}{\textsf{\scriptsize\textbf{[#1]}}}}
-\newcommand{\cat}[1]{\textcolor{cat#1}{\textsf{\textbf{Cat.\ #1}}}}
-
-% --- Category banner ----------------------------------------------
+% --- Taxonomy: category as structure, never as colour ------------------------
+% \catbanner{A}{Title} opens a Part: eyebrow "Part N . Category A", then the
+% heading, and the running head's section becomes the title.
 \newcommand{\catbanner}[2]{%
-  \begin{tcolorbox}[enhanced,colback=#1,colframe=#1,boxrule=0pt,
-    arc=2pt,left=8pt,right=8pt,top=3pt,bottom=3pt,
-    fontupper=\bfseries\color{white}\normalsize]
-  #2
-  \end{tcolorbox}%
-}
+  \gdef\hs@parteyebrow{\ \textperiodcentered\ Category #1}%
+  \part{#2}\hssection{#2}\gdef\hs@parteyebrow{}}
+\makeatother
+\newcommand{\cat}[1]{\hslabel{[#1]}}      % [A]
+\newcommand{\tool}[1]{\hslabel{[T#1]}}    % [T5]
+\newcommand{\tools}[1]{\hslabel{[#1]}}    % [T4,T5]
 
-% --- Grey-fill step box (derivations) -----------------------------
-\newtcolorbox{step}{enhanced,colback=softbg,colframe=muted,
-  boxrule=0.3pt,arc=1.5pt,left=9pt,right=9pt,top=4pt,bottom=4pt,
-  breakable}
-
-% --- Pink insight / pictureit boxes -------------------------------
-% NB: named \pictureit because \picture is a LaTeX built-in env.
-\newtcolorbox{insight}{enhanced,frame hidden,colback=pink!14,
-  boxrule=0pt,arc=1.5pt,
-  borderline west={2.2pt}{0pt}{intuitrose},
-  left=11pt,right=9pt,top=3pt,bottom=3pt,
-  fontupper=\small\itshape\color{black!75}}
-
-\newtcolorbox{pictureit}{enhanced,frame hidden,colback=pink!14,
-  boxrule=0pt,arc=1.5pt,
-  borderline west={2.2pt}{0pt}{intuitrose},
-  left=11pt,right=9pt,top=3pt,bottom=3pt,
-  fontupper=\small\color{black!80}}
-
-% --- Formula-sheet green stripe -----------------------------------
-\newtcolorbox{fsheet}{enhanced,frame hidden,colback=green!4,
-  boxrule=0pt,arc=1pt,
-  borderline west={2.2pt}{0pt}{fsheetgreen},
-  left=10pt,right=6pt,top=3pt,bottom=3pt}
-
-% --- Blue connect stripe ------------------------------------------
-\newtcolorbox{connect}{enhanced,frame hidden,colback=connectblue!6,
-  boxrule=0pt,arc=1pt,
-  borderline west={1.8pt}{0pt}{connectblue},
-  left=10pt,right=6pt,top=2pt,bottom=2pt,
-  fontupper=\small\color{black!75}}
-
-% --- Orange optional stripe ---------------------------------------
-\newtcolorbox{optional}{enhanced,frame hidden,colback=orange!7,
-  boxrule=0pt,arc=1pt,
-  borderline west={2.2pt}{0pt}{optorange},
-  left=11pt,right=6pt,top=2pt,bottom=2pt,
-  fontupper=\small\color{black!75}}
-
-\newcommand{\opt}{\hspace{2pt}\textcolor{optorange}{\textsf{\scriptsize\textbf{[optional]}}}}
-
-% --- Problem heading (worked examples) ----------------------------
+% --- Teaching affordances, inside the twelve blocks -------------------------
+% insight: the section's lead line, right under the heading.
+\newcommand{\insight}[1]{\hslead{#1}}
+% derivation: a display-equation run (block 12) the reader can skip on
+% re-read. A label opens it, a grey rule shows where it ends.
+\newenvironment{derivation}%
+  {\par\vspace{4pt}\hslabel{Derivation \textperiodcentered\ skip on re-read}\par\nopagebreak}%
+  {\par\nopagebreak\vspace{2pt}\noindent\hsthinrule\par}
+% \onsheet: this equation lives on the formula sheet. Grey, not accent.
+\newcommand{\onsheet}{\par\nopagebreak\noindent\hslabel{On the formula sheet}\nopagebreak}
+% \opt: out of scope. Inline after a mention, or first thing in an optional paragraph.
+\newcommand{\opt}{\leavevmode\unskip\hspace{4pt}\hslabel{[optional]}\hspace{4pt}\ignorespaces}
+% \probhead{source}{method}{category}: one mono label line over a worked problem.
 \newcommand{\probhead}[3]{%
-  \vspace{4pt}
-  \noindent\colorbox{softbg}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
-    \small\color{muted}\textbf{#1} \quad\textperiodcentered\quad \textit{#2} \quad\textperiodcentered\quad \textbf{\color{gold}#3}}}%
-  \vspace{2pt}
-}
+  \par\vspace{8pt}\noindent\hslabel{#1 \textperiodcentered\ #2 \textperiodcentered\ #3}\par\nopagebreak}
 
-% --- Tight tabularx -----------------------------------------------
+% --- Tables ----------------------------------------------------------------
+% L{w} and R{w} come from the .sty; Y is a ragged-right tabularx column.
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
-% --- Shorthand -----------------------------------------------------
+% --- Math kit ----------------------------------------------------------------
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -165,22 +106,6 @@
 % Differential d
 \newcommand{\diff}[1]{\mathop{}\!\mathrm{d}#1}
 
-% --- C++ listings style (if course has code) ----------------------
-\lstdefinestyle{cpp}{
-  language=C++,
-  basicstyle=\ttfamily\footnotesize,
-  keywordstyle=\color{catD},
-  commentstyle=\color{muted}\itshape,
-  stringstyle=\color{catC},
-  showstringspaces=false,
-  breaklines=true,
-  tabsize=2,
-  frame=single,
-  rulecolor=\color{muted!50},
-  backgroundcolor=\color{softbg!40},
-  xleftmargin=6pt,
-  xrightmargin=2pt,
-  aboveskip=4pt,
-  belowskip=4pt
-}
-\lstset{style=cpp}
+% --- Code --------------------------------------------------------------------
+% Block 11: \hslisting{Listing 1 / what it shows} then
+% \begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}. No syntax colour in print.

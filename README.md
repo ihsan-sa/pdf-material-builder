@@ -1,6 +1,6 @@
 # pdf-material-builder
 
-A Claude Code skill that builds teaching material and technical documentation as LaTeX PDFs, at any length, in one house style and one voice. A 1pp cheat sheet, a 2-6pp companion to a single lesson, a 40-70pp set of course notes, a design note: same palette, same box kit, same author.
+A Claude Code skill that builds teaching material and technical documentation as LaTeX PDFs, at any length, in one house style and one voice. A 1pp cheat sheet, a 2-6pp companion to a single lesson, a 40-70pp set of course notes, a design note: same page, same two faces, same twelve blocks, same author. The look is `references/house-style/style-spec.md`.
 
 `SKILL.md` is the entry point. Everything below it is a level of detail you can stop at.
 
@@ -21,13 +21,19 @@ git subtree add --prefix .claude/skills/pdf-material-builder \
 
 Update a vendored copy with `git subtree pull` on the same prefix. Do not edit it in place: change this repo and pull.
 
+**What must be installed: lualatex, nothing else.** The fonts (Source Serif 4, IBM Plex Mono) are vendored in `assets/fonts/`, and a copy of luaotfload in `assets/luaotfload/` covers a system lualatex that lacks it. Build any document with the skill's own script, from any repo:
+
+```bash
+scripts/build.sh path/to/doc.tex
+```
+
 ## Recipes
 
 `references/recipes.md` has the structure and the build procedure for each.
 
 | Recipe | Length | Role | Build size |
 |---|---|---|---|
-| `reference` | 7-8pp landscape | Method-per-row landscape reference, organised by taxonomy. | large |
+| `reference` | 7-8pp | Method-per-row reference, organised by taxonomy. | large |
 | `formula-sheet` | 7-8pp | The official exam sheet mirrored verbatim, one annotation per entry. | large |
 | `visual-intuition` | 10-13pp | About fifteen mechanism figures, each with a caption saying what to picture. | large |
 | `worked-examples` | 25-30pp | Past-exam problems worked one per page. | large |
@@ -52,6 +58,6 @@ The [lesson-builder](https://github.com/ihsan-sa/lesson-builder) skill owns the 
 tests/check.sh
 ```
 
-Hermetic, no network, under a minute. Frontmatter, every path the docs mention, the style gate and its selfcheck, voice drift, and a real `pdflatex` compile of both templates. Drift and compile cases skip with a printed reason when lesson-builder or `pdflatex` is absent.
+Hermetic, no network, under a minute. Frontmatter, every path the docs mention, the style gate and its selfcheck, voice drift, and a real lualatex build of both templates. Drift and compile cases skip with a printed reason when lesson-builder or lualatex is absent.
 
 `docs/integration.md` lists what the lesson-builder and lessons repos must change before companions can be published.

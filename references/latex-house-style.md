@@ -1,197 +1,134 @@
 # LaTeX house style
 
-The look and the build discipline every document in this skill shares, whatever its recipe: palette, box kit, macro kit, formatting, the three-pass compile, the traps, and the style gate. Read it before writing the first `.tex` line, and again during review.
+The look and the build discipline every document in this skill shares, whatever its recipe: where the look is specified, how to build, the twelve blocks and their macros, the teaching affordances, the math kit, the traps, and the style gate. Read it before writing the first `.tex` line, and again during review.
 
 It stands alone. Nothing here is about teaching or voice -- for those see `references/voice.md` and `references/teaching-communication.md`; for which document to build, `references/recipes.md`.
 
-## Palette
+## The look
 
-Every document shares the gold / accent structure. Category colours are the per-document axis: a course names them after its taxonomy, a technical doc after its subsystems, a companion handout inherits its lesson's course colours.
+`references/house-style/style-spec.md` is the look, in the owner's words, and `references/house-style/housestyle.sty` implements it. Read the spec; this file does not copy its tables. In a few lines:
 
-```
-gold         #B8943E   primary accent, section headers
-muted        #555555   secondary text
-softbg       #F7F4EC   warm cream fill for step / example boxes
-tool (green) #5C8A5C   tool chips [T1]-[T7]
+- **Two faces.** Source Serif 4 for prose, headings, captions, tables and mathematics; IBM Plex Mono for every label, running head, statistic, path and code listing.
+- **Five neutrals and one accent**, as colour tokens: `ink`, `inkseventy`, `inkfiftyfive`, `paper`, `fill`, `codefill`, `rulegrey`, and `accent`. The accent marks a deterministic check or a pointer, never decoration, and appears at most three times on a page. No other colour exists: no category colours, no tints, no second hue.
+- **One portrait geometry for every recipe**, letter or A4. No landscape variant.
+- **No bold in body text**, emphasis is italic, and there are no footnotes: sources go in one numbered list on the last page.
+- **Twelve blocks and no thirteenth.** Anything that maps onto none of them is cut or turned into prose.
 
-intuitrose   #D4708A   pink stripe (picture / insight boxes)
-fsheetgreen  #5CB85C   green stripe (formula-sheet equations)
-connectblue  #3E6FB8   blue stripe (cross-topic connections)
-optorange    #C97A1E   orange stripe (optional / out-of-scope content)
-```
+`references/house-style/README.md` says how to reformat an existing document, and `house-style-template.html` is the rendered target.
 
-Category colours -- worked examples from real builds; pick or invent per document:
+## Build
 
-```
-ECE 204 (A-D: numerical methods)
-catA #2B8A8A teal   (approximating expressions)
-catB #B8943E amber  (algebraic equations)
-catC #C05A7A rose   (analytic: IVPs, BVPs, PDEs)
-catD #7A5AC0 violet (optimization)
-
-ECE 205 (A-D: ODEs + transforms)
-catA #2B8A8A teal   (first-order ODEs)
-catB #B8943E amber  (second-order + vibrations)
-catC #C05A7A rose   (Laplace)
-catD #7A5AC0 violet (Fourier / PDEs)
-
-ECE 250 (A-G: data structures + algorithms)
-catA #2B8A8A teal    (analysis and ADTs)
-catB #B8943E amber   (linear structures)
-catC #C05A7A rose    (trees and heaps)
-catD #7A5AC0 violet  (hashing)
-catE #3E6FB8 blue    (sorting)
-catF #2E8B57 emerald (graphs)
-catG #8B5A2B brown   (paradigms)
+```bash
+scripts/build.sh path/to/doc.tex
 ```
 
-## Box styles (tcolorbox)
+It runs three lualatex passes in the document's own directory under the temp jobname `_tmp_<name>`, copies the result to `<name>.pdf`, removes the temp files, and exits 1 with the `!` lines if any pass errors. Run it from anywhere.
 
-| Stripe | Env name | Purpose |
+**Only lualatex must be installed.** The engine is lualatex and nothing else: the `.sty` loads its faces with fontspec and finds them with Lua, and pdflatex cannot do either. Everything else is vendored in the skill:
+
+- the faces, as `.otf` files in `assets/fonts/` with their OFL licences;
+- a copy of luaotfload and lualibs in `assets/luaotfload/` (GPL-2), which `build.sh` puts on the search path only when the system lualatex has none (Debian without `texlive-luatex`).
+
+**How another repo finds the style.** `build.sh` puts `references/house-style/` on `TEXINPUTS`, so `\usepackage{housestyle}` resolves from any repo, and `housestyle.sty` finds `assets/fonts/` from its own location (two directories up). In a repo that vendors the skill at `.claude/skills/pdf-material-builder/`, build with `.claude/skills/pdf-material-builder/scripts/build.sh path/to/doc.tex`. To load the faces from somewhere else, `\def\hsfontdir{/abs/path/}` (trailing slash) before `\usepackage{housestyle}`.
+
+## The preamble
+
+`assets/preamble-template.tex` is the canonical preamble: `\documentclass[11pt]{article}`, then `\usepackage{housestyle}` (for A4, `\PassOptionsToPackage{a4paper}{geometry}` before it), then the affordances and math kit below. The `.sty` already loads geometry, fontspec, xcolor, fancyhdr, titlesec, booktabs, array, colortbl, graphicx, caption, enumitem, tikz, amsmath, microtype, fvextra and hyperref with `hidelinks`. Do not load tcolorbox, listings, parskip or a second geometry, and do not define a colour.
+
+- `\hsslug{<Course> <Doc>}` -- the running head's left side.
+- `\hssection{...}` -- its right side. The preamble sets it from each `\section` automatically; call it to override.
+- `\catbanner{A}{Title}` -- opens a Part on a new page: accent eyebrow `Part N . Category A`, then the page heading at 28/34, no bold.
+- Section headings are unnumbered on the page, so cross-reference a section by name (`\nameref{sec:...}`), a Part as `Part~\ref{part:...}`, and an equation as `\eqref{eq:...}`, which prints (1).
+
+## The twelve blocks, as macros
+
+| # | Block | Macro |
 |---|---|---|
-| Pink | `pictureit`, `insight` | Mental-image narrative, one-line takeaway. Read first on review. |
-| Grey (filled) | `step` | Multi-line derivation. Work through once; skip on re-read. |
-| Green | `fsheet` | Equation / fact that lives on (or should live on) the official formula sheet. Commit shape, not digits. |
-| Blue | `connect` | Cross-topic link. Foreshadows later material or recalls earlier. |
-| Orange | `optional` | Flagged as out of scope per course materials. Skip on first read. Inline `\opt` tag for brief mentions. |
+| 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}`. Over twelve pages, a dedicated title page with the four-column strip (built for / paper / type / scope): `assets/driver-template.tex` has one. |
+| 2 | Flow diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around a `tikzpicture` using the node styles `hsnode` (filled ink: input, output), `hswork` (outlined ink: work), `hsgate` (accent on fill: a deterministic check), and `hsarrow` / `hsfail` for edges. |
+| 3 | Stat row | `\begin{hsstatrow} \hsstat{741}{caption} ... \end{hsstatrow}`, four abreast, measured numbers only. |
+| 4 | Comparison table | `tabular` or `tabularx` with `\hstoprule` above and below the head, `\hshead{...}` for header cells and `\hsaccenthead{...}` for the one new column. No vertical rules. |
+| 5 | Data table | Same rules, grey `\hline` between rows; column types `L{w}` and `R{w}` (ragged, right-aligned numerals) from the `.sty`, `Y` for a tabularx column from the preamble. |
+| 6 | Figure plate | `\hsplate{file}{name}{grey facts}{status}{caption}`: full measure, no border. |
+| 7 | Provenance footline | `\hsprovenance{command, commit, file, date}`, at the foot of any page with a figure or a statistic. |
+| 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page. No `\footnote`. |
+| 9 | Claim | `\hsclaim{the sentence}{mono line}`. Exactly one per document. |
+| 10 | Callout | `\begin{hscallout}{label} ... \end{hscallout}`: the objection a careful reader would raise. Never two in a row. |
+| 11 | Code block | `\hslisting{Listing 1 / label}` then `\begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}`. No syntax colour. |
+| 12 | Display equation | Plain `equation` / `align`, numbered at the right margin; every symbol named in the sentence after it. |
 
-**Naming gotcha.** Never define a tcolorbox env named `picture` -- it collides with LaTeX's built-in `picture` environment and silently breaks `\@iiiparbox`. Use `pictureit`.
+Primitives for anything built on top: `\hslabel{...}` (mono uppercase, ink-55), `\hsaccentlabel{...}`, `\hslead{...}`, `\hsrule` (ink) and `\hsthinrule` (grey).
 
-## Canonical macro kit
+## Teaching affordances
+
+The old coloured boxes are gone. Each teaching need maps onto one of the twelve blocks or becomes prose, per the house-style README's rule 2, and the macros are built only from the primitives above.
+
+| Need | On the page | Macro |
+|---|---|---|
+| The one thing to read first on review | The section's lead line, right under the heading. | `\insight{...}` (= `\hslead`) |
+| A derivation to skip on re-read | Block 12's labelled form: a grey label opens the run of display equations, a grey rule closes it. | `\begin{derivation} ... \end{derivation}` |
+| A fact that lives on the formula sheet | A grey label on its own line before the display equation. Grey, not accent: the accent budget is three a page. | `\onsheet` then `\begin{equation}` |
+| Out of scope | A small grey tag after the mention, or first thing in an optional paragraph. No box. | `\opt` |
+| A cross-topic connection | A sentence with a `\ref` or `\nameref`. No box. | -- |
+| A mental image | Prose; a figure plate if it is a figure. No box. | -- |
+| Category and tool tags | Grey mono tags; the category is also the Part's eyebrow and running head. | `\cat{A}`, `\tool{5}`, `\tools{T4,T5}`, `\catbanner{A}{Title}` |
+| A worked problem's heading | One mono label line: source, method, category. | `\probhead{source}{method}{cat}` |
+
+## Math kit
+
+Math, not look, so it is the same as it always was. All of it is in `assets/preamble-template.tex`:
 
 ```latex
-% Tool / category chips
-\tool{5}                 % [T5] green
-\tools{T4,T5}            % multi-tool
-\cat{A}                  % category badge
-
-% Structure
-\catbanner{catC}{Part 5 \textperiodcentered\ Category C: BVPs}
-
-% Category banner (filled strip at top of each Part)
-\newcommand{\catbanner}[2]{%
-  \begin{tcolorbox}[enhanced,colback=#1,colframe=#1,boxrule=0pt,
-    arc=2pt,left=8pt,right=8pt,top=3pt,bottom=3pt,
-    fontupper=\bfseries\color{white}\normalsize]
-  #2
-  \end{tcolorbox}%
-}
-
-% Vector shorthand (define ALL lowercase letters, agents reach for any)
-\newcommand{\ba}{\mathbf{a}} \newcommand{\bb}{\mathbf{b}} \newcommand{\bc}{\mathbf{c}}
-\newcommand{\bd}{\mathbf{d}} \newcommand{\be}{\mathbf{e}} \newcommand{\bff}{\mathbf{f}}
-\newcommand{\bg}{\mathbf{g}} \newcommand{\bh}{\mathbf{h}} \newcommand{\bi}{\mathbf{i}}
-\newcommand{\bj}{\mathbf{j}} \newcommand{\bk}{\mathbf{k}} \newcommand{\bl}{\mathbf{l}}
-\newcommand{\bm}{\mathbf{m}} \newcommand{\bn}{\mathbf{n}} \newcommand{\bp}{\mathbf{p}}
-\newcommand{\bq}{\mathbf{q}} \newcommand{\br}{\mathbf{r}} \newcommand{\bs}{\mathbf{s}}
-\newcommand{\bt}{\mathbf{t}} \newcommand{\bu}{\mathbf{u}} \newcommand{\bv}{\mathbf{v}}
-\newcommand{\bw}{\mathbf{w}} \newcommand{\bx}{\mathbf{x}} \newcommand{\by}{\mathbf{y}}
-\newcommand{\bz}{\mathbf{z}} \newcommand{\bzero}{\mathbf{0}}
-
-% Transpose (critical: NO `^`; so X^\trans -> X^{\!\top})
-\newcommand{\trans}{{\!\top}}
-
-% Partial derivatives
-\newcommand{\pderiv}[2]{\dfrac{\partial #1}{\partial #2}}
-\newcommand{\ppderiv}[2]{\dfrac{\partial^2 #1}{\partial #2^2}}
-\newcommand{\pmderiv}[3]{\dfrac{\partial^2 #1}{\partial #2 \, \partial #3}}
-
-% Big-O (defined as macro so it's consistent everywhere)
-\newcommand{\Oh}{\mathcal{O}}
-\newcommand{\Ohof}[1]{\mathcal{O}\!\left(#1\right)}
-
-% Other common
-\newcommand{\grad}{\nabla}
-\newcommand{\Hess}{H_f}
-\newcommand{\RR}[1]{\mathbb{R}^{#1}}
-\newcommand{\diff}[1]{\mathop{}\!\mathrm{d}#1}
-
-% Problem heading (for embedded worked examples)
-\newcommand{\probhead}[3]{%
-  \vspace{4pt}
-  \noindent\colorbox{softbg}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
-    \small\color{muted}\textbf{#1} \quad\textperiodcentered\quad \textit{#2} \quad\textperiodcentered\quad \textbf{\color{gold}#3}}}%
-  \vspace{2pt}
-}
-
-% Inline tag for brief optional mentions
-\newcommand{\opt}{\hspace{2pt}\textcolor{optorange}{\textsf{\scriptsize\textbf{[optional]}}}}
+\ba ... \bz, \bff, \bzero       % bold vectors: every lowercase letter is defined
+\trans                          % {\!\top}, so X^\trans -> X^{\!\top}
+\pderiv{u}{t} \ppderiv{u}{x} \pmderiv{u}{x}{y}
+\Oh  \Ohof{n \log n}            % never bare $O()$
+\grad  \Hess  \RR{n}  \R \N \Z  \diff{x}
 ```
 
-See `assets/preamble-template.tex` for the complete preamble.
+## Copyright foot
 
-## Formatting conventions
+Every shipped PDF carries the copyright line in the kit's foot treatment, on every page:
 
-- `10pt`, letterpaper, `0.65in` margins for body docs; `0.55in` for the compact landscape reference.
-- `parskip` (no paragraph indents).
-- Section titles:
-  ```
-  \titleformat{\section}{\normalfont\large\bfseries\color{gold}}{\thesection.}{0.5em}{}
-  ```
-- Hyperref with `colorlinks=true`, `linkcolor=black!75` for TOC; gold for URLs. When the category accent is used for TOC links instead, pick `linkcolor=catX` to match the course's primary cat colour.
+```latex
+\fancyfoot[L]{\hslabel{\textcopyright{} 2026 <Name>. All rights reserved.}}
+```
+
+The slug stays in the running head and the page number at the foot's right, as the `.sty` sets them. The first page has no running head, per the spec, but keeps the foot.
 
 ## LaTeX traps hit in real builds
 
-1. **KaTeX habit leaking.** Agents write `\lt` and `\gt` (KaTeX-only). In LaTeX these are undefined. After every agent write, grep for `\\lt` and `\\gt` and replace with literal `<`/`>`. Do NOT use `sed`; regex edge cases corrupt `\Delta` and friends. Use Python with a precise regex.
+1. **KaTeX habit leaking.** Agents write `\lt` and `\gt` (KaTeX-only), undefined in LaTeX. After every agent write, grep for `\\lt` and `\\gt` and replace with literal `<` / `>`. Do NOT use `sed`; regex edge cases corrupt `\Delta` and friends. Use Python with a precise regex.
 
-2. **`picture` env collision.** LaTeX has a built-in `picture` environment; redefining it via `\newtcolorbox{picture}` silently breaks `\@iiiparbox` later. Always name custom boxes something else (`pictureit`).
+2. **`\trans` macro design.** `\newcommand{\trans}{^{\!\top}}` makes `X^\trans` expand to a double `^`. Correct form: `\newcommand{\trans}{{\!\top}}`.
 
-3. **`\trans` macro design.** `\newcommand{\trans}{^{\!\top}}` then `X^\trans` expands to `X^^{\!\top}` (double `^`). Correct form: `\newcommand{\trans}{{\!\top}}`, so `X^\trans` -> `X^{\!\top}`.
+3. **`\bX` vector macros missing.** Agents use `\ba, \bb, \bc, \bd, \be, \bh, \bn, \br, \bs` freely. Define every lowercase letter in the preamble.
 
-4. **`\bX` vector macros missing.** Agents use `\ba, \bb, \bc, \bd, \be, \bh, \bn, \br, \bs` freely. Define every lowercase letter in the preamble; don't wait to discover missing macros at compile.
+4. **Old macros in a writer's head.** An agent that has seen an older build reaches for `step`, `pictureit`, `fsheet`, `connect` or a coloured `\catbanner`. None exists now; map them per the table above rather than defining them again.
 
-5. **MiKTeX hang on auto-install.** MiKTeX pops a modal GUI dialog for on-demand package install, which CLI sees as a hang. One-time fix per machine: `initexmf --set-config-value="[MPM]AutoInstall=1"`.
+5. **PDF file-lock during compile.** An open PDF cannot be overwritten. `build.sh` compiles to `_tmp_<name>` and copies over `<name>.pdf`, so do not hand-roll a compile loop.
 
-6. **PDF file-lock during compile.** If the PDF is open in a viewer, `pdflatex` fails with "I can't write on file". Compile to a temp jobname (`pdflatex -jobname=_tmp_<round> ...`), then swap via `cp _tmp_<round>.pdf <final>.pdf`. Delete `_tmp_*` after.
+6. **Three passes for a multi-page TOC.** Pass 1 writes no TOC, pass 2 writes one that shifts every page number, pass 3 re-resolves the references against the shifted layout. `build.sh` always runs three.
 
-7. **Two compile passes for cross-refs is not always enough.** With a multi-page TOC, the first pass writes no TOC entries, the second pass writes them but shifts every subsequent page number, and `\ref`s to page numbers miss. **Run three passes for any doc with a TOC of more than one page.** Course notes essentially always need three; reference docs and formula sheets usually converge in two.
+7. **The luaotfload font cache.** luaotfload caches each font by file basename in `~/.texlive2025/texmf-var/luatex-cache` and keeps the path from the first load, so a relative `Path=` poisons later builds from another directory ("cannot find file ''" at shipout). The `.sty` uses an absolute path; if it happens anyway, `touch assets/fonts/*.otf` forces a reload.
 
-8. **TOC entries for starred sections.** Use `\phantomsection` + `\addcontentsline{toc}{section}{<title>}` before a `\section*`. For counter-driven custom entries (like `Problem N`), use `\refstepcounter{probnum}` before the `\addcontentsline`.
+8. **TOC entries for starred sections.** Use `\phantomsection` + `\addcontentsline{toc}{section}{<title>}` before a `\section*`. For counter-driven entries (like `Problem N`), `\refstepcounter{probnum}` before the `\addcontentsline`.
 
-9. **Em-dashes and unicode.** The em-dash character (U+2014) breaks some setups and is a user style preference. Grep for it post-build (`scripts/style-check.sh` does); replace with `--` or commas/semicolons.
+9. **Em-dashes and unicode.** The em-dash character (U+2014) is a style ban. `scripts/style-check.sh` catches it; write `--` or recast with commas.
 
-10. **No emojis.** Zero tolerance. Grep high-unicode code points after every build.
+10. **No emojis.** Zero tolerance. The gate rejects any character above ASCII.
 
-11. **Line endings.** On Windows, git's `autocrlf` may convert LF to CRLF in the working tree. Agents that read files should handle both; when re-writing, preserve local line endings.
+11. **Line endings.** On Windows, git's `autocrlf` may convert LF to CRLF. Agents that read files should handle both; when re-writing, preserve local line endings.
 
-12. **Hyperref "Token not allowed in PDF string" warnings.** Math in `\section` titles generates benign warnings when building PDF bookmarks. Cosmetic only. Options: (a) wrap each with `\texorpdfstring{<math>}{<plain>}` (mechanical, ~1 hour of edits); (b) live with the warnings and add a one-line comment in the driver explaining they're benign. Option (b) is usually the right call.
+12. **Hyperref "Token not allowed in PDF string" warnings.** Math in a `\section` title warns when bookmarks are built. Cosmetic. Either wrap it in `\texorpdfstring{<math>}{<plain>}` or leave it with a one-line comment in the driver; the second is usually right.
 
 ## Style gate
 
-`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other high unicode, a `\lt` or `\gt`, a bare `$O()$` where `\Oh` belongs, and a tcolorbox named `picture`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one file; a colour outside the token set (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint mix); and a pdflatex invocation. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
 ```bash
 scripts/style-check.sh                # this repo
 scripts/style-check.sh <course_dir>   # a build directory
 ```
 
-It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/` and `claude_lessons/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
-
-## Compile recipe (idempotent; safe to re-run)
-
-```bash
-cd <course_dir>
-
-# Three passes; use temp jobname so an open PDF in a viewer doesn't lock
-for i in 1 2 3; do
-  pdflatex -interaction=nonstopmode -jobname=_tmp_cn <course>_course_notes.tex > /dev/null 2>&1
-done
-cp _tmp_cn.pdf <course>_course_notes.pdf
-rm _tmp_cn.*
-
-# Repeat for each of the 5 PDFs
-```
-
-For the formula sheet / reference / visual-intuition docs, two passes usually suffice (single-page TOCs), but three costs nothing and guarantees convergence.
-
-## Copyright footer
-
-Every shipped PDF uses this footer:
-
-```latex
-\fancyfoot[L]{\footnotesize\color{muted}\textcopyright{} 2026 <Name>. All rights reserved.}
-\fancyfoot[C]{\footnotesize\color{muted}<Course> <Doc Name>\ifdef{\leftmark}{ \textperiodcentered\ \leftmark}{}}
-\fancyfoot[R]{\footnotesize\color{muted}\thepage}
-```
-
-For the course notes specifically, `\leftmark` adds the current section title, which is valuable for a 40-70pp doc.
+It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/`, `claude_lessons/` and the vendored `assets/fonts/` and `assets/luaotfload/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.

@@ -25,7 +25,7 @@ Knows the doc's purpose, the target student's learning preferences, the conventi
 - **Equation / algorithm correctness** -- every recurrence, complexity claim, pseudocode step
 - **Convention fidelity** -- prof-specific naming, numbering, signs, notations
 - **Scope alignment** -- banned-optional topics either absent or `\opt`-tagged
-- **Pedagogy boxes** -- every major concept has a `pictureit`; derivations in `step`; cross-references via `connect`
+- **Teaching affordances** -- every section opens with its `\insight` lead line; derivations in a `derivation` run; cross-references stated with `\ref` or `\nameref`; nothing outside the twelve blocks
 - **Common traps** the specific prof is known to test (e.g., sign of ghost-point Neumann BC; last-cell pivot on sorted input; unit-weight Dijkstra-vs-BFS framing)
 
 Output: structured findings grouped by file, each tagged CRITICAL / MAJOR / MINOR with location and proposed fix. Cap ~40 findings; surface the top 10 MINOR items only.
