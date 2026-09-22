@@ -11,6 +11,7 @@ Three things are settled before any writing starts, and each has its own referen
 
 - **Which document.** `references/recipes.md` -- role, length band, structure and build size per recipe.
 - **How it looks.** `references/house-style/style-spec.md` is the look: one portrait page, two faces, five neutrals and one accent, twelve blocks. `references/latex-house-style.md` maps it onto macros and carries the build, the teaching affordances, the math kit, the traps and the style gate.
+- **How a page is put together.** `references/page-composition.md`. Calling every macro correctly is not enough and the first real build proved it: read this before the first page and again with the rendered PDF open. `references/house-style/CONFORMANCE.md` is the owner's own ten checks and the defects each one exists to stop.
 - **How it explains.** `references/teaching-communication.md` is the canonical voice, shared with the lesson-builder skill. `references/voice.md` says which LaTeX construct carries each of its representations, and holds the three page-level rules the spec has no row for.
 
 ## Pick the recipe first
@@ -29,7 +30,7 @@ A small build is four steps, and the orchestrator does the first three itself:
 
 1. **Read the source.** For a `companion`: the lesson's run record and `lesson_build.log.md` (the plan artifact; its format is `lesson-builder/references/phase-2-plan.md`) and the lesson's `.jsx` prose. For a `cheat-sheet`: the existing reference or course notes. For a `technical-doc`: whatever the user pointed at.
 2. **Write the driver.** One file, preamble copy-adapted from `assets/preamble-template.tex`, no `\input` stubs.
-3. **Write the body.** One agent, or none. Condense the source; do not re-derive it.
+3. **Write the body.** One agent, or none. Condense the source; do not re-derive it. Plan the page shapes first, per `references/page-composition.md`: list the pages, give each one a shape, and change any two in a row that came out the same.
 4. **Review.** Two reviewers, not five: the math verification agent and the cold-edit reviewer. `references/review-pipeline.md` says which three are skipped and why.
 
 Then build with `scripts/build.sh`, run `scripts/style-check.sh`, and hand over.
@@ -85,7 +86,8 @@ Once the anchor exists, spawn the remaining short-form builders in one message: 
 **Step 6.3 -- Every writer brief carries these.** Do not economise; repeat them in each prompt.
 
 - The conventions doc path (mandatory critical reading)
-- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead`), and the rule that nothing else is drawn: no boxes, no colour, no footnotes
+- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure` with `\hsnodetext` and `\hsfailnote`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead` inside `hsblock`), and the rule that nothing else is drawn: no boxes, no colour outside the tokens, no footnotes
+- `references/page-composition.md`, which is what stops a writer filling the form instead of composing the page: the shape catalogue, the arguments that must not be empty, and the three diagram patterns with tikz to copy
 - `references/voice.md` and `references/teaching-communication.md`, plus a sibling section as a voice sample
 - The relevant extraction files, the target page count, and whether this is a weak-area section
 - Hard rules: no emojis, no em-dashes, no `\footnote`, no colour but the tokens, at most one `\hsclaim` per document, no `\lt` / `\gt` (LaTeX is not KaTeX), `\Oh{...}` not bare `$O()$`
@@ -146,6 +148,8 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 
 **Style.** `scripts/style-check.sh` exits 0 over the build directory.
 
+**Look.** Render it and look at it: `pdftoppm -png -r 80 <name>.pdf /tmp/<name>`, then read the images page by page against `references/house-style/house-style-template.html`, and work the ten-point list at the end of `references/page-composition.md`. A document that passes the gate and lays out every page the same way has not passed this. Say in the hand-off which pages you compared.
+
 **Content.** Every banned-optional topic absent or `\opt`-tagged; every math-heavy section re-derived by the verification agent; the reviewers the recipe calls for have all run and every critical and major finding is resolved; weak areas visibly deeper.
 
 **Hand-off.** No `_tmp_*` files, no helper scripts left behind, filenames canonical rather than temp jobnames, copyright line on every page in the kit's foot treatment (`\fancyfoot[L]{\hslabel{\textcopyright{} YYYY <Name>. All rights reserved.}}`), and the user told the page counts, the emphases and the follow-ups.
@@ -153,8 +157,9 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 ## Files
 
 - `references/recipes.md` -- the document types, their length bands, structures and build sizes.
-- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `example.tex`, and the rendered HTML target. Do not edit here.
+- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `CONFORMANCE.md` (the ten checks), `example.tex`, and the rendered HTML target. Vendored from the owner's package at rev 03; edit only to carry a decision of his, and say so in the file.
 - `references/latex-house-style.md` -- the spec mapped onto macros, the build, teaching affordances, math kit, traps, style gate.
+- `references/page-composition.md` -- how to put the blocks on a page: the reference document's eight shapes, the rhythm rule, what each block's arguments must carry, the three diagram patterns with tikz, and the render-and-look checklist.
 - `references/teaching-communication.md` -- the canonical voice, vendored from lesson-builder. Do not edit here.
 - `references/voice.md` -- representation to LaTeX construct, and the three page-level rules.
 - `references/review-pipeline.md` -- the five reviewers, which run at which build size, the filter protocol, the false-positive catalogue.

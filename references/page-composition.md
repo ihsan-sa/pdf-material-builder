@@ -1,0 +1,283 @@
+# Composing a page
+
+`references/latex-house-style.md` says which macro draws which block. This file
+says how to put them on a page, because the first real build of this kit called
+every macro correctly and still did not look like the reference document.
+
+Read it before writing the first page of any document, and again with the
+rendered PDF open beside `references/house-style/house-style-template.html`.
+
+## What went wrong the first time
+
+The house style landed, a five-page document was built with it, and the owner's
+verdict was that the files do not look as they should. Nothing in it broke a
+rule. What it did instead:
+
+- called `\begin{hsfigure}{}{}` with an empty label and an empty legend, so the
+  figure arrived with no number, no name and nothing telling the reader what the
+  boxes mean;
+- wrote node bodies as `\textbf{Draft}\\structure first`, so the nodes had no
+  eyebrow and each box took the height of its own text, leaving the row ragged;
+- put the fail path's caption in among the arrows, where the dashed line, the
+  arrowhead and two lines of prose overlapped each other;
+- carried no provenance footline on a page full of measured numbers;
+- ran three paragraphs, a heading and a diagram on every page in the same order,
+  and left the bottom third of most pages empty.
+
+`scripts/style-check.sh` now catches the first three. The last two are judgement,
+and this file is that judgement written down.
+
+## The reference document's eight shapes
+
+The target is eight pages and no two of them are laid out alike. Read them as a
+catalogue of shapes, not as a sequence to copy:
+
+| Page | Shape | What it is for |
+|---|---|---|
+| 1 | Title block high on the page, a long fall of white, a four-column metadata strip on the foot rule | Says what the document is and then gets out of the way. The white is deliberate. |
+| 2 | Heading, lead, two prose paragraphs, then one figure at full measure with its legend, then the provenance footline | One mechanism, explained once and drawn once. |
+| 3 | Heading, two-line lead, a stat row of four, the claim between two rules with its mono line, a callout | The page that carries the numbers and the sentence the document exists for. |
+| 4 | Two labelled tables, one comparison and one data, and nothing else | A page may be a single kind of thing all the way down. |
+| 5 | A full-measure plate with its spec line and caption, then two half-measure plates side by side | Evidence. The pair below the single is what stops the page reading as one column. |
+| 6 | A labelled listing, a caption, a labelled display equation between rules, a callout | Exactness: the page where the literal string and the literal formula matter. |
+| 7 | A type ladder with a mono spec column down the right, then a swatch row | A reference page, built out of primitives rather than blocks. |
+| 8 | A numbered source list, then two short asides side by side | The last page, and the only place sources appear. |
+
+Three things to take from the catalogue. **A page can be one thing.** Page 4 is
+two tables and no prose at all, and it is the calmest page in the document.
+**A page can be mostly empty.** Page 1 gives half its height to nothing.
+**A page can be two columns.** Pages 5 and 8 both split, and neither needs a
+macro to do it: a pair of `minipage`s at `0.47\linewidth` with `\hfill` between.
+
+## The rhythm rule
+
+Before writing, list the document's pages and give each a shape. If two pages in
+a row have the same shape, one of them is wrong: merge them, split them
+differently, or move a block. A document whose every page is heading, lead, three
+paragraphs, figure is not in this style even when every macro is correct. That
+sentence is the owner's, in `references/house-style/CONFORMANCE.md`, under "What
+the kit cannot check for you".
+
+Two working rules that follow from it:
+
+- **No page is only prose past the second page.** By page three the reader
+  expects the document to show something: a figure, a table, a stat row, a
+  listing, a plate, an equation.
+- **A page that ends a third of the way up is not finished.** Either it has more
+  to carry, or the block above it should have been given the room. The exception
+  is the title page, where the fall of white is the design.
+
+## Filling a block in rather than calling it
+
+Every block below has an argument the first build left empty. None of them is
+optional.
+
+| Block | What has to be in it |
+|---|---|
+| `hsfigure` | A label of the form `Figure N / what it shows`, and a legend sentence in the second argument naming the kinds of box the picture uses. The legend is prose, not a caption of the label. |
+| `hsnodetext` | An eyebrow that names the node's kind in one or two words, a title of two or three, and a detail line that is not a repeat of the title. |
+| `hsstat` | A measured number and a caption saying what was measured and when. A figure nobody measured is prose. |
+| `hsprovenance` | The command, file, commit or date. `\hsprovenance{}` on a page of numbers is worse than none, because it claims a source it does not name. |
+| `hsclaim` | The sentence the document exists for, and a mono line under it saying what kind of sentence it is. Exactly one per document. |
+| `hscallout` | The label states the objection, so `What this does not mean` rather than `Note`. |
+| `hsplate` | The image, its name, the grey facts, the status, and a caption saying what the plate is evidence of. |
+| `hslisting` | `Listing N / what it is`, and then output as it came back, trimmed but not edited. |
+
+Two page-level obligations no macro enforces:
+
+- **Provenance follows numbers.** Any page carrying a figure or a measured
+  statistic ends in `\hsprovenance{...}`, which sits at the foot above the
+  running foot because it uses `\vfill`. One per page, last thing before the page
+  break.
+- **The accent is budgeted at three a page**, counted in the prose: a gate node,
+  a source numeral, one table header cell. Inside a `tikzpicture` the budget does
+  not apply (`CONFORMANCE.md`, item 9).
+
+## Diagrams
+
+A diagram is drawn for what it shows. The owner decided this on 22 September
+2026 -- "dont force diagrams into the format in the template" -- and it overrides
+the earlier wording of `style-spec.md` block 2, `CONFORMANCE.md` item 9 and the
+package README's rule 3, all three of which now say so.
+
+What does not bend, in any of the three patterns below:
+
+- **Typography is the house's.** Mono for every label and eyebrow, the text serif
+  for prose inside a node, the page's paper as the ground. No sans-serif
+  anywhere; the old documents these patterns come from were set in Helvetica and
+  that part does not come with them.
+- **The palette is the house's too.** The owner settled this on 22 September
+  2026: the old diagrams' *form* comes across, their colours do not -- "they can
+  still be redrawn in the new pallette which is prob better but i mean the form
+  etc". So a diagram is drawn in ink, the neutrals, the two grounds and the one
+  accent, and no hue exists inside a picture that does not exist outside it.
+  Telling roles apart is then a matter of weight, and *How a writer picks a
+  treatment* below is how.
+- **Every figure is labelled and legended.** `\begin{hsfigure}{Figure N / ...}`
+  with a legend sentence naming the kinds the picture uses.
+- **Boxes in a row are one height**, which is what `\hsnodetext` is for.
+- **A fail path is one line**, and its caption goes under the picture with
+  `\hsfailnote`, never in among the arrows.
+
+### Pattern 1 -- the node row
+
+A mechanism with three to five steps in one direction. This is the template's own
+figure, and it is the right answer when the thing genuinely is a line of steps.
+
+```latex
+\begin{hsfigure}{Figure 1 / node-and-arrow flow}%
+{Filled boxes are inputs and outputs. Outlined boxes are work an agent does.
+Rust boxes are deterministic checks that pass or fail.}
+\begin{tikzpicture}[node distance=14pt]
+  \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
+  \node[hswork,right=of a] (b) {\hsnodetext{Agent}{Draft}{structure first, then prose}};
+  \node[hsgate,right=of b] (c) {\hsnodetext{Gate}{Style check}{pass, or back with reasons}};
+  \node[hsnode,right=of c] (d) {\hsnodetext{Output}{A PDF}{with its sources attached}};
+  \draw[hsarrow] (a) -- (b); \draw[hsarrow] (b) -- (c); \draw[hsarrow] (c) -- (d);
+  \draw[hsfail] (c.south) -- ++(0,-12pt) -| (b.south);
+\end{tikzpicture}
+\hsfailnote{A failed gate returns to the draft step, twice, then to a person}
+\end{hsfigure}
+```
+
+`\hsnodesize{width}{height}` changes both dimensions for the rest of the picture;
+the default 88 pt by 54 pt fits four across the measure.
+
+### Pattern 2 -- the lane diagram
+
+Several actors, and the thing that matters is which of them does what and in
+which order. Lane headers across the top, a lifeline down from each, steps
+sitting in their own lane, and an annotated arrow whenever the work crosses from
+one lane to the next. The grid is `x` per lane and a negative `y` so the page
+reads downwards.
+
+```latex
+\begin{hsfigure}{Figure 2 / one request, end to end}%
+{Each column is one actor and time runs down the page. The filled lane is the
+seat that decides and the rust one is where work becomes public; a dashed arrow
+is a return, and the italic line on an arrow says what crosses.}
+\begin{tikzpicture}[x=92pt,y=-15pt]
+  \node[hslane,hsoutlined] (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
+  \node[hslane,hsquiet]    (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
+  \node[hslane,hsfilled]   (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
+  \node[hslane,hsground]   (W) at (3,0) {\hsrolename{Worker}{one task}};
+  \node[hslane,hsmarked]   (L) at (4,0) {\hsrolename{Landing}{the queue, and GitHub}};
+  \foreach \c in {O,S,P,W,L} \draw[hslife] (\c.south) -- (\c.south |- 0,16);
+  \draw[hsarrow] (0,1.6) -- node[hsann,above=0pt] {a message} (1,1.6);
+  \draw[hsarrow] (1,3.2) -- node[hsann,above=0pt] {typed into the session's window} (2,3.2);
+  \node[hsstep] at (2,4.6) {adds a board row, writes a brief};
+  \draw[hsarrow] (2,6.2) -- node[hsann,above=0pt] {one command starts the worker} (3,6.2);
+  \node[hsstep] at (3,7.6) {its own worktree and branch; a hook commits};
+  \draw[hsarrow] (3,9.6) -- node[hsann,above=0pt] {says done, opens the PR} (4,9.6);
+  \node[hsstep] at (4,11) {gates, then one review read of the diff};
+  \draw[hsreturn] (4,13) -- node[hsann,above=0pt] {landed, in the track's own thread} (1,13);
+  \draw[hsreturn] (1,14.6) -- node[hsann,above=0pt] {a note back} (0,14.6);
+\end{tikzpicture}
+\end{hsfigure}
+```
+
+A node takes one shape style and one treatment, shape first: `hslane` for a lane
+header, `hsrole` for a box anywhere else. An arrow's annotation is filled in the
+paper colour and masks the line under it, which is what keeps it readable. Two
+rules follow from that. On a free arrow, leave at least 40 pt beyond the label so
+the arrowhead is not covered, and break a long annotation over two lines with
+`\\` rather than let it run under the box at either end. In a lane diagram the
+span between two lanes is usually shorter than the sentence, so put the
+annotation `above=0pt` instead: the arrow stays whole under it and the reader
+still sees which way the work went.
+
+### Pattern 3 -- the role graph
+
+Parts of a system that do not form a line: each box is a part, its colour says
+what kind of part it is, and the arrow between two of them carries the thing that
+passes. Place boxes on a coordinate grid rather than with `right=of`, so the
+picture can breathe where it needs to.
+
+```latex
+\begin{hsfigure}{Figure 3 / what runs with nobody there}%
+{Outlined boxes are doors into the box, the filled one is what every event goes
+through, the tinted one is where a model runs and the faint one is a record. An
+italic line on an arrow says what passes between two parts.}
+\begin{tikzpicture}[x=1pt,y=1pt]
+  \node[hsrole,hsoutlined] (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
+  \node[hsrole,hsoutlined] (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
+  \node[hsrole,hsfilled]   (b) at (176,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hsground]   (s) at (352,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]    (r) at (176,-52) {\hsrolename{The board}{one row per task}};
+  \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
+  \draw[hsarrow] (m) -- (b);
+  \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);
+  \draw[hsarrow] (b) -- (r);
+\end{tikzpicture}
+\end{hsfigure}
+```
+
+### How a writer picks a treatment
+
+There are five, and they differ by weight rather than by hue, so a reader tells
+them apart the way they tell a heading from a caption. In the order they ask to
+be noticed:
+
+| Treatment | What it looks like | Give it to |
+| --- | --- | --- |
+| `hsfilled` | ink box, paper text | the one part the picture is about: where the work is decided, or the step everything passes through |
+| `hsmarked` | accent rule on the fill ground, accent eyebrow | the single role the mechanism turns on -- a gate, a landing, the thing that can refuse. One per picture |
+| `hsoutlined` | ink rule on paper | the ordinary parts, and usually the people |
+| `hsground` | fill ground, ink-70 rule | a part that does work but is not the subject |
+| `hsquiet` | grey rule on paper, ink-70 text | ambient things: a store, a record, a timer, anything the reader need not follow |
+
+Rank the roles by how much the reader has to notice them, then assign from the
+top of the table down; use three or four treatments in one picture rather than
+all five, spend `hsmarked` exactly once, and name in the legend what each weight
+means in this picture, because the weights carry no fixed meaning across
+pictures the way a hue would. Each treatment names colours only, so it goes on a node beside
+`hsrole` or `hslane`, never alone.
+
+## Three traps the first composed build hit
+
+None of these is caught by the gate, and each of them cost a rebuild.
+
+- **A block that is not prose needs `hsblock`.** A `tabular`, a title page's
+  metadata strip, a pair of asides side by side: all of them are the full 468 pt
+  measure, and prose is 48 pt narrower. Without the environment the fourth
+  column of a four-column strip wraps under the first and sits on top of the
+  line above it. It looks like a spacing bug and it is a measure bug.
+- **`\hsprovenance` needs about 35 pt of room left.** It sits at the foot
+  through `\vfill`, so on a page that is already full it does not compress: it
+  goes alone to the next page, which then has a single grey line at the top and
+  nothing else. When that happens, cut prose from the page above rather than
+  move the footline.
+- **In a lane diagram, leave about two grid rows between a step box and the next
+  arrow.** A step is wider than its lane, so an arrow too close to it has its
+  annotation land on the box. If the picture then runs past the page, drop an
+  arrow rather than shrink the gaps: a diagram with one fewer annotated step
+  still reads, and one with overlapping labels does not.
+
+## Before hand-off: render it and look at it
+
+The style gate is mechanical and this part is not. Build the document, then:
+
+```bash
+pdftoppm -png -r 80 <name>.pdf /tmp/<name>
+```
+
+and read the images, page by page, beside the reference rendering. Check:
+
+1. **Shapes vary.** No two consecutive pages lay their blocks out the same way.
+2. **No page dies early.** Nothing but the title page ends in the bottom third.
+3. **Every figure has its number, its name and its legend sentence**, and the
+   legend names the kinds the picture actually uses.
+4. **Every node has an eyebrow**, and every box in a row is the same height.
+5. **Every fail path is one line**, with its caption clear of the arrows.
+6. **Every page with a figure or a measured number ends in a provenance
+   footline**, and that footline names a command, a file, a commit or a date.
+7. **The claim appears once**, and the callout stating its limit is on the same
+   page.
+8. **Labels read as words, not as spaced capitals.** If `HOUSE STYLE` has come
+   out as `H O U S E  S T Y L E`, the label tracking is wrong.
+9. **The paper is warm.** A page that renders pure white has lost the tint, which
+   means `housestyle.sty` did not load.
+10. **The sources are one numbered list on the last page**, which heads itself
+    `Sources`, and no footnote exists anywhere.
+
+Say in the hand-off which pages you compared and what you changed after looking.

@@ -51,13 +51,18 @@ links.
 | ink | #15140F | text, structural rules, filled diagram nodes |
 | ink-70 | #4A4740 | lead lines, captions, secondary table cells |
 | ink-55 | #8A857A | labels, running heads, provenance, dividing rules |
-| paper | #FAF8F3 | the sheet |
+| paper | #FAF8F3 | the sheet, painted on every page |
 | fill | #F0EADE | callout ground; #F2EEE3 for code ground |
 | accent | #9C4221 | deterministic checks, source numerals, one header cell |
 
+One accent, and it is the only hue in the document. The warm paper tint is part
+of the style, not an artefact: the LaTeX class paints it on every page, and a
+build that comes out on plain white has lost it.
+
 Five values and one accent. The accent marks a check or a pointer, never
 decoration, and never more than three appearances on a page. No gradients, no
-tints of the accent, no second hue.
+tints of the accent, no second hue. The budget of three is the budget of a
+page's prose; inside a diagram, block 2 governs.
 
 ## Spacing
 
@@ -70,10 +75,22 @@ head, under the title block), grey where they only divide.
 1. **Title block** - eyebrow (mono, accent), title, one-line lead, then content.
    Documents over twelve pages get a dedicated title page with a four-column
    metadata strip at the foot: built for / paper / type / scope.
-2. **Flow diagram** - horizontal nodes, mono arrow glyphs. Three node kinds and
-   no more: filled ink (input, output), outlined ink (work an agent does),
-   accent-outlined on fill (a deterministic check). A legend sentence under it in
-   caption size names the kinds. Fail paths are one accent line under the row.
+2. **Diagram** - drawn for what it shows. *Owner's decision, 22 September 2026:
+   "dont force diagrams into the format in the template". This replaces the
+   earlier text of this block, which allowed three node kinds and no more.* The
+   node row is one pattern: horizontal nodes, mono arrow glyphs, filled ink
+   (input, output), outlined ink (work an agent does), accent-outlined on fill
+   (a deterministic check). A lane diagram, and a role graph with annotated
+   arrows, are equally house style, and both are drawn in these same tokens:
+   a role is told apart by weight, not by a hue of its own (owner, same day:
+   "they can still be redrawn in the new pallette which is prob better but i
+   mean the form etc").
+   What every diagram owes the reader, whatever its shape: a filled figure
+   label, a legend sentence under it in caption size naming the kinds it uses,
+   an eyebrow in every node, one height for every box in a row, and a fail path
+   drawn as one accent line with its caption under the picture. The typography
+   is the house's -- mono labels, the text serif for prose in a node, the page's
+   paper ground, and no sans-serif anywhere.
 3. **Stat row** - four measured figures, mono, with a caption under each. Rule
    above in ink, rule below in grey. Only for numbers that were measured.
 4. **Comparison table** - one row per dimension, two or three columns, the new

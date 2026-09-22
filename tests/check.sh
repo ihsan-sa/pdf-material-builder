@@ -20,15 +20,19 @@
 #      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
 #      directory. With pdfinfo present, the default build is letter and the
 #      template's A4 line, uncommented, builds A4.
-#   7  references/house-style/example.tex builds the same way, and pdffonts
+#   7  Every ```latex block in references/page-composition.md compiles against
+#      housestyle.sty, each as its own page, and none of them logs an overfull
+#      box: a writer copies these patterns out of the file, so a style the .sty
+#      renamed or a picture wider than the measure fails in their document.
+#   8  references/house-style/example.tex builds the same way, and pdffonts
 #      shows Source Serif 4 and IBM Plex Mono embedded.
-#   8  With housestyle.sty in the current directory, kpse returns it as
+#   9  With housestyle.sty in the current directory, kpse returns it as
 #      ./housestyle.sty (a bare lualatex run there); the .sty's font lookup
 #      must still resolve to assets/fonts/. Then references/house-style/
 #      example.tex builds in place with scripts/build.sh and embeds the
 #      vendored Source Serif 4; the example.pdf it makes is removed.
-#   6, 7 and 8 are SKIPPED, with the reason printed, when lualatex is absent;
-#   7's and 8's font checks are skipped the same way when pdffonts is absent.
+#   6 to 9 are SKIPPED, with the reason printed, when lualatex is absent;
+#   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
 set -uo pipefail
@@ -157,10 +161,38 @@ selfcheck footnote   a.tex 'A number.\\footnote{From the log.}\n' \
                      b.tex 'A number.\\textsuperscript{1}\n'
 selfcheck second-claim a.tex '\\hsclaim{One.}{x}\n\\hsclaim{Two.}{y}\n' \
                        b.tex '\\hsclaim{One.}{x}\n'
-selfcheck colour-hex a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+selfcheck colour-hex a.tex '\\textcolor[HTML]{1F6FEB}{x}\n' \
                      b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
+selfcheck definecolor a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+                      b.tex '\\textcolor{inkfiftyfive}{x} % a token the .sty defines\n'
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
+# A tint is a violation in itself: the style allows no gradients and no tints,
+# only the eight tokens, so `accent!12` is as wrong as a hue that is no token.
+selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=accent!12] {x};\n' \
+                      b.tex '\\node[draw=accent,fill=fill] {x};\n'
+selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
+                     b.tex '% housestyle.sty paints the paper tint; a document never does\n'
+selfcheck sans-face  a.tex '{\\sffamily A label}\n' \
+                     b.tex '{\\labelfont A label}\n'
+# The defects the reference rendering exposed in the first real build.
+selfcheck empty-figure-label \
+  a.tex '\\begin{hsfigure}{}{}\\end{hsfigure}\n' \
+  b.tex '\\begin{hsfigure}{Figure 1 / the flow}{Filled boxes are inputs.}\\end{hsfigure}\n'
+selfcheck empty-provenance \
+  a.tex '\\hsprovenance{ }\n' \
+  b.tex '\\hsprovenance{Read off the box on 21 September 2026.}\n'
+selfcheck node-without-eyebrow \
+  a.tex '\\node[hswork] (b) {\\textbf{Draft}\\\\then prose};\n' \
+  b.tex '\\node[hswork] (b) {\\hsnodetext{Agent}{Draft}{then prose}};\n'
+selfcheck fifth-stat \
+  a.tex '\\begin{hsstatrow}\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n' \
+  b.tex '\\begin{hsstatrow}[3]\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\n\\end{hsstatrow}\n\\begin{hsstatrow}\n\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n'
+# The row's own [n] is the cap, not just four: a third stat in a row of two is
+# the \PackageError the .sty raises at build time, so the gate has to catch it.
+selfcheck stat-over-declared-cap \
+  a.tex '\\begin{hsstatrow}[2]\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\n\\end{hsstatrow}\n' \
+  b.tex '\\begin{hsstatrow}[2]\n\\hsstat{1}{a}\\hsstat{2}{b}\n\\end{hsstatrow}\n'
 # One claim per document, not per file: a driver and the files it pulls in.
 # The inputs sit in a subdirectory and name each other relative to themselves;
 # ch2 inputs the driver back (a cycle) and a file that does not exist.
@@ -321,7 +353,48 @@ PYEOF
   fi
 fi
 
-# --- 7. the owner's example builds and embeds both faces ----------------------
+# --- 7. the diagram patterns in references/page-composition.md still compile ---
+# A writer copies these three straight out of the file, so a style the .sty
+# renamed and a snippet nobody recompiled is a pattern that fails in their
+# document, not in ours. Each latex block is built as its own page; the run also
+# fails on an Overfull box, because a picture wider than the measure prints past
+# the right margin and that is what the reference is meant to be an answer to.
+if ! command -v lualatex >/dev/null; then
+  skip "page-composition snippets" "no lualatex on this machine"
+else
+  C="$TMPROOT/patterns"; mkdir -p "$C"
+  python3 - "$REPO/references/page-composition.md" "$C/patterns.tex" <<'PYEOF'
+import re, sys
+md = open(sys.argv[1]).read()
+blocks = re.findall(r'```latex\n(.*?)```', md, re.S)
+if not blocks:
+    sys.exit("no ```latex blocks in page-composition.md")
+head = ('\\documentclass[11pt]{article}\n\\usepackage{housestyle}\n'
+        '\\hsslug{Diagram patterns}\n\\hssection{Patterns}\n\\begin{document}\n')
+open(sys.argv[2], 'w').write(head + '\n\n\\clearpage\n\n'.join(blocks) + '\n\\end{document}\n')
+PYEOF
+  n=$(python3 -c "import re,sys;print(len(re.findall(r'\`\`\`latex',open(sys.argv[1]).read())))" "$REPO/references/page-composition.md")
+  if [ "$n" -lt 3 ]; then
+    fail "page-composition snippets: found $n latex blocks, expected the three diagram patterns"
+  elif ! out=$("$REPO/scripts/build.sh" "$C/patterns.tex" 2>&1); then
+    fail "page-composition snippets: one of the $n patterns does not compile"
+    printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  else
+    pass "page-composition's $n diagram patterns compile against housestyle.sty"
+    (cd "$C" && TEXINPUTS=".:$REPO/references/house-style//:" \
+      lualatex -interaction=nonstopmode -jobname=ovf patterns.tex >/dev/null 2>&1) || true
+    if [ ! -s "$C/ovf.log" ]; then
+      skip "page-composition snippets fit the measure" "no log written"
+    elif over=$(grep -c 'Overfull \\hbox' "$C/ovf.log") && [ "$over" -gt 0 ]; then
+      fail "page-composition snippets: $over overfull hbox(es); a pattern is wider than the measure"
+      grep -A1 'Overfull \\hbox' "$C/ovf.log" | head -6 | sed 's/^/  /'
+    else
+      pass "page-composition's diagram patterns fit the measure with no overfull box"
+    fi
+  fi
+fi
+
+# --- 8. the owner's example builds and embeds both faces ----------------------
 if ! command -v lualatex >/dev/null; then
   skip "house-style example" "no lualatex on this machine"
 else
@@ -355,7 +428,7 @@ else
   fi
 fi
 
-# --- 8. the font lookup and the example, in place ----------------------------
+# --- 9. the font lookup and the example, in place ----------------------------
 # Case 7 copies the example away from housestyle.sty, so kpse finds the .sty by
 # its absolute path. Built in its own directory, "." is searched first (build.sh
 # and a bare lualatex run alike) and kpse returns ./housestyle.sty instead. The

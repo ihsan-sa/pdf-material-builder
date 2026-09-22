@@ -14,9 +14,26 @@
 #     document (spec, block 9). A .tex with \begin{document} is
 #     a document with every file it \input{}s or \include{}s,
 #     followed recursively; any other .tex is counted on its own
-#   - a colour outside the six tokens (spec, Colour): a hex    (.tex .sty)
-#     value not in the token set, a \definecolor in a document,
-#     or a colour name or `!` tint that is not a token name
+#   - a colour outside the tokens (spec, Colour): a hex value    (.tex .sty)
+#     not in the token set, a \definecolor in a document, or a
+#     colour name or `!` tint that is not a token name. A
+#     diagram is drawn in these same tokens: it tells its roles
+#     apart by weight, not by a hue of its own (CONFORMANCE
+#     item 9)
+#   - \pagecolor in a document: housestyle.sty paints the paper  (.tex)
+#     tint on every page and a document never repaints it
+#     (CONFORMANCE item 7)
+#   - \sffamily or \textsf: two faces, and neither is a sans     (.tex .sty)
+#     (spec, Type; CONFORMANCE item 8)
+#   - an empty mandatory argument to a composition macro          (.tex)
+#     (\hsfigure's label or legend, \hsprovenance, \hslisting,
+#     \hsclaim, \hstitleblock, \hsnodetext, \hsplate's caption):
+#     the block is on the page with nothing in it
+#   - an hsnode / hswork / hsgate whose body is not \hsnodetext,  (.tex)
+#     which is what gives the node its eyebrow and holds every
+#     box in the row to one height (CONFORMANCE item 9)
+#   - a fifth \hsstat in one hsstatrow: four abreast is the       (.tex)
+#     maximum (CONFORMANCE item 2)
 #   - a pdflatex call (`pdflatex` then an option or a .tex    (all four)
 #     file): housestyle.sty needs lualatex; use scripts/build.sh
 #
@@ -58,6 +75,8 @@ PICTURE_BOX = re.compile(r'\\(?:new|renew)tcolorbox(?:\[[^\]]*\])?\{picture\}'
                          r'|\\DeclareTColorBox(?:\[[^\]]*\])?\{picture\}')
 
 FOOTNOTE = re.compile(r'\\footnote(?![A-Za-z])')
+PAGECOLOR = re.compile(r'\\pagecolor(?![A-Za-z])')
+SANS = re.compile(r'\\(?:sffamily|textsf)(?![A-Za-z])')
 CLAIM = re.compile(r'\\hsclaim(?![A-Za-z])')
 BEGIN_DOC = re.compile(r'\\begin\s*\{document\}')
 INPUT = re.compile(r'\\(input|include)\s*\{([^}]+)\}')
@@ -120,10 +139,21 @@ for path in files:
             # \color{#1} in a macro body, or text=\foo, is not a literal.
             if name.startswith(('#', '\\')) or not name:
                 continue
-            if name not in TOKEN_NAMES:
+            # The spec allows no tints: `accent!12` and `ink!20!paper` are
+            # as wrong as a hue that is no token at all ("No gradients, no
+            # tints of the accent, no second hue"), so the `!` is itself the
+            # violation and the whole name is reported.
+            if '!' in name:
+                problems.append(f'{rel}:{n}: colour `{name}` is a tint; the '
+                                'style allows no gradients and no tints, only '
+                                'the eight tokens themselves')
+            elif name not in TOKEN_NAMES:
                 problems.append(f'{rel}:{n}: colour `{name}` is not a house-style '
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
                                 'fill, codefill, accent, rulegrey)')
+        if SANS.search(line):
+            problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
+                            'Source Serif 4 and IBM Plex Mono, neither a sans')
         if not is_tex:
             continue
         if DEFINECOLOR.search(line):
@@ -132,6 +162,9 @@ for path in files:
         if FOOTNOTE.search(line):
             problems.append(rf'{rel}:{n}: \footnote; put the source in the '
                             'numbered list on the last page (hssources)')
+        if PAGECOLOR.search(line):
+            problems.append(rf'{rel}:{n}: \pagecolor in a document; housestyle.sty '
+                            'already paints the paper tint on every page')
         if BEGIN_DOC.search(line) and path not in drivers:
             drivers.append(path)
         events.extend(line_events(line, n))
@@ -142,6 +175,152 @@ for path in files:
         if PICTURE_BOX.search(line):
             problems.append(f'{rel}:{n}: tcolorbox named `picture` collides with '
                             'the built-in environment; name it pictureit')
+
+# ---- composition checks, over the whole comment-stripped .tex ---------------
+# These are the defects the reference rendering exposed in the first real build:
+# a figure environment called with an empty label and an empty legend, nodes
+# with no eyebrow, and a stat row wrapped into a ragged grid.
+
+def strip_comments(text):
+    """The text with LaTeX comments blanked, keeping every byte offset and
+    every newline, so an offset still maps to its own line."""
+    out = []
+    for line in text.split('\n'):
+        m = TEX_COMMENT.search(line)
+        out.append(line[:m.start()] + ' ' * (len(line) - m.start()) if m else line)
+    return '\n'.join(out)
+
+def read_arg(text, i):
+    """The content of the balanced {...} that starts at or after text[i],
+    skipping whitespace and one optional [...] first. (content, end) or None."""
+    n = len(text)
+    while i < n and text[i] in ' \t\n':
+        i += 1
+    if i < n and text[i] == '[':
+        depth = 1
+        i += 1
+        while i < n and depth:
+            depth += {'[': 1, ']': -1}.get(text[i], 0)
+            i += 1
+        while i < n and text[i] in ' \t\n':
+            i += 1
+    if i >= n or text[i] != '{':
+        return None
+    depth, j = 1, i + 1
+    while j < n and depth:
+        if text[j] == '\\':
+            j += 2
+            continue
+        depth += {'{': 1, '}': -1}.get(text[j], 0)
+        j += 1
+    return (text[i + 1:j - 1], j)
+
+def read_args(text, i, count):
+    """`count` balanced arguments starting at i, or None if any is missing."""
+    args = []
+    for _ in range(count):
+        got = read_arg(text, i)
+        if got is None:
+            return None
+        args.append(got[0])
+        i = got[1]
+    return args
+
+# Macro (or environment) -> how many arguments it takes, and which of them the
+# document has to fill in. An empty one puts the block on the page with nothing
+# in it, which is what the first build did to every figure.
+FILLED = {
+    r'\begin{hsfigure}': (2, (0, 1), ('the figure label', 'the legend sentence')),
+    r'\hstitleblock':    (3, (0, 1, 2), ('the eyebrow', 'the title', 'the lead')),
+    r'\hsclaim':         (2, (0, 1), ('the claim', 'the mono line under it')),
+    r'\hsprovenance':    (1, (0,), ('the provenance line',)),
+    r'\hslisting':       (1, (0,), ('the listing label',)),
+    r'\hsnodetext':      (3, (0, 1), ('the node eyebrow', 'the node title')),
+    r'\hsplate':         (5, (0, 1, 4), ('the image file', 'the plate name',
+                                         'the caption')),
+    r'\begin{hscallout}': (1, (0,), ('the callout label',)),
+}
+NODE_KIND = re.compile(r'(?<![A-Za-z])hs(?:node|work|gate)(?![A-Za-z])')
+NODE = re.compile(r'\\node(?![A-Za-z])')
+STATROW = re.compile(r'\\(begin|end)\s*\{hsstatrow\}|\\hsstat(?![A-Za-z])')
+
+for path in files:
+    if not path.endswith('.tex'):
+        continue
+    rel = os.path.relpath(path, root)
+    text = strip_comments(open(path, encoding='utf-8').read())
+    line_of = lambda off: text.count('\n', 0, off) + 1
+
+    for macro, (count, required, names) in FILLED.items():
+        start = 0
+        while True:
+            at = text.find(macro, start)
+            if at < 0:
+                break
+            start = at + len(macro)
+            if text[start:start + 1].isalpha():   # \hsclaimish, not \hsclaim
+                continue
+            args = read_args(text, start, count)
+            if args is None:
+                continue
+            for k, which in zip(required, names):
+                if not args[k].strip():
+                    problems.append(f'{rel}:{line_of(at)}: {macro} with {which} '
+                                    'empty; a block goes on the page only once '
+                                    'it has something to say')
+
+    # Every node in the three flow kinds carries \hsnodetext, which is what
+    # gives it its eyebrow and holds every box in the row to one height.
+    # A node reads `\node[options] (name) at (x,y) {body};` -- the options and
+    # the name are both optional and the body is the last of the three.
+    for m in NODE.finditer(text):
+        i, end = m.end(), len(text)
+        while i < end and text[i] in ' \t\n':
+            i += 1
+        if i >= end or text[i] != '[':
+            continue
+        depth, j = 1, i + 1
+        while j < end and depth:
+            depth += {'[': 1, ']': -1}.get(text[j], 0)
+            j += 1
+        options = text[i:j]
+        if not NODE_KIND.search(options):
+            continue
+        # skip everything up to the body: the node name, `at (x,y)`, and so on
+        k = text.find('{', j)
+        stop = text.find(';', j)
+        if k < 0 or (stop >= 0 and stop < k):
+            continue
+        got = read_arg(text, k)
+        if got is None:
+            continue
+        body = got[0]
+        if body.strip() and '\\hsnodetext' not in body:
+            problems.append(f'{rel}:{line_of(m.start())}: an hsnode / hswork / '
+                            'hsgate whose body is not \\hsnodetext; the node has '
+                            'no eyebrow and the row will go ragged')
+
+    # Four stats abreast is the maximum; a fifth is two rows or a data table.
+    cap, seen, opened = 4, 0, None
+    for m in STATROW.finditer(text):
+        token = m.group(0)
+        if token.startswith('\\begin'):
+            opened, seen = m.start(), 0
+            # The count is the environment's own optional argument and nothing
+            # follows it but \hsstat, so read it straight off the source: a
+            # reader that looked for a following {...} never matched, and every
+            # row was measured against the default of four.
+            m2 = re.match(r'\s*\[(\d+)\]', text[m.end():])
+            cap = int(m2.group(1)) if m2 else 4
+        elif token.startswith('\\end'):
+            opened = None
+        elif opened is not None:
+            seen += 1
+            if seen > cap:
+                problems.append(f'{rel}:{line_of(m.start())}: stat number '
+                                f'{seen} in a row of {cap}; four abreast is the '
+                                'maximum, so split it into two rows or a data '
+                                'table')
 
 def read_events(real):
     """Events of a file an \\input reaches that the walk above did not list

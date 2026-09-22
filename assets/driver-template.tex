@@ -31,12 +31,17 @@ to <WEAK AREA 1>, <WEAK AREA 2> and <WEAK AREA 3>.}
 \texttt{<course>\_visual\_intuition.pdf}\ \textperiodcentered\
 \texttt{<course>\_worked\_examples.pdf}\par}
 \vfill
-\noindent\hsrule\par\vspace{8pt}
-\noindent\begin{tabular}{@{}L{0.22\linewidth}L{0.22\linewidth}L{0.22\linewidth}L{0.22\linewidth}@{}}
+% The rule and the strip are a block, not prose, so hsblock puts them on the
+% whole 468 pt measure; without it the four 0.22\linewidth columns overrun the
+% 34-em prose measure and every built document logs an overfull hbox.
+\begin{hsblock}
+\hsrule\par\vspace{8pt}
+\begin{tabular}{@{}L{0.22\linewidth}L{0.22\linewidth}L{0.22\linewidth}L{0.22\linewidth}@{}}
 \hslabel{Built for} & \hslabel{Paper} & \hslabel{Type} & \hslabel{Scope} \\
 <READER> & Letter, portrait & Source Serif 4, IBM Plex Mono &
   <COURSE>, <TERM>; lectures by Prof.\ <PROF>, <INSTITUTION> \\
 \end{tabular}
+\end{hsblock}
 \end{titlepage}
 \setcounter{page}{2}  % titlepage resets the counter to 1 at \end; the title page was 1
 
