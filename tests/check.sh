@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The repo gate for pdf-material-builder. Hermetic, no network, well under a
-# minute. Run it before opening a PR; the landing check runs it too.
+# The repo gate for pdf-material-builder. Hermetic, no network, about a
+# minute with lualatex present. Run it before opening a PR; the landing check runs it too.
 #
 # Cases:
 #   1  SKILL.md frontmatter parses and carries `name` and `description`,
@@ -9,20 +9,23 @@
 #      references/teaching-communication.md is exempt and says so: it is a
 #      verbatim vendored copy, and the paths in it are lesson-builder's.
 #   3  scripts/style-check.sh passes on this repo.
-#   4  scripts/style-check.sh selfcheck: each of its five rules flags its own
+#   4  scripts/style-check.sh selfcheck: each of its rules flags its own
 #      fixture and stays quiet on the matching clean case.
 #   5  scripts/voice-drift.sh reports no drift from the canonical spec.
 #      SKIPPED, with the reason printed, when lesson-builder is not on disk.
-#   6  assets/preamble-template.tex and assets/driver-template.tex compile
-#      with pdflatex to a non-empty PDF in a temp directory.
-#      SKIPPED, with the reason printed, when /usr/bin/pdflatex is absent.
+#   6  assets/preamble-template.tex and assets/driver-template.tex build with
+#      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
+#      directory.
+#   7  references/house-style/example.tex builds the same way, and pdffonts
+#      shows Source Serif 4 and IBM Plex Mono embedded.
+#   6 and 7 are SKIPPED, with the reason printed, when lualatex is absent;
+#   7's font check is skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_NAME=pdf-material-builder
-PDFLATEX=/usr/bin/pdflatex
 FAILED=0
 TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
@@ -139,8 +142,20 @@ selfcheck em-dash    a.md  'A sentence \u2014 broken.\n'        b.md  'A sentenc
 selfcheck emoji      a.tex 'Ship it \U0001F680\n'              b.tex 'Ship it.\n'
 selfcheck lt-gt      a.tex '$a \\lt b$\n'                      b.tex '$a < b$ % \\lt in a comment is inert\n'
 selfcheck bare-big-o a.tex 'Runs in $O(n \\log n)$ time.\n'    b.tex 'Runs in $\\Ohof{n \\log n}$ time.\n'
-selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=white}\n' \
-                      b.tex '\\newtcolorbox{pictureit}{colback=white}\n'
+selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=paper}\n' \
+                      b.tex '\\newtcolorbox{pictureit}{colback=paper}\n'
+selfcheck footnote   a.tex 'A number.\\footnote{From the log.}\n' \
+                     b.tex 'A number.\\textsuperscript{1}\n'
+selfcheck second-claim a.tex '\\hsclaim{One.}{x}\n\\hsclaim{Two.}{y}\n' \
+                       b.tex '\\hsclaim{One.}{x}\n'
+selfcheck colour-hex a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+                     b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
+selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
+                      b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
+# Split so this file does not itself read as a call.
+PDFL='pdf''latex'
+selfcheck pdflatex-call a.sh "$PDFL -interaction=nonstopmode notes.tex\n" \
+                        b.sh "scripts/build.sh notes.tex  # $PDFL cannot load fontspec\n"
 
 # --- 5. voice drift ----------------------------------------------------------
 # Selfcheck first, so the drift detector is proved on every machine, not only
@@ -171,8 +186,8 @@ case "$rc" in
 esac
 
 # --- 6. the templates compile ------------------------------------------------
-if [ ! -x "$PDFLATEX" ]; then
-  skip "template compile" "no $PDFLATEX on this machine"
+if ! command -v lualatex >/dev/null; then
+  skip "template compile" "no lualatex on this machine"
 else
   D="$TMPROOT/tex"; mkdir -p "$D"
   cp "$REPO/assets/preamble-template.tex" "$D/"
@@ -221,24 +236,41 @@ open(dst, 'w', encoding='utf-8').write('\\input{preamble-template.tex}\n' + text
 PYEOF
   then
     for job in preamble-smoke driver-smoke; do
-      ok=1
-      for pass_n in 1 2 3; do
-        if ! TEXINPUTS="$D:" "$PDFLATEX" -no-shell-escape -interaction=nonstopmode -halt-on-error \
-             -output-directory="$D" "$D/$job.tex" > "$D/$job.log" 2>&1; then
-          fail "$job: pdflatex failed on pass $pass_n"
-          grep -E '^!' "$D/$job.log" | head -5 | sed 's/^/  /'
-          ok=0; break
-        fi
-      done
-      [ "$ok" -eq 1 ] || continue
-      if [ -s "$D/$job.pdf" ]; then
-        pass "$job compiles in three passes ($(wc -c < "$D/$job.pdf") bytes)"
+      if ! out=$("$REPO/scripts/build.sh" "$D/$job.tex" 2>&1); then
+        fail "$job: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+      elif [ -s "$D/$job.pdf" ]; then
+        pass "$job builds in three lualatex passes ($(wc -c < "$D/$job.pdf") bytes)"
       else
-        fail "$job: pdflatex exited 0 but the PDF is empty or missing"
+        fail "$job: scripts/build.sh exited 0 but the PDF is empty or missing"
       fi
     done
   else
     fail "driver-smoke: could not build the driver fixture"
+  fi
+fi
+
+# --- 7. the owner's example builds and embeds both faces ----------------------
+if ! command -v lualatex >/dev/null; then
+  skip "house-style example" "no lualatex on this machine"
+else
+  E="$TMPROOT/example"; mkdir -p "$E"
+  cp "$REPO/references/house-style/example.tex" "$E/"
+  if ! out=$("$REPO/scripts/build.sh" "$E/example.tex" 2>&1); then
+    fail "house-style example: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  else
+    pass "house-style example builds in three lualatex passes with no ! errors"
+    if ! command -v pdffonts >/dev/null; then
+      skip "house-style example fonts" "no pdffonts on this machine"
+    else
+      fonts=$(pdffonts "$E/example.pdf" 2>&1)
+      for face in SourceSerif4-Regular IBMPlexMono; do
+        if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grep -q ' yes '; then
+          pass "house-style example embeds $face"
+        else
+          fail "house-style example: $face is not embedded"; printf '%s\n' "$fonts" | sed 's/^/  /'
+        fi
+      done
+    fi
   fi
 fi
 
