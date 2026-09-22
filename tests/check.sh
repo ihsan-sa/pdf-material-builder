@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The repo gate for pdf-material-builder. Hermetic, no network, well under a
-# minute. Run it before opening a PR; the landing check runs it too.
+# The repo gate for pdf-material-builder. Hermetic, no network, about a
+# minute with lualatex present. Run it before opening a PR; the landing check runs it too.
 #
 # Cases:
 #   1  SKILL.md frontmatter parses and carries `name` and `description`,
@@ -9,20 +9,32 @@
 #      references/teaching-communication.md is exempt and says so: it is a
 #      verbatim vendored copy, and the paths in it are lesson-builder's.
 #   3  scripts/style-check.sh passes on this repo.
-#   4  scripts/style-check.sh selfcheck: each of its five rules flags its own
-#      fixture and stays quiet on the matching clean case.
+#   4  scripts/style-check.sh selfcheck: each of its rules flags its own
+#      fixture and stays quiet on the matching clean case. The claim rule is
+#      also proved across files: a driver that \input{}s one file and
+#      \include{}s another, one \hsclaim in each, fails; the same tree with
+#      one claim passes. Both trees hold a cycle and a missing input.
 #   5  scripts/voice-drift.sh reports no drift from the canonical spec.
 #      SKIPPED, with the reason printed, when lesson-builder is not on disk.
-#   6  assets/preamble-template.tex and assets/driver-template.tex compile
-#      with pdflatex to a non-empty PDF in a temp directory.
-#      SKIPPED, with the reason printed, when /usr/bin/pdflatex is absent.
+#   6  assets/preamble-template.tex and assets/driver-template.tex build with
+#      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
+#      directory. With pdfinfo present, the default build is letter and the
+#      template's A4 line, uncommented, builds A4.
+#   7  references/house-style/example.tex builds the same way, and pdffonts
+#      shows Source Serif 4 and IBM Plex Mono embedded.
+#   8  With housestyle.sty in the current directory, kpse returns it as
+#      ./housestyle.sty (a bare lualatex run there); the .sty's font lookup
+#      must still resolve to assets/fonts/. Then references/house-style/
+#      example.tex builds in place with scripts/build.sh and embeds the
+#      vendored Source Serif 4; the example.pdf it makes is removed.
+#   6, 7 and 8 are SKIPPED, with the reason printed, when lualatex is absent;
+#   7's and 8's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_NAME=pdf-material-builder
-PDFLATEX=/usr/bin/pdflatex
 FAILED=0
 TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
@@ -139,8 +151,44 @@ selfcheck em-dash    a.md  'A sentence \u2014 broken.\n'        b.md  'A sentenc
 selfcheck emoji      a.tex 'Ship it \U0001F680\n'              b.tex 'Ship it.\n'
 selfcheck lt-gt      a.tex '$a \\lt b$\n'                      b.tex '$a < b$ % \\lt in a comment is inert\n'
 selfcheck bare-big-o a.tex 'Runs in $O(n \\log n)$ time.\n'    b.tex 'Runs in $\\Ohof{n \\log n}$ time.\n'
-selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=white}\n' \
-                      b.tex '\\newtcolorbox{pictureit}{colback=white}\n'
+selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=paper}\n' \
+                      b.tex '\\newtcolorbox{pictureit}{colback=paper}\n'
+selfcheck footnote   a.tex 'A number.\\footnote{From the log.}\n' \
+                     b.tex 'A number.\\textsuperscript{1}\n'
+selfcheck second-claim a.tex '\\hsclaim{One.}{x}\n\\hsclaim{Two.}{y}\n' \
+                       b.tex '\\hsclaim{One.}{x}\n'
+selfcheck colour-hex a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+                     b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
+selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
+                      b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
+# One claim per document, not per file: a driver and the files it pulls in.
+# The inputs sit in a subdirectory and name each other relative to themselves;
+# ch2 inputs the driver back (a cycle) and a file that does not exist.
+claim_tree() {
+  local d="$1" second="$2"
+  mkdir -p "$d/notes"
+  printf '%s\n' '\documentclass{article}' '\begin{document}' '\input{notes/ch1}' \
+    '\include{notes/ch2}' '\end{document}' > "$d/main.tex"
+  printf '%s\n' '\section{One}' '\hsclaim{The claim.}{x}' > "$d/notes/ch1.tex"
+  printf '%s\n' '\section{Two}' "$second" '\input{../main}' '\input{absent}' > "$d/notes/ch2.tex"
+}
+T="$TMPROOT/sc-claim-tree"
+claim_tree "$T/dirty" '\hsclaim{Another claim.}{y}'
+claim_tree "$T/clean" 'No claim here.'
+out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/dirty" 2>&1); rc=$?
+if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grep -q '^notes/ch2.tex:2: a second \\hsclaim'; then
+  fail "selfcheck claim-tree: a claim in each of two input files was not flagged at notes/ch2.tex:2 (exit $rc)"
+  printf '%s\n' "$out" | sed 's/^/  /'
+elif ! out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/clean" 2>&1); then
+  fail "selfcheck claim-tree: one claim across the document was flagged"; printf '%s\n' "$out" | sed 's/^/  /'
+else
+  pass "selfcheck claim-tree: counts claims across a driver's inputs, through a cycle and a missing file"
+fi
+
+# Split so this file does not itself read as a call.
+PDFL='pdf''latex'
+selfcheck pdflatex-call a.sh "$PDFL -interaction=nonstopmode notes.tex\n" \
+                        b.sh "scripts/build.sh notes.tex  # $PDFL cannot load fontspec\n"
 
 # --- 5. voice drift ----------------------------------------------------------
 # Selfcheck first, so the drift detector is proved on every machine, not only
@@ -171,8 +219,8 @@ case "$rc" in
 esac
 
 # --- 6. the templates compile ------------------------------------------------
-if [ ! -x "$PDFLATEX" ]; then
-  skip "template compile" "no $PDFLATEX on this machine"
+if ! command -v lualatex >/dev/null; then
+  skip "template compile" "no lualatex on this machine"
 else
   D="$TMPROOT/tex"; mkdir -p "$D"
   cp "$REPO/assets/preamble-template.tex" "$D/"
@@ -182,17 +230,32 @@ else
   cat > "$D/preamble-smoke.tex" <<'TEXEOF'
 \input{preamble-template.tex}
 \begin{document}
-\section{Preamble smoke test}
-\catbanner{catA}{Part 1 \textperiodcentered\ Category A}
-\begin{step} $\Ohof{n \log n}$, $X^\trans$, $\bx$, $\pderiv{u}{t}$, $\diff{x}$, $\R$. \end{step}
-\begin{pictureit} An in-domain mental image. \end{pictureit}
-\begin{insight} One conclusion, once. \end{insight}
-\begin{fsheet} $e^{i\theta} = \cos\theta + i\sin\theta$ \end{fsheet}
-\begin{connect} Mirrors Part 2. \end{connect}
-\begin{optional} Out of scope.\opt \end{optional}
+\hstitleblock{Smoke}{Preamble smoke test}{One lead line.}
+\section{First section}\label{sec:first}
+\insight{One conclusion, once.}
+Body with \cat{A} \tool{5} \tools{T4,T5}. Out of scope here.\opt
+\opt An optional paragraph starts with the tag.
+\begin{derivation}
+\begin{equation} \Ohof{n \log n},\ X^\trans,\ \bx,\ \pderiv{u}{t},\ \ppderiv{u}{x},\ \pmderiv{u}{x}{y},\ \diff{x},\ \R,\ \RR{n},\ \grad f,\ \Hess,\ \bzero \label{eq:a}\end{equation}
+where $X$ is a matrix.
+\end{derivation}
+Text before a sheet equation.
+\onsheet
+\begin{equation} e^{i\theta} = \cos\theta + i\sin\theta \end{equation}
+See \eqref{eq:a} and \nameref{sec:first}.
 \probhead{Final 2024 Q3}{method}{A}
-\tool{5} \tools{T4,T5} \cat{A}
-\begin{tabularx}{\linewidth}{lY}\toprule a & b \\ \midrule c & d \\ \bottomrule\end{tabularx}
+\begin{tabularx}{\linewidth}{L{3cm}YR{2cm}}\hstoprule \hshead{Key} & \hsaccenthead{New} & \hshead{N} \\ \hstoprule a & b & 1 \\ \hline c & d & 2 \\ \hstoprule\end{tabularx}
+\begin{hscallout}{The objection} Not a box.\end{hscallout}
+\hslisting{Listing 1 / code}
+\begin{Verbatim}[bgcolor=codefill]
+int main() { return 0; }
+\end{Verbatim}
+\catbanner{B}{Category title}\label{part:b}
+\section{Next}
+\begin{hsstatrow}\hsstat{1}{a}\hsstat{2}{b}\hsstat{3}{c}\hsstat{4}{d}\end{hsstatrow}
+\hsclaim{The one claim.}{One per document}
+\begin{hssources}\item A source, read 2026-09-22. \end{hssources}
+\hsprovenance{built by smoke}
 \end{document}
 TEXEOF
 
@@ -221,24 +284,119 @@ open(dst, 'w', encoding='utf-8').write('\\input{preamble-template.tex}\n' + text
 PYEOF
   then
     for job in preamble-smoke driver-smoke; do
-      ok=1
-      for pass_n in 1 2 3; do
-        if ! TEXINPUTS="$D:" "$PDFLATEX" -no-shell-escape -interaction=nonstopmode -halt-on-error \
-             -output-directory="$D" "$D/$job.tex" > "$D/$job.log" 2>&1; then
-          fail "$job: pdflatex failed on pass $pass_n"
-          grep -E '^!' "$D/$job.log" | head -5 | sed 's/^/  /'
-          ok=0; break
-        fi
-      done
-      [ "$ok" -eq 1 ] || continue
-      if [ -s "$D/$job.pdf" ]; then
-        pass "$job compiles in three passes ($(wc -c < "$D/$job.pdf") bytes)"
+      if ! out=$("$REPO/scripts/build.sh" "$D/$job.tex" 2>&1); then
+        fail "$job: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+      elif [ -s "$D/$job.pdf" ]; then
+        pass "$job builds in three lualatex passes ($(wc -c < "$D/$job.pdf") bytes)"
       else
-        fail "$job: pdflatex exited 0 but the PDF is empty or missing"
+        fail "$job: scripts/build.sh exited 0 but the PDF is empty or missing"
       fi
     done
   else
     fail "driver-smoke: could not build the driver fixture"
+  fi
+
+  # Paper size: the default build is letter, and the template's A4 line, once
+  # uncommented, gives A4 (pdfinfo: 612 x 792 pts letter, 595 x 842 pts A4).
+  if ! command -v pdfinfo >/dev/null; then
+    skip "paper size" "no pdfinfo on this machine"
+  else
+    sed 's/^% \\newcommand\\hspaper{a4paper}$/\\newcommand\\hspaper{a4paper}/' \
+      "$D/preamble-template.tex" > "$D/preamble-a4.tex"
+    sed 's/preamble-template\.tex/preamble-a4.tex/' "$D/preamble-smoke.tex" > "$D/a4-smoke.tex"
+    # Rounded to whole points: pdfinfo prints A4 as 595.276 x 841.89 pts.
+    size() { pdfinfo "$1" 2>/dev/null | awk '/^Page size:/ { printf "%.0f x %.0f pts", $3, $5 }'; }
+    ls=$(size "$D/preamble-smoke.pdf")
+    if [ "$ls" = "612 x 792 pts" ]; then pass "default paper is letter ($ls)"
+    else fail "default paper: pdfinfo says '$ls', expected 612 x 792 pts"; fi
+    if cmp -s "$D/preamble-template.tex" "$D/preamble-a4.tex"; then
+      fail "paper size A4: the template has no '% \\newcommand\\hspaper{a4paper}' line to uncomment"
+    elif ! out=$("$REPO/scripts/build.sh" "$D/a4-smoke.tex" 2>&1); then
+      fail "a4-smoke: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+    else
+      as=$(size "$D/a4-smoke.pdf")
+      if [ "$as" = "595 x 842 pts" ]; then pass "the template's A4 line gives A4 ($as)"
+      else fail "paper size A4: pdfinfo says '$as', expected 595 x 842 pts"; fi
+    fi
+  fi
+fi
+
+# --- 7. the owner's example builds and embeds both faces ----------------------
+if ! command -v lualatex >/dev/null; then
+  skip "house-style example" "no lualatex on this machine"
+else
+  E="$TMPROOT/example"; mkdir -p "$E"
+  cp "$REPO/references/house-style/example.tex" "$E/"
+  # Mark the copy, so the build can be told from the repo's own example.tex.
+  sed -i 's/^\\end{document}/\\clearpage\\noindent HSCOPY-7c3e\\par\n&/' "$E/example.tex"
+  if ! out=$("$REPO/scripts/build.sh" "$E/example.tex" 2>&1); then
+    fail "house-style example: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  else
+    pass "house-style example builds in three lualatex passes with no ! errors"
+    if ! command -v pdftotext >/dev/null; then
+      skip "house-style example is the copy" "no pdftotext on this machine"
+    elif pdftotext "$E/example.pdf" - 2>/dev/null | grep -q 'HSCOPY-7c3e'; then
+      pass "house-style example builds the copy, not the repo's own example.tex"
+    else
+      fail "house-style example: the PDF lacks the copy's marker, so build.sh compiled another example.tex"
+    fi
+    if ! command -v pdffonts >/dev/null; then
+      skip "house-style example fonts" "no pdffonts on this machine"
+    else
+      fonts=$(pdffonts "$E/example.pdf" 2>&1)
+      for face in SourceSerif4-Regular IBMPlexMono; do
+        if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grep -q ' yes '; then
+          pass "house-style example embeds $face"
+        else
+          fail "house-style example: $face is not embedded"; printf '%s\n' "$fonts" | sed 's/^/  /'
+        fi
+      done
+    fi
+  fi
+fi
+
+# --- 8. the font lookup and the example, in place ----------------------------
+# Case 7 copies the example away from housestyle.sty, so kpse finds the .sty by
+# its absolute path. Built in its own directory, "." is searched first (build.sh
+# and a bare lualatex run alike) and kpse returns ./housestyle.sty instead. The
+# probe forces that with TEXINPUTS=.: and runs only the .sty's \hsfontdir block.
+if ! command -v lualatex >/dev/null; then
+  skip "house-style font lookup in place" "no lualatex on this machine"
+  skip "house-style example in place" "no lualatex on this machine"
+else
+  HS="$REPO/references/house-style"
+  P="$TMPROOT/fontdir"; mkdir -p "$P"
+  sed -n '/^\\ifdefined\\hsfontdir/,/^\\fi/p' "$HS/housestyle.sty" > "$P/block.tex"
+  printf '%s\n' '\directlua{texio.write_nl("KPSE=" .. kpse.find_file("housestyle.sty", "tex") .. "|")}' \
+    '\input{block.tex}' '\directlua{texio.write_nl("FONTDIR=" .. "\hsfontdir" .. "|")}' '\end' > "$P/probe.tex"
+  (cd "$HS" && TEXINPUTS="$P:.:" max_print_line=10000 \
+    lualatex -interaction=nonstopmode -output-directory="$P" "$P/probe.tex" >/dev/null 2>&1)
+  kp=$(grep -o 'KPSE=[^|]*' "$P/probe.log" 2>/dev/null); fd=$(grep -o 'FONTDIR=[^|]*' "$P/probe.log" 2>/dev/null)
+  if [ ! -s "$P/block.tex" ]; then
+    fail "house-style font lookup in place: no \\hsfontdir block found in housestyle.sty"
+  elif [ "$kp" != "KPSE=./housestyle.sty" ]; then
+    fail "house-style font lookup in place: kpse returned '${kp#KPSE=}', not ./housestyle.sty"
+  elif [ "$fd" != "FONTDIR=$REPO/assets/fonts/" ]; then
+    fail "house-style font lookup in place: resolved '${fd#FONTDIR=}', expected $REPO/assets/fonts/"
+  else
+    pass "house-style font lookup resolves assets/fonts/ when kpse returns ./housestyle.sty"
+  fi
+
+  if [ -e "$HS/example.pdf" ]; then
+    fail "house-style example in place: $HS/example.pdf already exists; remove it first"
+  else
+    if ! out=$("$REPO/scripts/build.sh" "$HS/example.tex" 2>&1); then
+      fail "house-style example in place: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+    elif ! command -v pdffonts >/dev/null; then
+      pass "house-style example builds in place"
+      skip "house-style example in place fonts" "no pdffonts on this machine"
+    elif pdffonts "$HS/example.pdf" 2>&1 | grep -E '\+SourceSerif4-Regular[ -]' | grep -q ' yes '; then
+      pass "house-style example builds in place and embeds the vendored SourceSerif4-Regular"
+    else
+      fail "house-style example in place: vendored SourceSerif4-Regular is not embedded"
+      pdffonts "$HS/example.pdf" 2>&1 | sed 's/^/  /'
+    fi
+    rm -f "$HS/example.pdf"
   fi
 fi
 

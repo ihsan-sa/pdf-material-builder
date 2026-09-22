@@ -1,0 +1,197 @@
+% housestyle.sty - house style for technical documents
+% Implements the spec in style-spec.md. Compile with LuaLaTeX (fontspec).
+% Fonts: Source Serif 4 + IBM Plex Mono are vendored as .otf files in the
+% skill's assets/fonts/ (two levels up from this file), found from this file's
+% own location, so nothing needs installing. Set \hsfontdir (with a trailing /)
+% before \usepackage{housestyle} to load them from somewhere else.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{housestyle}[2026/09/22 v1 technical document house style]
+
+\RequirePackage{iftex}
+% Paper is letter unless the document sets \hspaper first. For A4,
+% \newcommand\hspaper{a4paper} before \usepackage{housestyle}; margins unchanged.
+\providecommand\hspaper{letterpaper}
+\RequirePackage[\hspaper,top=54pt,bottom=44pt,left=72pt,right=72pt,%
+  headsep=14pt,footskip=26pt]{geometry}
+
+\RequirePackage{fontspec}
+\RequirePackage{xcolor}
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\RequirePackage{colortbl}
+\RequirePackage{graphicx}
+\RequirePackage{caption}
+\RequirePackage{enumitem}
+\RequirePackage{tikz}
+\RequirePackage{amsmath}
+\RequirePackage{microtype}
+\RequirePackage[hidelinks]{hyperref}
+\usetikzlibrary{positioning,arrows.meta,calc}
+
+% ---- colour -----------------------------------------------------------------
+\definecolor{ink}{HTML}{15140F}
+\definecolor{inkseventy}{HTML}{4A4740}
+\definecolor{inkfiftyfive}{HTML}{8A857A}
+\definecolor{paper}{HTML}{FAF8F3}
+\definecolor{fill}{HTML}{F0EADE}
+\definecolor{codefill}{HTML}{F2EEE3}
+\definecolor{accent}{HTML}{9C4221}
+\definecolor{rulegrey}{HTML}{DED8CA}
+\pagecolor{paper}\color{ink}
+
+% ---- type -------------------------------------------------------------------
+\ifluatex\else
+  \PackageError{housestyle}{Compile with lualatex}{housestyle.sty loads its
+    fonts with fontspec and finds them with Lua; pdflatex cannot do either.}
+\fi
+\ifdefined\hsfontdir\else
+  \edef\hsfontdir{\directlua{
+    local p = kpse.find_file("housestyle.sty", "tex") or "housestyle.sty"
+    while p:sub(1, 2) == "./" do p = p:sub(3) end
+    local d = p:match("^(.*)/[^/]*$")
+    if d == nil then d = lfs.currentdir()
+    elseif p:sub(1, 1) == "/" then
+    else d = lfs.currentdir() .. "/" .. d end
+    tex.sprint(-2, (d:gsub("/[^/]+/[^/]+/?$", "")) .. "/assets/fonts/")}}
+\fi
+\IfFileExists{\hsfontdir SourceSerif4-Regular.otf}{%
+  \setmainfont{SourceSerif4}[Path=\hsfontdir,Extension=.otf,
+    UprightFont=*-Regular,ItalicFont=*-It,BoldFont=*-Bold,
+    Numbers={Proportional,Lining}]
+  \setmonofont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
+    UprightFont=*-Regular,BoldFont=*-Medium,Scale=0.86]
+  \newfontfamily\labelfont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
+    UprightFont=*-Regular,Scale=0.72,LetterSpace=14.0]
+  \newfontfamily\statfont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
+    UprightFont=*-Medium,Numbers=Tabular,LetterSpace=-3.0]
+}{% not vendored here: fall back to the faces installed on the system
+  \setmainfont{Source Serif 4}[Numbers={Proportional,Lining}]
+  \setmonofont{IBM Plex Mono}[Scale=0.86]
+  \newfontfamily\labelfont{IBM Plex Mono}[Scale=0.72,LetterSpace=14.0]
+  \newfontfamily\statfont{IBM Plex Mono Medium}[Numbers=Tabular,LetterSpace=-3.0]
+}
+
+\renewcommand{\normalsize}{\fontsize{11.5pt}{18.5pt}\selectfont}
+\normalsize
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{11pt}
+\newcommand{\hsrule}{\textcolor{ink}{\rule{\linewidth}{0.75pt}}}
+\newcommand{\hsthinrule}{\textcolor{rulegrey}{\rule{\linewidth}{0.75pt}}}
+\newcommand{\hslabel}[1]{{\labelfont\textcolor{inkfiftyfive}{\MakeUppercase{#1}}}}
+\newcommand{\hsaccentlabel}[1]{{\labelfont\textcolor{accent}{\MakeUppercase{#1}}}}
+
+% ---- running head and foot --------------------------------------------------
+\newcommand{\hsslug}[1]{\def\@hsslug{#1}}\hsslug{}
+\newcommand{\hssection}[1]{\def\@hssection{#1}}\hssection{}
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.75pt}
+\renewcommand{\headrule}{\textcolor{rulegrey}{\rule{\headwidth}{0.75pt}}}
+\fancyhead[L]{\hslabel{\@hsslug}}
+\fancyhead[R]{\hslabel{\@hssection}}
+\fancyfoot[L]{\hslabel{\@hsslug}}
+\fancyfoot[R]{\hslabel{\thepage}}
+% Spec: running head on every page but the first. The first page keeps the foot.
+\fancypagestyle{hsfirst}{\fancyhead{}\renewcommand{\headrule}{}}
+\AtBeginDocument{\thispagestyle{hsfirst}}
+
+% ---- headings ---------------------------------------------------------------
+\titleformat{\section}{\fontsize{20pt}{24pt}\selectfont\color{ink}}{}{0pt}{}
+\titlespacing*{\section}{0pt}{28pt}{10pt}
+\newcommand{\hslead}[1]{{\fontsize{12.5pt}{19pt}\selectfont\color{inkseventy}#1\par}}
+
+% ---- 1. title block ---------------------------------------------------------
+% \hstitleblock{eyebrow}{title}{lead}
+\newcommand{\hstitleblock}[3]{%
+  \hsaccentlabel{#1}\par\vspace{10pt}
+  {\fontsize{36pt}{40pt}\selectfont #2\par}\vspace{12pt}
+  \hslead{#3}\vspace{18pt}}
+
+% ---- 2. flow diagram --------------------------------------------------------
+\tikzset{
+  hsnode/.style   ={draw=ink,fill=ink,text=paper,line width=0.6pt,inner sep=7pt,
+                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
+  hswork/.style   ={draw=ink,fill=paper,text=ink,line width=0.6pt,inner sep=7pt,
+                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
+  hsgate/.style   ={draw=accent,fill=fill,text=ink,line width=0.6pt,inner sep=7pt,
+                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
+  hsarrow/.style  ={-{Stealth[length=4pt]},draw=inkfiftyfive,line width=0.6pt},
+  hsfail/.style   ={-{Stealth[length=4pt]},draw=accent,line width=0.6pt,dashed},
+}
+% \begin{hsfigure}{Figure 1 / caption label}{the legend sentence} ... \end{hsfigure}
+\newenvironment{hsfigure}[2]{%
+  \par\vspace{14pt}\hslabel{#1}\par\vspace{8pt}\hsthinrule\par\vspace{12pt}
+  \def\hs@legend{#2}\centering}{%
+  \par\vspace{12pt}\hsthinrule\par\vspace{7pt}
+  \raggedright{\fontsize{10pt}{15pt}\selectfont\color{inkseventy}\hs@legend\par}\vspace{14pt}}
+
+% ---- 3. stat row ------------------------------------------------------------
+% \begin{hsstatrow} \hsstat{741}{caption} \hsstat{...}{...} \end{hsstatrow}
+\newcommand{\hsstat}[2]{%
+  \begin{minipage}[t]{0.235\linewidth}
+    {\statfont\fontsize{26pt}{26pt}\selectfont #1}\par\vspace{7pt}
+    {\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}#2\par}
+  \end{minipage}\hfill}
+\newenvironment{hsstatrow}{\par\vspace{16pt}\hsrule\par\vspace{16pt}\noindent}%
+  {\par\vspace{16pt}\hsthinrule\par\vspace{16pt}}
+
+% ---- 4-5. tables ------------------------------------------------------------
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcommand{\hshead}[1]{\hslabel{#1}}
+\newcommand{\hsaccenthead}[1]{{\labelfont\textcolor{accent}{\MakeUppercase{#1}}}}
+\setlength{\arrayrulewidth}{0.75pt}
+\arrayrulecolor{rulegrey}
+\newcommand{\hstoprule}{\arrayrulecolor{ink}\hline\arrayrulecolor{rulegrey}}
+\renewcommand{\arraystretch}{1.45}
+
+% ---- 6. figure plate --------------------------------------------------------
+% \hsplate{file}{name}{grey facts}{status}{caption}
+\newcommand{\hsplate}[5]{%
+  \par\vspace{14pt}\noindent\includegraphics[width=\linewidth]{#1}\par\vspace{7pt}
+  {\labelfont #2\quad\textcolor{inkfiftyfive}{#3}\quad\textcolor{accent}{#4}\par}
+  \vspace{8pt}{\fontsize{10.5pt}{16pt}\selectfont #5\par}\vspace{14pt}}
+
+% ---- 7. provenance footline -------------------------------------------------
+\newcommand{\hsprovenance}[1]{%
+  \par\vfill\hsthinrule\par\vspace{6pt}
+  {\labelfont\fontsize{7.5pt}{12pt}\selectfont\color{inkfiftyfive}\MakeLowercase{#1}\par}}
+
+% ---- 8. sources -------------------------------------------------------------
+\newlist{hssources}{enumerate}{1}
+\setlist[hssources]{label=\textcolor{accent}{\small\texttt{\arabic*}},
+  leftmargin=26pt,itemsep=9pt,topsep=12pt,parsep=0pt,
+  before=\fontsize{10.5pt}{16pt}\selectfont}
+
+% ---- 9. claim ---------------------------------------------------------------
+\newcommand{\hsclaim}[2]{%
+  \par\vspace{22pt}\hsrule\par\vspace{16pt}
+  {\fontsize{19pt}{25pt}\selectfont #1\par}\vspace{12pt}
+  \hslabel{#2}\par\vspace{16pt}\hsrule\par\vspace{22pt}}
+
+% ---- 10. callout ------------------------------------------------------------
+% The body is boxed first and coloured after: \colorbox cannot take a brace
+% that opens in \begin and closes in \end.
+\newsavebox{\hs@calloutbox}
+\newenvironment{hscallout}[1]{%
+  \par\vspace{16pt}\begingroup\setlength{\fboxsep}{14pt}%
+  \begin{lrbox}{\hs@calloutbox}\begin{minipage}{\dimexpr\linewidth-28pt\relax}
+  \hsaccentlabel{#1}\par\vspace{8pt}\fontsize{10.5pt}{16pt}\selectfont}%
+  {\end{minipage}\end{lrbox}%
+  \noindent\colorbox{fill}{\usebox{\hs@calloutbox}}\endgroup\par\vspace{16pt}}
+
+% ---- 11. code ---------------------------------------------------------------
+\RequirePackage{fvextra}
+\fvset{fontsize=\small,breaklines=true,breakanywhere=true,numbers=none,
+  frame=topline,framerule=0.75pt,rulecolor=\color{ink},
+  framesep=10pt,baselinestretch=1.25}
+\newcommand{\hslisting}[1]{\par\vspace{14pt}\hslabel{#1}\par\vspace{8pt}}
+% Use: \hslisting{Listing 1 / the gate} \begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}
+
+% ---- 12. display equation ---------------------------------------------------
+\allowdisplaybreaks
+\renewcommand{\theequation}{\arabic{equation}}
+% Use plain \begin{equation} ... \end{equation}; numbers sit at the right margin.
+
+\endinput
