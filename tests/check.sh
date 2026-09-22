@@ -327,10 +327,19 @@ if ! command -v lualatex >/dev/null; then
 else
   E="$TMPROOT/example"; mkdir -p "$E"
   cp "$REPO/references/house-style/example.tex" "$E/"
+  # Mark the copy, so the build can be told from the repo's own example.tex.
+  sed -i 's/^\\end{document}/\\clearpage\\noindent HSCOPY-7c3e\\par\n&/' "$E/example.tex"
   if ! out=$("$REPO/scripts/build.sh" "$E/example.tex" 2>&1); then
     fail "house-style example: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
   else
     pass "house-style example builds in three lualatex passes with no ! errors"
+    if ! command -v pdftotext >/dev/null; then
+      skip "house-style example is the copy" "no pdftotext on this machine"
+    elif pdftotext "$E/example.pdf" - 2>/dev/null | grep -q 'HSCOPY-7c3e'; then
+      pass "house-style example builds the copy, not the repo's own example.tex"
+    else
+      fail "house-style example: the PDF lacks the copy's marker, so build.sh compiled another example.tex"
+    fi
     if ! command -v pdffonts >/dev/null; then
       skip "house-style example fonts" "no pdffonts on this machine"
     else
@@ -347,9 +356,9 @@ else
 fi
 
 # --- 8. the font lookup and the example, in place ----------------------------
-# Case 7 copies the example away from housestyle.sty. build.sh puts the .sty's
-# absolute directory first on TEXINPUTS, so kpse only returns ./housestyle.sty
-# when "." is searched first, as in a bare lualatex run in that directory. The
+# Case 7 copies the example away from housestyle.sty, so kpse finds the .sty by
+# its absolute path. Built in its own directory, "." is searched first (build.sh
+# and a bare lualatex run alike) and kpse returns ./housestyle.sty instead. The
 # probe forces that with TEXINPUTS=.: and runs only the .sty's \hsfontdir block.
 if ! command -v lualatex >/dev/null; then
   skip "house-style font lookup in place" "no lualatex on this machine"

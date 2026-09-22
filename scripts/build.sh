@@ -5,8 +5,10 @@
 #
 # Run it from anywhere; it compiles in the .tex file's own directory, so
 # \input and \includegraphics paths stay relative to the document. It puts
-# references/house-style/ on TEXINPUTS so \usepackage{housestyle} resolves,
-# and housestyle.sty finds the vendored fonts in assets/fonts/ from its own
+# the document's own directory first on TEXINPUTS and references/house-style/
+# after it, so \usepackage{housestyle} resolves and a file beside the document
+# is never shadowed by one of the same name in the style directory;
+# housestyle.sty finds the vendored fonts in assets/fonts/ from its own
 # location. texlive-luatex must be installed alongside lualatex: it carries
 # the font loader fontspec needs, and without it no font loads.
 #
@@ -23,7 +25,7 @@ src="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 name="$(basename "$src" .tex)"
 cd "$(dirname "$src")"
 
-export TEXINPUTS="$skill/references/house-style//:${TEXINPUTS:-}"
+export TEXINPUTS=".:$skill/references/house-style//:${TEXINPUTS:-}"
 
 for pass in 1 2 3; do
   lualatex -interaction=nonstopmode -halt-on-error -jobname="_tmp_$name" "$name.tex" >/dev/null 2>&1 || true
