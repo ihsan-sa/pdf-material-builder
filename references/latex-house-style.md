@@ -2,17 +2,19 @@
 
 The look and the build discipline every document in this skill shares, whatever its recipe: where the look is specified, how to build, the twelve blocks and their macros, the teaching affordances, the math kit, the traps, and the style gate. Read it before writing the first `.tex` line, and again during review.
 
-It stands alone. Nothing here is about teaching or voice -- for those see `references/voice.md` and `references/teaching-communication.md`; for which document to build, `references/recipes.md`.
+It stands alone. Nothing here is about teaching or voice -- for those see `references/voice.md` and `references/teaching-communication.md`; for which document to build, `references/recipes.md`; and for how to put the blocks on a page rather than merely call them, `references/page-composition.md`, which is the other half of this file and not optional.
 
 ## The look
 
 `references/house-style/style-spec.md` is the look, in the owner's words, and `references/house-style/housestyle.sty` implements it. Read the spec; this file does not copy its tables. In a few lines:
 
 - **Two faces.** Source Serif 4 for prose, headings, captions, tables and mathematics; IBM Plex Mono for every label, running head, statistic, path and code listing.
-- **Five neutrals and one accent**, as colour tokens: `ink`, `inkseventy`, `inkfiftyfive`, `paper`, `fill`, `codefill`, `rulegrey`, and `accent`. The accent marks a deterministic check or a pointer, never decoration, and appears at most three times on a page. No other colour exists: no category colours, no tints, no second hue.
+- **Five neutrals and one accent**, as colour tokens: `ink`, `inkseventy`, `inkfiftyfive`, `paper`, `fill`, `codefill`, `rulegrey`, and `accent`. The accent marks a deterministic check or a pointer, never decoration, and appears at most three times on a page. No other colour exists in the prose of a page: no category colours, no tints, no second hue. **Inside a `tikzpicture` that budget does not apply** and five role tokens do exist -- `rolehuman`, `rolesystem`, `roleagent`, `rolemachine`, `rolestore` -- because a diagram is drawn for its content (owner's decision, 22 September 2026; `references/house-style/CONFORMANCE.md`, item 9).
+- **The paper tint is part of the style.** `housestyle.sty` paints `#FAF8F3` on every page; a document never calls `\pagecolor` itself, and a build that comes out on plain white did not load the class.
 - **One portrait geometry for every recipe**, letter or A4. No landscape variant.
 - **No bold in body text**, emphasis is italic, and there are no footnotes: sources go in one numbered list on the last page.
 - **Twelve blocks and no thirteenth.** Anything that maps onto none of them is cut or turned into prose.
+- **Prose sits on a 34 em measure and is left-ranged**, while rules, figures, tables and stat rows run the full 468 pt text width. The class does this with `\rightskip`, so `\linewidth` stays the full measure; `\hsfull` inside a box of your own resets it.
 
 `references/house-style/README.md` says how to reformat an existing document, and `house-style-template.html` is the rendered target.
 
@@ -42,19 +44,19 @@ It runs three lualatex passes in the document's own directory under the temp job
 | # | Block | Macro |
 |---|---|---|
 | 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}`. Over twelve pages, a dedicated title page with the four-column strip (built for / paper / type / scope): `assets/driver-template.tex` has one. |
-| 2 | Flow diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around a `tikzpicture` using the node styles `hsnode` (filled ink: input, output), `hswork` (outlined ink: work), `hsgate` (accent on fill: a deterministic check), and `hsarrow` / `hsfail` for edges. |
-| 3 | Stat row | `\begin{hsstatrow} \hsstat{741}{caption} ... \end{hsstatrow}`, four abreast, measured numbers only. |
+| 2 | Diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around a `tikzpicture`. Neither argument is ever empty. Node row: `hsnode` (filled ink: input, output), `hswork` (outlined ink: work), `hsgate` (accent on fill: a deterministic check), edges `hsarrow` / `hsfail`, and every node's body is `\hsnodetext{eyebrow}{title}{detail}`, which gives it its eyebrow and holds the row to one height (`\hsnodesize{w}{h}` changes both). The fail path's caption goes under the picture in `\hsfailnote`. Lane and role-graph patterns, and their styles, are in `references/page-composition.md`. |
+| 3 | Stat row | `\begin{hsstatrow}[n] \hsstat{741}{caption} ... \end{hsstatrow}`, where `n` is 2, 3 or 4 and defaults to 4. Measured numbers only, and a fifth `\hsstat` is a `\PackageError` rather than a ragged second line. |
 | 4 | Comparison table | `tabular` or `tabularx` with `\hstoprule` above and below the head, `\hshead{...}` for header cells and `\hsaccenthead{...}` for the one new column. No vertical rules. |
 | 5 | Data table | Same rules, grey `\hline` between rows; column types `L{w}` and `R{w}` (ragged, right-aligned numerals) from the `.sty`, `Y` for a tabularx column from the preamble. |
 | 6 | Figure plate | `\hsplate{file}{name}{grey facts}{status}{caption}`: full measure, no border. |
 | 7 | Provenance footline | `\hsprovenance{command, commit, file, date}`, at the foot of any page with a figure or a statistic. |
-| 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page. No `\footnote`. |
+| 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page; the list heads its own page with `Sources`. A URL in an entry goes in `\hsurl{...}`, which breaks anywhere and never hyphenates. No `\footnote`. |
 | 9 | Claim | `\hsclaim{the sentence}{mono line}`. Exactly one per document. |
 | 10 | Callout | `\begin{hscallout}{label} ... \end{hscallout}`: the objection a careful reader would raise. Never two in a row. |
 | 11 | Code block | `\hslisting{Listing 1 / label}` then `\begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}`. No syntax colour. |
 | 12 | Display equation | Plain `equation` / `align`, numbered at the right margin; every symbol named in the sentence after it. |
 
-Primitives for anything built on top: `\hslabel{...}` (mono uppercase, ink-55), `\hsaccentlabel{...}`, `\hslead{...}`, `\hsrule` (ink) and `\hsthinrule` (grey).
+Primitives for anything built on top: `\hslabel{...}` (mono uppercase, ink-55 at 7% tracking), `\hsaccentlabel{...}`, `\hslead{...}`, `\hsrule` (ink), `\hsthinrule` (grey), `\hsrolename{name}{detail}` for a role or lane box, and `\hsfull` to reset the prose measure inside a box.
 
 ## Teaching affordances
 
@@ -91,7 +93,7 @@ Every shipped PDF carries the copyright line in the kit's foot treatment, on eve
 \fancyfoot[L]{\hslabel{\textcopyright{} 2026 <Name>. All rights reserved.}}
 ```
 
-The slug stays in the running head and the page number at the foot's right, as the `.sty` sets them. The first page has no running head, per the spec, but keeps the foot.
+The foot's left slot is empty by default, which is why the copyright line can have it: the slug prints in the running head, and printing it in both was a defect of the first build. The page number stays at the foot's right. The first page has no running head, per the spec, but keeps the foot.
 
 ## LaTeX traps hit in real builds
 
@@ -121,7 +123,9 @@ The slug stays in the running head and the page number at the foot's right, as t
 
 ## Style gate
 
-`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint mix); and a pdflatex invocation. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, now including the five diagram role tokens (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint whose named parts are not tokens); a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
+
+It also reads the composition defects the reference rendering exposed: an empty mandatory argument to `hsfigure`, `hstitleblock`, `hsclaim`, `hsprovenance`, `hslisting`, `hsnodetext`, `hsplate` or `hscallout`; an `hsnode` / `hswork` / `hsgate` whose body is not `\hsnodetext`; and a fifth `\hsstat` in one row. What no script can judge is the ten-point list at the end of `references/page-composition.md`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
 ```bash
 scripts/style-check.sh                # this repo

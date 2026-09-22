@@ -5,7 +5,7 @@
 % own location, so nothing needs installing. Set \hsfontdir (with a trailing /)
 % before \usepackage{housestyle} to load them from somewhere else.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{housestyle}[2026/09/22 v1 technical document house style]
+\ProvidesPackage{housestyle}[2026/09/22 v3 technical document house style]
 
 \RequirePackage{iftex}
 % Paper is letter unless the document sets \hspaper first. For A4,
@@ -28,6 +28,7 @@
 \RequirePackage{amsmath}
 \RequirePackage{microtype}
 \RequirePackage[hidelinks]{hyperref}
+\RequirePackage{xurl} % URLs break at any character, never hyphenate mid-word
 \usetikzlibrary{positioning,arrows.meta,calc}
 
 % ---- colour -----------------------------------------------------------------
@@ -62,14 +63,17 @@
     Numbers={Proportional,Lining}]
   \setmonofont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
     UprightFont=*-Regular,BoldFont=*-Medium,Scale=0.86]
+  % Tracking is 7%, not 14%: mono caps at 14% read as separated letters
+  % (A U T O B O X). fontspec tracks word spaces too, so WordSpace pulls
+  % them back. Rev 03.
   \newfontfamily\labelfont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
-    UprightFont=*-Regular,Scale=0.72,LetterSpace=14.0]
+    UprightFont=*-Regular,Scale=0.72,LetterSpace=7.0,WordSpace=1.25]
   \newfontfamily\statfont{IBMPlexMono}[Path=\hsfontdir,Extension=.otf,
     UprightFont=*-Medium,Numbers=Tabular,LetterSpace=-3.0]
 }{% not vendored here: fall back to the faces installed on the system
   \setmainfont{Source Serif 4}[Numbers={Proportional,Lining}]
   \setmonofont{IBM Plex Mono}[Scale=0.86]
-  \newfontfamily\labelfont{IBM Plex Mono}[Scale=0.72,LetterSpace=14.0]
+  \newfontfamily\labelfont{IBM Plex Mono}[Scale=0.72,LetterSpace=7.0,WordSpace=1.25]
   \newfontfamily\statfont{IBM Plex Mono Medium}[Numbers=Tabular,LetterSpace=-3.0]
 }
 
@@ -77,6 +81,15 @@
 \normalsize
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{11pt}
+% Spec, Page: prose sits on a 34 em measure (about 420 pt) and is left-ranged,
+% while rules, figures, tables and stat rows run the full 468 pt text width.
+% \rightskip does both at once, so \linewidth stays the full measure.
+\newlength{\hsprosegap}\setlength{\hsprosegap}{48pt}
+\newcommand{\hsprose}{\rightskip=\dimexpr\hsprosegap\relax plus 1fil\hyphenpenalty=2000}
+% Anything set inside a box of its own -- a stat caption, a callout, a diagram
+% node -- is already narrow, so it ranges left at its own full width.
+\newcommand{\hsfull}{\rightskip=0pt plus 1fil}
+\AtBeginDocument{\hsprose}
 \newcommand{\hsrule}{\textcolor{ink}{\rule{\linewidth}{0.75pt}}}
 \newcommand{\hsthinrule}{\textcolor{rulegrey}{\rule{\linewidth}{0.75pt}}}
 \newcommand{\hslabel}[1]{{\labelfont\textcolor{inkfiftyfive}{\MakeUppercase{#1}}}}
@@ -90,7 +103,9 @@
 \renewcommand{\headrule}{\textcolor{rulegrey}{\rule{\headwidth}{0.75pt}}}
 \fancyhead[L]{\hslabel{\@hsslug}}
 \fancyhead[R]{\hslabel{\@hssection}}
-\fancyfoot[L]{\hslabel{\@hsslug}}
+% The slug prints in the running head already. This slot stays empty unless a
+% document puts its copyright line here. Rev 03.
+\fancyfoot[L]{}
 \fancyfoot[R]{\hslabel{\thepage}}
 % Spec: running head on every page but the first. The first page keeps the foot.
 \fancypagestyle{hsfirst}{\fancyhead{}\renewcommand{\headrule}{}}
@@ -105,20 +120,84 @@
 % \hstitleblock{eyebrow}{title}{lead}
 \newcommand{\hstitleblock}[3]{%
   \hsaccentlabel{#1}\par\vspace{10pt}
-  {\fontsize{36pt}{40pt}\selectfont #2\par}\vspace{12pt}
+  {\fontsize{36pt}{40pt}\selectfont\hsfull\hyphenpenalty=10000 #2\par}\vspace{12pt}
   \hslead{#3}\vspace{18pt}}
 
-% ---- 2. flow diagram --------------------------------------------------------
+% ---- 2. diagrams ------------------------------------------------------------
+% The node row below is the template's own flow diagram. It is ONE available
+% pattern, not the mould: a diagram is drawn for its content, and the lane and
+% role kits further down are equally house style. Owner's decision, 22 September
+% 2026: "dont force diagrams into the format in the template". What a diagram
+% does keep is the typography -- mono labels, serif prose, the paper ground.
 \tikzset{
-  hsnode/.style   ={draw=ink,fill=ink,text=paper,line width=0.6pt,inner sep=7pt,
-                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
-  hswork/.style   ={draw=ink,fill=paper,text=ink,line width=0.6pt,inner sep=7pt,
-                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
-  hsgate/.style   ={draw=accent,fill=fill,text=ink,line width=0.6pt,inner sep=7pt,
-                    align=left,text width=88pt,font=\fontsize{9.5pt}{12pt}\selectfont},
+  hsbox/.style    ={line width=0.6pt,inner sep=7pt,align=left,
+                    font=\fontsize{9.5pt}{12pt}\selectfont},
+  hsnode/.style   ={hsbox,draw=ink,fill=ink,text=paper,
+                    execute at begin node={\def\hs@ebc{fill}}},
+  hswork/.style   ={hsbox,draw=ink,fill=paper,text=ink,
+                    execute at begin node={\def\hs@ebc{inkfiftyfive}}},
+  hsgate/.style   ={hsbox,draw=accent,fill=fill,text=ink,
+                    execute at begin node={\def\hs@ebc{accent}}},
   hsarrow/.style  ={-{Stealth[length=4pt]},draw=inkfiftyfive,line width=0.6pt},
   hsfail/.style   ={-{Stealth[length=4pt]},draw=accent,line width=0.6pt,dashed},
 }
+% Every node in a row carries the same three parts and the same height, so the
+% eyebrows sit on one line and no box is ragged:
+%   \node[hsnode] (a) {\hsnodetext{INPUT}{A brief}{goal, boundaries}};
+% \hsnodesize{width}{height} changes both for the rest of the picture.
+\newlength{\hs@nodew}\setlength{\hs@nodew}{88pt}
+\newlength{\hs@nodeh}\setlength{\hs@nodeh}{54pt}
+\newcommand{\hsnodesize}[2]{\setlength{\hs@nodew}{#1}\setlength{\hs@nodeh}{#2}}
+\providecommand{\hs@ebc}{inkfiftyfive}
+\newcommand{\hsnodetext}[3]{%
+  \begin{minipage}[t][\hs@nodeh][t]{\hs@nodew}\hsfull\hyphenpenalty=10000
+    {\labelfont\fontsize{6.5pt}{9pt}\selectfont\color{\hs@ebc}\MakeUppercase{#1}}%
+    \par\vspace{5pt}
+    {\fontsize{11pt}{13pt}\selectfont #2}\par\vspace{4pt}
+    {\fontsize{8.5pt}{11.5pt}\selectfont #3\par}%
+  \end{minipage}}
+% The fail path is one accent line and one accent caption, and the caption sits
+% under the picture rather than inside the arrows, where it tangles with them.
+\newcommand{\hsfailnote}[1]{%
+  \par\vspace{7pt}{\labelfont\fontsize{7.5pt}{12pt}\selectfont\color{accent}%
+  \MakeLowercase{#1}\par}}
+
+% Role colours, for a diagram that has parts of different kinds. The one-accent
+% rule governs the prose of a page, not the inside of a diagram (owner, 22
+% September 2026); outside a tikzpicture these five are not used.
+\definecolor{rolehuman}{HTML}{B8943E}
+\definecolor{rolesystem}{HTML}{3E6C8F}
+\definecolor{roleagent}{HTML}{4F7A52}
+\definecolor{rolemachine}{HTML}{7C7870}
+\definecolor{rolestore}{HTML}{9C4221}
+\tikzset{
+  % A box's shape and its role are two separate styles and a node takes one of
+  % each: \node[hsrole,hsagent] or \node[hslane,hshuman]. They do not nest,
+  % because a role style that re-applied the shape would undo a width the lane
+  % style had just set.
+  hsrole/.style     ={hsbox,rounded corners=2pt,fill=paper,text=ink,
+                      text width=92pt,minimum height=30pt,align=center,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}}},
+  hslane/.style     ={hsrole,text width=72pt,minimum height=34pt},
+  hshuman/.style    ={draw=rolehuman,fill=rolehuman!12},
+  hssystem/.style   ={draw=rolesystem,fill=rolesystem!10},
+  hsagent/.style    ={draw=roleagent,fill=roleagent!12},
+  hsmachine/.style  ={draw=rolemachine,fill=rolemachine!10},
+  hsstore/.style    ={draw=rolestore,fill=rolestore!10},
+  hsstop/.style     ={draw=rolestore,line width=1.2pt,fill=rolestore!18},
+  % a lifeline, a step sitting in one lane, an arrow's caption
+  hslife/.style     ={draw=rulegrey,line width=0.6pt},
+  hsstep/.style     ={hsbox,rounded corners=2pt,draw=rulegrey,fill=fill,
+                      text width=96pt,align=center,
+                      font=\fontsize{8.5pt}{11pt}\selectfont},
+  hsann/.style      ={font=\fontsize{8pt}{10.5pt}\selectfont\itshape,
+                      text=inkfiftyfive,fill=paper,inner sep=2pt,align=center},
+  hsreturn/.style   ={hsarrow,dashed},
+}
+% \hsrolename{PLANNING SEAT}{the project's session} -- a lane or role box's text.
+\newcommand{\hsrolename}[2]{%
+  {\labelfont\fontsize{6.5pt}{9pt}\selectfont\color{ink}\MakeUppercase{#1}}%
+  \par\vspace{3pt}{\fontsize{8.5pt}{11pt}\selectfont\color{inkseventy}#2\par}}
 % \begin{hsfigure}{Figure 1 / caption label}{the legend sentence} ... \end{hsfigure}
 \newenvironment{hsfigure}[2]{%
   \par\vspace{14pt}\hslabel{#1}\par\vspace{8pt}\hsthinrule\par\vspace{12pt}
@@ -128,12 +207,26 @@
 
 % ---- 3. stat row ------------------------------------------------------------
 % \begin{hsstatrow} \hsstat{741}{caption} \hsstat{...}{...} \end{hsstatrow}
+% \begin{hsstatrow}[n] where n is 2, 3 or 4: the number of figures in the row.
+% Four is the maximum. A fifth \hsstat raises an error rather than wrapping into
+% a ragged grid; six measured figures are two rows or a data table. Rev 03.
+\newcounter{hs@stats}\newcounter{hs@statmax}
+\newlength{\hs@statwidth}
 \newcommand{\hsstat}[2]{%
-  \begin{minipage}[t]{0.235\linewidth}
+  \stepcounter{hs@stats}%
+  \ifnum\value{hs@stats}>\value{hs@statmax}
+    \PackageError{housestyle}{More than \thehs@statmax\space figures in one
+      hsstatrow}{Four abreast is the maximum. Split into two rows, or use a data
+      table.}%
+  \fi
+  \begin{minipage}[t]{\hs@statwidth}\hsfull
     {\statfont\fontsize{26pt}{26pt}\selectfont #1}\par\vspace{7pt}
     {\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}#2\par}
   \end{minipage}\hfill}
-\newenvironment{hsstatrow}{\par\vspace{16pt}\hsrule\par\vspace{16pt}\noindent}%
+\newenvironment{hsstatrow}[1][4]{%
+  \setcounter{hs@stats}{0}\setcounter{hs@statmax}{#1}%
+  \setlength{\hs@statwidth}{\dimexpr(\linewidth-#1\dimexpr 16pt\relax)/#1\relax}%
+  \par\vspace{16pt}\hsrule\par\vspace{16pt}\noindent}%
   {\par\vspace{16pt}\hsthinrule\par\vspace{16pt}}
 
 % ---- 4-5. tables ------------------------------------------------------------
@@ -156,13 +249,16 @@
 % ---- 7. provenance footline -------------------------------------------------
 \newcommand{\hsprovenance}[1]{%
   \par\vfill\hsthinrule\par\vspace{6pt}
-  {\labelfont\fontsize{7.5pt}{12pt}\selectfont\color{inkfiftyfive}\MakeLowercase{#1}\par}}
+  {\hsfull\labelfont\fontsize{7.5pt}{12pt}\selectfont\color{inkfiftyfive}%
+  \MakeLowercase{#1}\par}}
 
 % ---- 8. sources -------------------------------------------------------------
 \newlist{hssources}{enumerate}{1}
 \setlist[hssources]{label=\textcolor{accent}{\small\texttt{\arabic*}},
   leftmargin=26pt,itemsep=9pt,topsep=12pt,parsep=0pt,
-  before=\fontsize{10.5pt}{16pt}\selectfont}
+  before=\hssection{Sources}\fontsize{10.5pt}{16pt}\selectfont\raggedright}
+% A URL inside a source entry: mono, ink-70, breaks anywhere, never hyphenated.
+\newcommand{\hsurl}[1]{{\ttfamily\color{inkseventy}\url{#1}}}
 
 % ---- 9. claim ---------------------------------------------------------------
 \newcommand{\hsclaim}[2]{%
@@ -176,7 +272,7 @@
 \newsavebox{\hs@calloutbox}
 \newenvironment{hscallout}[1]{%
   \par\vspace{16pt}\begingroup\setlength{\fboxsep}{14pt}%
-  \begin{lrbox}{\hs@calloutbox}\begin{minipage}{\dimexpr\linewidth-28pt\relax}
+  \begin{lrbox}{\hs@calloutbox}\begin{minipage}{\dimexpr\linewidth-28pt\relax}\hsfull
   \hsaccentlabel{#1}\par\vspace{8pt}\fontsize{10.5pt}{16pt}\selectfont}%
   {\end{minipage}\end{lrbox}%
   \noindent\colorbox{fill}{\usebox{\hs@calloutbox}}\endgroup\par\vspace{16pt}}

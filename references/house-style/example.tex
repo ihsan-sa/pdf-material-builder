@@ -20,13 +20,14 @@ The opening paragraph is the only place a document is allowed to be general.
 {Filled boxes are inputs and outputs, outlined boxes are work an agent does,
 rust boxes are deterministic checks.}
 \begin{tikzpicture}[node distance=14pt]
-  \node[hsnode] (a) {\textbf{A brief}\\goal, boundaries, done-criteria};
-  \node[hswork,right=of a] (b) {\textbf{Draft}\\structure first, then prose};
-  \node[hsgate,right=of b] (c) {\textbf{Style check}\\pass, or back with reasons};
-  \node[hsnode,right=of c] (d) {\textbf{A PDF}\\with its sources attached};
+  \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
+  \node[hswork,right=of a] (b) {\hsnodetext{Agent}{Draft}{structure first, then prose}};
+  \node[hsgate,right=of b] (c) {\hsnodetext{Gate}{Style check}{pass, or back with reasons}};
+  \node[hsnode,right=of c] (d) {\hsnodetext{Output}{A PDF}{with its sources attached}};
   \draw[hsarrow] (a) -- (b); \draw[hsarrow] (b) -- (c); \draw[hsarrow] (c) -- (d);
   \draw[hsfail] (c.south) -- ++(0,-12pt) -| (b.south);
 \end{tikzpicture}
+\hsfailnote{A failed gate returns to the draft step, twice, then to a person}
 \end{hsfigure}
 
 \begin{hsstatrow}

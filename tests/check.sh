@@ -157,10 +157,33 @@ selfcheck footnote   a.tex 'A number.\\footnote{From the log.}\n' \
                      b.tex 'A number.\\textsuperscript{1}\n'
 selfcheck second-claim a.tex '\\hsclaim{One.}{x}\n\\hsclaim{Two.}{y}\n' \
                        b.tex '\\hsclaim{One.}{x}\n'
-selfcheck colour-hex a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+selfcheck colour-hex a.tex '\\textcolor[HTML]{1F6FEB}{x}\n' \
                      b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
+selfcheck definecolor a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
+                      b.tex '\\textcolor{rolehuman}{x} % the role token, defined by the .sty\n'
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
+# A diagram may colour its parts by role, so a role token and a tint of one are
+# clean; a hue that is not a token is not, tinted or plain.
+selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=roleagent!12] {x};\n' \
+                      b.tex '\\node[draw=roleagent,fill=roleagent!12] {x};\n'
+selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
+                     b.tex '% housestyle.sty paints the paper tint; a document never does\n'
+selfcheck sans-face  a.tex '{\\sffamily A label}\n' \
+                     b.tex '{\\labelfont A label}\n'
+# The defects the reference rendering exposed in the first real build.
+selfcheck empty-figure-label \
+  a.tex '\\begin{hsfigure}{}{}\\end{hsfigure}\n' \
+  b.tex '\\begin{hsfigure}{Figure 1 / the flow}{Filled boxes are inputs.}\\end{hsfigure}\n'
+selfcheck empty-provenance \
+  a.tex '\\hsprovenance{ }\n' \
+  b.tex '\\hsprovenance{Read off the box on 21 September 2026.}\n'
+selfcheck node-without-eyebrow \
+  a.tex '\\node[hswork] (b) {\\textbf{Draft}\\\\then prose};\n' \
+  b.tex '\\node[hswork] (b) {\\hsnodetext{Agent}{Draft}{then prose}};\n'
+selfcheck fifth-stat \
+  a.tex '\\begin{hsstatrow}\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n' \
+  b.tex '\\begin{hsstatrow}[3]\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\n\\end{hsstatrow}\n\\begin{hsstatrow}\n\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n'
 # One claim per document, not per file: a driver and the files it pulls in.
 # The inputs sit in a subdirectory and name each other relative to themselves;
 # ch2 inputs the driver back (a cycle) and a file that does not exist.

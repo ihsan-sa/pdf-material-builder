@@ -11,6 +11,7 @@ Drop this folder in as `references/house-style/` and point the recipes at it.
 | `style-spec.md` | The written spec: page geometry (letter and A4), the full type scale, six colour tokens, the 8 pt spacing step, and the rule for each of the twelve blocks. This is the file a skill reads. |
 | `housestyle.sty` | A LaTeX class implementing the spec. LuaLaTeX (it uses fontspec and finds its fonts with Lua). |
 | `example.tex` | A compiling document that exercises the title block, flow diagram, stat row, claim, callout and provenance footline. |
+| `CONFORMANCE.md` | The ten checks a built document must pass, and the seven defects from a real build that each one exists to stop. Read it before declaring a document done. |
 
 ## The short version
 
@@ -37,9 +38,15 @@ each.
 1. Keep the prose. The style is a page treatment, not a rewrite.
 2. Map each existing element onto one of the twelve blocks. Anything that maps
    onto none of them is cut or turned into prose.
-3. Reduce diagrams to three node kinds: filled ink for inputs and outputs,
-   outlined ink for work an agent does, accent-outlined on fill for a
-   deterministic check. Colour-coded role legends go away.
+3. Draw each diagram for what it shows. The three node kinds -- filled ink for
+   inputs and outputs, outlined ink for work an agent does, accent-outlined on
+   fill for a deterministic check -- are the pattern for a flow, and lanes with
+   role colours are the pattern for a mechanism that crosses several actors.
+   *Owner's decision, 22 September 2026: "dont force diagrams into the format in
+   the template", and role-coloured lane diagrams "stay". This replaces the
+   earlier rule 3, which reduced every diagram to the three kinds and removed
+   colour-coded roles.* The typography does not bend: mono labels and eyebrows,
+   the text serif for prose inside a node, the page's paper ground, no sans.
 4. Every page carrying a figure or a statistic gets a provenance footline naming
    the command, commit, file and date the number came from. A number with no
    source and no footline does not go in.
@@ -47,4 +54,17 @@ each.
 6. Pick one sentence as the claim, set at 27 pt between two ink rules. Exactly
    one per document.
 
-Rev 01, September 2026.
+## If a build looks wrong
+
+It is almost always the kit being driven wrong rather than the spec. Check
+`CONFORMANCE.md` first: the failures seen so far are too many statistics in a
+row, the slug repeated in head and foot, over-tracked labels, missing provenance
+footlines, and no claim or callout in a document that argues for something.
+
+The palette is not negotiable and not a suggestion: warm paper, warm ink, rust
+accent, painted on every page. A build in another palette has not matched this
+package. Inside a diagram, rule 3 above governs instead.
+
+Rev 03, September 2026. Rev 03 keeps the original palette and carries rev 02's
+hardening: label tracking at 7%, the stat row capped at four, xurl, the sources
+page heading itself, and CONFORMANCE.md.
