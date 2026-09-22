@@ -8,9 +8,11 @@
 \ProvidesPackage{housestyle}[2026/09/22 v1 technical document house style]
 
 \RequirePackage{iftex}
-\RequirePackage[letterpaper,top=54pt,bottom=44pt,left=72pt,right=72pt,%
+% Paper is letter unless the document sets \hspaper first. For A4,
+% \newcommand\hspaper{a4paper} before \usepackage{housestyle}; margins unchanged.
+\providecommand\hspaper{letterpaper}
+\RequirePackage[\hspaper,top=54pt,bottom=44pt,left=72pt,right=72pt,%
   headsep=14pt,footskip=26pt]{geometry}
-% A4: \PassOptionsToPackage{a4paper}{geometry} before loading, margins unchanged.
 
 \RequirePackage{fontspec}
 \RequirePackage{xcolor}

@@ -18,7 +18,8 @@
 #      SKIPPED, with the reason printed, when lesson-builder is not on disk.
 #   6  assets/preamble-template.tex and assets/driver-template.tex build with
 #      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
-#      directory.
+#      directory. With pdfinfo present, the default build is letter and the
+#      template's A4 line, uncommented, builds A4.
 #   7  references/house-style/example.tex builds the same way, and pdffonts
 #      shows Source Serif 4 and IBM Plex Mono embedded.
 #   8  With housestyle.sty in the current directory, kpse returns it as
@@ -293,6 +294,30 @@ PYEOF
     done
   else
     fail "driver-smoke: could not build the driver fixture"
+  fi
+
+  # Paper size: the default build is letter, and the template's A4 line, once
+  # uncommented, gives A4 (pdfinfo: 612 x 792 pts letter, 595 x 842 pts A4).
+  if ! command -v pdfinfo >/dev/null; then
+    skip "paper size" "no pdfinfo on this machine"
+  else
+    sed 's/^% \\newcommand\\hspaper{a4paper}$/\\newcommand\\hspaper{a4paper}/' \
+      "$D/preamble-template.tex" > "$D/preamble-a4.tex"
+    sed 's/preamble-template\.tex/preamble-a4.tex/' "$D/preamble-smoke.tex" > "$D/a4-smoke.tex"
+    # Rounded to whole points: pdfinfo prints A4 as 595.276 x 841.89 pts.
+    size() { pdfinfo "$1" 2>/dev/null | awk '/^Page size:/ { printf "%.0f x %.0f pts", $3, $5 }'; }
+    ls=$(size "$D/preamble-smoke.pdf")
+    if [ "$ls" = "612 x 792 pts" ]; then pass "default paper is letter ($ls)"
+    else fail "default paper: pdfinfo says '$ls', expected 612 x 792 pts"; fi
+    if cmp -s "$D/preamble-template.tex" "$D/preamble-a4.tex"; then
+      fail "paper size A4: the template has no '% \\newcommand\\hspaper{a4paper}' line to uncomment"
+    elif ! out=$("$REPO/scripts/build.sh" "$D/a4-smoke.tex" 2>&1); then
+      fail "a4-smoke: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+    else
+      as=$(size "$D/a4-smoke.pdf")
+      if [ "$as" = "595 x 842 pts" ]; then pass "the template's A4 line gives A4 ($as)"
+      else fail "paper size A4: pdfinfo says '$as', expected 595 x 842 pts"; fi
+    fi
   fi
 fi
 
