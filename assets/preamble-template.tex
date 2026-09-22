@@ -16,13 +16,14 @@
 
 % --- Running head and foot -------------------------------------------------
 % Slug at the left of the head; the section name at the right follows each
-% \section (override with \hssection{...}). Foot: the copyright line at the
-% left, the page number at the right. The first page has no head, per the spec.
+% \section through \markboth, read at shipout, so a heading pushed to the next
+% page never names itself on the page before (override with \hssection{...}).
+% Foot: the copyright line at the left, the page number at the right. The
+% first page has no head, per the spec.
 \hsslug{<COURSE> <DOC>}
 \fancyfoot[L]{\hslabel{\textcopyright{} <YEAR> <NAME>. All rights reserved.}}
-\makeatletter
-\renewcommand{\sectionmark}[1]{\gdef\@hssection{#1}}
-\makeatother
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+\hssection{\leftmark}
 
 % --- Headings --------------------------------------------------------------
 % Headings are unnumbered on the page (the .sty's \section). Cross-reference
@@ -46,7 +47,7 @@
 % heading, and the running head's section becomes the title.
 \newcommand{\catbanner}[2]{%
   \gdef\hs@parteyebrow{\ \textperiodcentered\ Category #1}%
-  \part{#2}\hssection{#2}\gdef\hs@parteyebrow{}}
+  \part{#2}\markboth{#2}{}\gdef\hs@parteyebrow{}}
 \makeatother
 \newcommand{\cat}[1]{\hslabel{[#1]}}      % [A]
 \newcommand{\tool}[1]{\hslabel{[T#1]}}    % [T5]
