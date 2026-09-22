@@ -303,10 +303,12 @@ for path in files:
         token = m.group(0)
         if token.startswith('\\begin'):
             opened, seen = m.start(), 0
-            got = read_arg(text, m.end())
-            head = text[m.end():got[1]] if got else ''
-            cap = int(re.search(r'\[(\d+)\]', head).group(1)) \
-                if re.search(r'\[(\d+)\]', head) else 4
+            # The count is the environment's own optional argument and nothing
+            # follows it but \hsstat, so read it straight off the source: a
+            # reader that looked for a following {...} never matched, and every
+            # row was measured against the default of four.
+            m2 = re.match(r'\s*\[(\d+)\]', text[m.end():])
+            cap = int(m2.group(1)) if m2 else 4
         elif token.startswith('\\end'):
             opened = None
         elif opened is not None:

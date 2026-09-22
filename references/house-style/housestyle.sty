@@ -102,6 +102,10 @@
 % ---- running head and foot --------------------------------------------------
 \newcommand{\hsslug}[1]{\def\@hsslug{#1}}\hsslug{}
 \newcommand{\hssection}[1]{\def\@hssection{#1}}\hssection{}
+% Same, but global: a block that sets the running head from inside its own
+% group (the sources list, block 8) needs the value to survive the group and
+% reach the output routine, which runs long after \end{hssources}. Rev 03.
+\newcommand{\hsgsection}[1]{\gdef\@hssection{#1}}
 \pagestyle{fancy}\fancyhf{}
 \renewcommand{\headrulewidth}{0.75pt}
 \renewcommand{\headrule}{\textcolor{rulegrey}{\rule{\headwidth}{0.75pt}}}
@@ -243,7 +247,7 @@
 \newenvironment{hsstatrow}[1][4]{%
   \setcounter{hs@stats}{0}\setcounter{hs@statmax}{#1}%
   \setlength{\hs@statwidth}{\dimexpr(\linewidth-#1\dimexpr 16pt\relax)/#1\relax}%
-  \par\vspace{16pt}\hsrule\par\vspace{16pt}\noindent}%
+  \par\vspace{16pt}\hsrule\par\vspace{16pt}\hsfull\noindent}%
   {\par\vspace{16pt}\hsthinrule\par\vspace{16pt}}
 
 % ---- 4-5. tables ------------------------------------------------------------
@@ -281,7 +285,7 @@
 \newlist{hssources}{enumerate}{1}
 \setlist[hssources]{label=\textcolor{accent}{\small\texttt{\arabic*}},
   leftmargin=26pt,itemsep=9pt,topsep=12pt,parsep=0pt,
-  before=\hssection{Sources}\fontsize{10.5pt}{16pt}\selectfont\raggedright}
+  before=\hsgsection{Sources}\fontsize{10.5pt}{16pt}\selectfont\raggedright}
 % A URL inside a source entry: mono, ink-70, breaks anywhere, never hyphenated.
 \newcommand{\hsurl}[1]{{\ttfamily\color{inkseventy}\url{#1}}}
 

@@ -18,7 +18,7 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
 | Six statistics in one row, wrapped into a ragged grid with six-line captions | Four abreast, never five. Six measured figures are two rows or a data table. | `hsstatrow[n]` caps at four and raises a `\PackageError` on the fifth `\hsstat` |
 | Document slug printed in the running head *and* the foot of every page | The slug appears once. Head: slug left, section right. Foot: page number right. | `\fancyfoot[L]` is empty by default |
 | Every label set as separated capitals (`A U T O B O X`) | Labels are mono uppercase at 7% tracking, not 14% | `\labelfont` is `LetterSpace=7.0, WordSpace=1.25` |
-| The sources page carrying the previous page's section name | The sources page is headed "Sources" | the `hssources` environment sets `\hssection{Sources}` |
+| The sources page carrying the previous page's section name | The sources page is headed "Sources" | the `hssources` environment sets `\hsgsection{Sources}`, globally, so the value survives the list's group and reaches the output routine |
 | A URL hyphenated mid-word across a line break | URLs break at any character and are never hyphenated | `xurl` loaded; `\hsurl{...}` for source entries |
 | No provenance footline on any page, the figure note set as body prose instead | Every page carrying a figure or a statistic ends in a provenance footline | manual: see item 3 below |
 | No claim, no callout anywhere in a five-page document making a strong claim | One claim per document; the limit of that claim stated in a callout on the same page | manual: see items 4 and 5 |

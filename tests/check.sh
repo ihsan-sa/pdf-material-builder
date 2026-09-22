@@ -187,6 +187,11 @@ selfcheck node-without-eyebrow \
 selfcheck fifth-stat \
   a.tex '\\begin{hsstatrow}\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n' \
   b.tex '\\begin{hsstatrow}[3]\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\n\\end{hsstatrow}\n\\begin{hsstatrow}\n\\hsstat{4}{d}\\hsstat{5}{e}\n\\end{hsstatrow}\n'
+# The row's own [n] is the cap, not just four: a third stat in a row of two is
+# the \PackageError the .sty raises at build time, so the gate has to catch it.
+selfcheck stat-over-declared-cap \
+  a.tex '\\begin{hsstatrow}[2]\n\\hsstat{1}{a}\\hsstat{2}{b}\\hsstat{3}{c}\n\\end{hsstatrow}\n' \
+  b.tex '\\begin{hsstatrow}[2]\n\\hsstat{1}{a}\\hsstat{2}{b}\n\\end{hsstatrow}\n'
 # One claim per document, not per file: a driver and the files it pulls in.
 # The inputs sit in a subdirectory and name each other relative to themselves;
 # ch2 inputs the driver back (a cycle) and a file that does not exist.
