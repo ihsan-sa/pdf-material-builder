@@ -148,6 +148,9 @@ for path in files:
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
                                 'fill, codefill, accent, rulegrey), or a tint '
                                 'of one')
+        if SANS.search(line):
+            problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
+                            'Source Serif 4 and IBM Plex Mono, neither a sans')
         if not is_tex:
             continue
         if DEFINECOLOR.search(line):
@@ -162,9 +165,6 @@ for path in files:
         if BEGIN_DOC.search(line) and path not in drivers:
             drivers.append(path)
         events.extend(line_events(line, n))
-        if SANS.search(line):
-            problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
-                            'Source Serif 4 and IBM Plex Mono, neither a sans')
         if LT_GT.search(line):
             problems.append(rf'{rel}:{n}: \lt or \gt is KaTeX, undefined in LaTeX; use < or >')
         if BARE_O.search(line) and '\\newcommand' not in line:

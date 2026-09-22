@@ -226,12 +226,11 @@ be noticed:
 | `hsground` | fill ground, ink-70 rule | a part that does work but is not the subject |
 | `hsquiet` | grey rule on paper, ink-70 text | ambient things: a store, a record, a timer, anything the reader need not follow |
 
-`hsstop` is a heavier `hsmarked` for a box where something is refused. Rank the
-roles by how much the reader has to notice them, then assign from the top of the
-table down; use three or four treatments in one picture rather than all five,
-spend `hsmarked` exactly once, and name in the legend what each weight means in
-this picture, because the weights carry no fixed meaning across pictures the way
-a hue would. Each treatment names colours only, so it goes on a node beside
+Rank the roles by how much the reader has to notice them, then assign from the
+top of the table down; use three or four treatments in one picture rather than
+all five, spend `hsmarked` exactly once, and name in the legend what each weight
+means in this picture, because the weights carry no fixed meaning across
+pictures the way a hue would. Each treatment names colours only, so it goes on a node beside
 `hsrole` or `hslane`, never alone.
 
 ## Three traps the first composed build hit

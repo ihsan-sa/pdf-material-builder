@@ -50,7 +50,7 @@ It runs three lualatex passes in the document's own directory under the temp job
 | 5 | Data table | Same rules, grey `\hline` between rows; column types `L{w}` and `R{w}` (ragged, right-aligned numerals) from the `.sty`, `Y` for a tabularx column from the preamble. |
 | 6 | Figure plate | `\hsplate{file}{name}{grey facts}{status}{caption}`: full measure, no border. |
 | 7 | Provenance footline | `\hsprovenance{command, commit, file, date}`, at the foot of any page with a figure or a statistic. |
-| 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page; the list heads its own page with `Sources`. A URL in an entry goes in `\hsurl{...}`, which breaks anywhere and never hyphenates. No `\footnote`. |
+| 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page; the environment sets the running head of the page it starts, so that page reads `Sources`. A URL in an entry goes in `\hsurl{...}`, which breaks anywhere and never hyphenates. No `\footnote`. |
 | 9 | Claim | `\hsclaim{the sentence}{mono line}`. Exactly one per document. |
 | 10 | Callout | `\begin{hscallout}{label} ... \end{hscallout}`: the objection a careful reader would raise. Never two in a row. |
 | 11 | Code block | `\hslisting{Listing 1 / label}` then `\begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}`. No syntax colour. |

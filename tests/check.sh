@@ -20,15 +20,19 @@
 #      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
 #      directory. With pdfinfo present, the default build is letter and the
 #      template's A4 line, uncommented, builds A4.
-#   7  references/house-style/example.tex builds the same way, and pdffonts
+#   7  Every ```latex block in references/page-composition.md compiles against
+#      housestyle.sty, each as its own page, and none of them logs an overfull
+#      box: a writer copies these patterns out of the file, so a style the .sty
+#      renamed or a picture wider than the measure fails in their document.
+#   8  references/house-style/example.tex builds the same way, and pdffonts
 #      shows Source Serif 4 and IBM Plex Mono embedded.
-#   8  With housestyle.sty in the current directory, kpse returns it as
+#   9  With housestyle.sty in the current directory, kpse returns it as
 #      ./housestyle.sty (a bare lualatex run there); the .sty's font lookup
 #      must still resolve to assets/fonts/. Then references/house-style/
 #      example.tex builds in place with scripts/build.sh and embeds the
 #      vendored Source Serif 4; the example.pdf it makes is removed.
-#   6, 7 and 8 are SKIPPED, with the reason printed, when lualatex is absent;
-#   7's and 8's font checks are skipped the same way when pdffonts is absent.
+#   6 to 9 are SKIPPED, with the reason printed, when lualatex is absent;
+#   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
 set -uo pipefail
@@ -362,7 +366,6 @@ if not blocks:
 head = ('\\documentclass[11pt]{article}\n\\usepackage{housestyle}\n'
         '\\hsslug{Diagram patterns}\n\\hssection{Patterns}\n\\begin{document}\n')
 open(sys.argv[2], 'w').write(head + '\n\n\\clearpage\n\n'.join(blocks) + '\n\\end{document}\n')
-print(len(blocks))
 PYEOF
   n=$(python3 -c "import re,sys;print(len(re.findall(r'\`\`\`latex',open(sys.argv[1]).read())))" "$REPO/references/page-composition.md")
   if [ "$n" -lt 3 ]; then
