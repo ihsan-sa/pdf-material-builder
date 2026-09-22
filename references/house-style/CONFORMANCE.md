@@ -55,10 +55,14 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
    binds every diagram is the typography and the ground: mono for labels and
    eyebrows, the text serif for prose inside a node, the page's paper tint, no
    sans-serif anywhere. The three node kinds (`hsnode`, `hswork`, `hsgate`) are
-   one pattern among several; lanes with role colours and an annotated arrow
-   between them are another, and the role tokens `rolehuman`, `rolesystem`,
-   `roleagent`, `rolemachine` and `rolestore` exist for it. The three-appearance
-   accent budget governs the prose of a page, not the inside of a picture.
+   one pattern among several; a lane diagram with an annotated arrow between
+   lanes is another, and a role graph a third. The colour is the kit's: the
+   owner settled the same day that the old diagrams' form comes across and their
+   colours do not ("they can still be redrawn in the new pallette which is prob
+   better but i mean the form etc"), so a picture differs its roles by weight --
+   the five treatments `hsfilled`, `hsmarked`, `hsoutlined`, `hsground` and
+   `hsquiet` -- and invents no hue. The three-appearance accent budget governs
+   the prose of a page; inside a picture, spend the accent on one role.
    What every diagram still owes the reader: a filled figure label, a legend
    sentence in caption size naming the kinds it uses, an eyebrow in every node,
    boxes of one height in a row, and a fail path as one line with its caption

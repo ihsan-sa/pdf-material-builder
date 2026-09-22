@@ -14,11 +14,12 @@
 #     document (spec, block 9). A .tex with \begin{document} is
 #     a document with every file it \input{}s or \include{}s,
 #     followed recursively; any other .tex is counted on its own
-#   - a colour outside the six tokens and the five diagram role   (.tex .sty)
-#     tokens (spec, Colour): a hex value not in the token set, a
-#     \definecolor in a document, or a colour name or `!` tint
-#     that is not a token name. The role tokens are for the
-#     inside of a tikzpicture (CONFORMANCE item 9)
+#   - a colour outside the tokens (spec, Colour): a hex value    (.tex .sty)
+#     not in the token set, a \definecolor in a document, or a
+#     colour name or `!` tint that is not a token name. A
+#     diagram is drawn in these same tokens: it tells its roles
+#     apart by weight, not by a hue of its own (CONFORMANCE
+#     item 9)
 #   - \pagecolor in a document: housestyle.sty paints the paper  (.tex)
 #     tint on every page and a document never repaints it
 #     (CONFORMANCE item 7)
@@ -83,14 +84,9 @@ PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
 # The six tokens of style-spec.md, the code ground and the grey rule the .sty
 # defines, by hex and by the names housestyle.sty gives them.
 TOKEN_HEX = {'15140F', '4A4740', '8A857A', 'FAF8F3', 'F0EADE', 'F2EEE3',
-             '9C4221', 'DED8CA',
-             # the five diagram role tokens: a diagram is drawn for its content
-             # and may colour its parts by role (CONFORMANCE item 9).
-             'B8943E', '3E6C8F', '4F7A52', '7C7870'}
+             '9C4221', 'DED8CA'}
 TOKEN_NAMES = {'ink', 'inkseventy', 'inkfiftyfive', 'paper', 'fill',
-               'codefill', 'accent', 'rulegrey', 'none',
-               'rolehuman', 'rolesystem', 'roleagent', 'rolemachine',
-               'rolestore'}
+               'codefill', 'accent', 'rulegrey', 'none'}
 HEX = re.compile(r'(?:#|\{HTML\}\{)([0-9A-Fa-f]{6})\b')
 DEFINECOLOR = re.compile(r'\\definecolor(?![A-Za-z])')
 COLOR_USE = re.compile(
@@ -144,15 +140,14 @@ for path in files:
             if name.startswith(('#', '\\')) or not name:
                 continue
             # A `!` tint mixes tokens with percentages: every named part of
-            # `roleagent!12` or `ink!20!paper` has to be a token itself.
+            # `accent!12` or `ink!20!paper` has to be a token itself.
             parts = [q for q in name.split('!') if not q.isdigit()]
             bad = [q for q in parts if q not in TOKEN_NAMES]
             if bad:
                 problems.append(f'{rel}:{n}: colour `{bad[0]}` is not a house-style '
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
-                                'fill, codefill, accent, rulegrey, or a diagram '
-                                'role: rolehuman, rolesystem, roleagent, '
-                                'rolemachine, rolestore)')
+                                'fill, codefill, accent, rulegrey), or a tint '
+                                'of one')
         if not is_tex:
             continue
         if DEFINECOLOR.search(line):

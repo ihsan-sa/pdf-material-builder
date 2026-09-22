@@ -86,7 +86,7 @@ Once the anchor exists, spawn the remaining short-form builders in one message: 
 **Step 6.3 -- Every writer brief carries these.** Do not economise; repeat them in each prompt.
 
 - The conventions doc path (mandatory critical reading)
-- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure` with `\hsnodetext` and `\hsfailnote`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead`), and the rule that nothing else is drawn: no boxes, no colour outside the tokens, no footnotes
+- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure` with `\hsnodetext` and `\hsfailnote`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead` inside `hsblock`), and the rule that nothing else is drawn: no boxes, no colour outside the tokens, no footnotes
 - `references/page-composition.md`, which is what stops a writer filling the form instead of composing the page: the shape catalogue, the arguments that must not be empty, and the three diagram patterns with tikz to copy
 - `references/voice.md` and `references/teaching-communication.md`, plus a sibling section as a voice sample
 - The relevant extraction files, the target page count, and whether this is a weak-area section

@@ -160,13 +160,12 @@ selfcheck second-claim a.tex '\\hsclaim{One.}{x}\n\\hsclaim{Two.}{y}\n' \
 selfcheck colour-hex a.tex '\\textcolor[HTML]{1F6FEB}{x}\n' \
                      b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
 selfcheck definecolor a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
-                      b.tex '\\textcolor{rolehuman}{x} % the role token, defined by the .sty\n'
+                      b.tex '\\textcolor{inkfiftyfive}{x} % a token the .sty defines\n'
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
-# A diagram may colour its parts by role, so a role token and a tint of one are
-# clean; a hue that is not a token is not, tinted or plain.
-selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=roleagent!12] {x};\n' \
-                      b.tex '\\node[draw=roleagent,fill=roleagent!12] {x};\n'
+# A tint of a token is clean; a hue that is not a token is not, tinted or plain.
+selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=accent!12] {x};\n' \
+                      b.tex '\\node[draw=accent,fill=accent!12] {x};\n'
 selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
                      b.tex '% housestyle.sty paints the paper tint; a document never does\n'
 selfcheck sans-face  a.tex '{\\sffamily A label}\n' \
@@ -344,7 +343,49 @@ PYEOF
   fi
 fi
 
-# --- 7. the owner's example builds and embeds both faces ----------------------
+# --- 7. the diagram patterns in references/page-composition.md still compile ---
+# A writer copies these three straight out of the file, so a style the .sty
+# renamed and a snippet nobody recompiled is a pattern that fails in their
+# document, not in ours. Each latex block is built as its own page; the run also
+# fails on an Overfull box, because a picture wider than the measure prints past
+# the right margin and that is what the reference is meant to be an answer to.
+if ! command -v lualatex >/dev/null; then
+  skip "page-composition snippets" "no lualatex on this machine"
+else
+  C="$TMPROOT/patterns"; mkdir -p "$C"
+  python3 - "$REPO/references/page-composition.md" "$C/patterns.tex" <<'PYEOF'
+import re, sys
+md = open(sys.argv[1]).read()
+blocks = re.findall(r'```latex\n(.*?)```', md, re.S)
+if not blocks:
+    sys.exit("no ```latex blocks in page-composition.md")
+head = ('\\documentclass[11pt]{article}\n\\usepackage{housestyle}\n'
+        '\\hsslug{Diagram patterns}\n\\hssection{Patterns}\n\\begin{document}\n')
+open(sys.argv[2], 'w').write(head + '\n\n\\clearpage\n\n'.join(blocks) + '\n\\end{document}\n')
+print(len(blocks))
+PYEOF
+  n=$(python3 -c "import re,sys;print(len(re.findall(r'\`\`\`latex',open(sys.argv[1]).read())))" "$REPO/references/page-composition.md")
+  if [ "$n" -lt 3 ]; then
+    fail "page-composition snippets: found $n latex blocks, expected the three diagram patterns"
+  elif ! out=$("$REPO/scripts/build.sh" "$C/patterns.tex" 2>&1); then
+    fail "page-composition snippets: one of the $n patterns does not compile"
+    printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  else
+    pass "page-composition's $n diagram patterns compile against housestyle.sty"
+    (cd "$C" && TEXINPUTS=".:$REPO/references/house-style//:" \
+      lualatex -interaction=nonstopmode -jobname=ovf patterns.tex >/dev/null 2>&1) || true
+    if [ ! -s "$C/ovf.log" ]; then
+      skip "page-composition snippets fit the measure" "no log written"
+    elif over=$(grep -c 'Overfull \\hbox' "$C/ovf.log") && [ "$over" -gt 0 ]; then
+      fail "page-composition snippets: $over overfull hbox(es); a pattern is wider than the measure"
+      grep -A1 'Overfull \\hbox' "$C/ovf.log" | head -6 | sed 's/^/  /'
+    else
+      pass "page-composition's diagram patterns fit the measure with no overfull box"
+    fi
+  fi
+fi
+
+# --- 8. the owner's example builds and embeds both faces ----------------------
 if ! command -v lualatex >/dev/null; then
   skip "house-style example" "no lualatex on this machine"
 else
@@ -378,7 +419,7 @@ else
   fi
 fi
 
-# --- 8. the font lookup and the example, in place ----------------------------
+# --- 9. the font lookup and the example, in place ----------------------------
 # Case 7 copies the example away from housestyle.sty, so kpse finds the .sty by
 # its absolute path. Built in its own directory, "." is searched first (build.sh
 # and a bare lualatex run alike) and kpse returns ./housestyle.sty instead. The

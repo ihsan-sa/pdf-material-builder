@@ -80,8 +80,11 @@ head, under the title block), grey where they only divide.
    earlier text of this block, which allowed three node kinds and no more.* The
    node row is one pattern: horizontal nodes, mono arrow glyphs, filled ink
    (input, output), outlined ink (work an agent does), accent-outlined on fill
-   (a deterministic check). Lanes with role colours, and a role graph with
-   annotated arrows, are equally house style; five role tokens exist for them.
+   (a deterministic check). A lane diagram, and a role graph with annotated
+   arrows, are equally house style, and both are drawn in these same tokens:
+   a role is told apart by weight, not by a hue of its own (owner, same day:
+   "they can still be redrawn in the new pallette which is prob better but i
+   mean the form etc").
    What every diagram owes the reader, whatever its shape: a filled figure
    label, a legend sentence under it in caption size naming the kinds it uses,
    an eyebrow in every node, one height for every box in a row, and a fail path

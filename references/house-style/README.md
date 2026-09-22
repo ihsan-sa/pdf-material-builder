@@ -40,13 +40,18 @@ each.
    onto none of them is cut or turned into prose.
 3. Draw each diagram for what it shows. The three node kinds -- filled ink for
    inputs and outputs, outlined ink for work an agent does, accent-outlined on
-   fill for a deterministic check -- are the pattern for a flow, and lanes with
-   role colours are the pattern for a mechanism that crosses several actors.
+   fill for a deterministic check -- are the pattern for a flow, and a lane
+   diagram is the pattern for a mechanism that crosses several actors.
    *Owner's decision, 22 September 2026: "dont force diagrams into the format in
-   the template", and role-coloured lane diagrams "stay". This replaces the
-   earlier rule 3, which reduced every diagram to the three kinds and removed
-   colour-coded roles.* The typography does not bend: mono labels and eyebrows,
-   the text serif for prose inside a node, the page's paper ground, no sans.
+   the template", and the lane diagrams of the old documents "stay". This
+   replaces the earlier rule 3, which reduced every diagram to the three
+   kinds.* Two things do not bend. The typography: mono labels and eyebrows, the
+   text serif for prose inside a node, the page's paper ground, no sans. And the
+   palette, which he settled the same day -- the old diagrams' form comes across
+   but not their colours, "they can still be redrawn in the new pallette which
+   is prob better but i mean the form etc" -- so a diagram tells its roles apart
+   by weight (filled ink, outlined ink, the fill ground, a faint rule, and the
+   accent spent on one role) rather than by a hue of its own.
 4. Every page carrying a figure or a statistic gets a provenance footline naming
    the command, commit, file and date the number came from. A number with no
    source and no footline does not go in.

@@ -37,6 +37,20 @@ rust boxes are deterministic checks.}
   \hsstat{65 W}{power supply; the models run elsewhere}
 \end{hsstatrow}
 
+% A table is a block, so it goes on the whole measure inside hsblock.
+\begin{hsblock}
+\hslabel{Table 1 / what the three node kinds mean}\par\vspace{8pt}
+\begin{tabular}{L{0.26\linewidth} L{0.30\linewidth} L{0.30\linewidth}}
+\hstoprule
+\hshead{Kind} & \hshead{How it is drawn} & \hsaccenthead{Use it for} \\
+\hline
+\texttt{hsnode} & Filled ink, paper text & An input or an output \\
+\texttt{hswork} & Outlined ink on paper & Work an agent does \\
+\texttt{hsgate} & Accent rule on fill & A check that passes or fails \\
+\hline
+\end{tabular}
+\end{hsblock}
+
 \hsclaim{An agent that writes code is easy to get now. One you can stop watching
 is harder.}{One per document}
 

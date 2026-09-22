@@ -106,6 +106,13 @@ What does not bend, in any of the three patterns below:
   for prose inside a node, the page's paper as the ground. No sans-serif
   anywhere; the old documents these patterns come from were set in Helvetica and
   that part does not come with them.
+- **The palette is the house's too.** The owner settled this on 22 September
+  2026: the old diagrams' *form* comes across, their colours do not -- "they can
+  still be redrawn in the new pallette which is prob better but i mean the form
+  etc". So a diagram is drawn in ink, the neutrals, the two grounds and the one
+  accent, and no hue exists inside a picture that does not exist outside it.
+  Telling roles apart is then a matter of weight, and *How a writer picks a
+  treatment* below is how.
 - **Every figure is labelled and legended.** `\begin{hsfigure}{Figure N / ...}`
   with a legend sentence naming the kinds the picture uses.
 - **Boxes in a row are one height**, which is what `\hsnodetext` is for.
@@ -146,32 +153,38 @@ reads downwards.
 
 ```latex
 \begin{hsfigure}{Figure 2 / one request, end to end}%
-{Each column is one actor and time runs down the page. A dashed arrow is a
-return; the italic line on an arrow says what crosses.}
+{Each column is one actor and time runs down the page. The filled lane is the
+seat that decides and the rust one is where work becomes public; a dashed arrow
+is a return, and the italic line on an arrow says what crosses.}
 \begin{tikzpicture}[x=92pt,y=-15pt]
-  \node[hslane,hshuman]  (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
-  \node[hslane,hssystem] (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
-  \node[hslane,hsagent]  (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
-  \node[hslane,hsmachine](W) at (3,0) {\hsrolename{Worker}{one task}};
-  \node[hslane,hsstore]  (L) at (4,0) {\hsrolename{Landing}{the queue, and GitHub}};
+  \node[hslane,hsoutlined] (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
+  \node[hslane,hsquiet]    (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
+  \node[hslane,hsfilled]   (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
+  \node[hslane,hsground]   (W) at (3,0) {\hsrolename{Worker}{one task}};
+  \node[hslane,hsmarked]   (L) at (4,0) {\hsrolename{Landing}{the queue, and GitHub}};
   \foreach \c in {O,S,P,W,L} \draw[hslife] (\c.south) -- (\c.south |- 0,16);
-  \draw[hsarrow] (0,1.6) -- node[hsann] {a message} (1,1.6);
-  \draw[hsarrow] (1,3.2) -- node[hsann] {typed into the session's window} (2,3.2);
+  \draw[hsarrow] (0,1.6) -- node[hsann,above=0pt] {a message} (1,1.6);
+  \draw[hsarrow] (1,3.2) -- node[hsann,above=0pt] {typed into the session's window} (2,3.2);
   \node[hsstep] at (2,4.6) {adds a board row, writes a brief};
-  \draw[hsarrow] (2,6.2) -- node[hsann] {one command starts the worker} (3,6.2);
+  \draw[hsarrow] (2,6.2) -- node[hsann,above=0pt] {one command starts the worker} (3,6.2);
   \node[hsstep] at (3,7.6) {its own worktree and branch; a hook commits};
-  \draw[hsarrow] (3,9.6) -- node[hsann] {says done, opens the PR} (4,9.6);
+  \draw[hsarrow] (3,9.6) -- node[hsann,above=0pt] {says done, opens the PR} (4,9.6);
   \node[hsstep] at (4,11) {gates, then one review read of the diff};
-  \draw[hsreturn] (4,13) -- node[hsann] {landed, in the track's own thread} (1,13);
-  \draw[hsreturn] (1,14.6) -- node[hsann] {a note back} (0,14.6);
+  \draw[hsreturn] (4,13) -- node[hsann,above=0pt] {landed, in the track's own thread} (1,13);
+  \draw[hsreturn] (1,14.6) -- node[hsann,above=0pt] {a note back} (0,14.6);
 \end{tikzpicture}
 \end{hsfigure}
 ```
 
-A node takes one shape style and one role style: `hslane` for a lane header,
-`hsrole` for a box anywhere else, and one of the five colours beside it. An arrow's annotation is filled in the paper colour and masks the
-line under it, which is what keeps it readable; leave at least 40 pt of arrow
-beyond the label so the arrowhead is not covered too.
+A node takes one shape style and one treatment, shape first: `hslane` for a lane
+header, `hsrole` for a box anywhere else. An arrow's annotation is filled in the
+paper colour and masks the line under it, which is what keeps it readable. Two
+rules follow from that. On a free arrow, leave at least 40 pt beyond the label so
+the arrowhead is not covered, and break a long annotation over two lines with
+`\\` rather than let it run under the box at either end. In a lane diagram the
+span between two lanes is usually shorter than the sentence, so put the
+annotation `above=0pt` instead: the arrow stays whole under it and the reader
+still sees which way the work went.
 
 ### Pattern 3 -- the role graph
 
@@ -182,30 +195,64 @@ picture can breathe where it needs to.
 
 ```latex
 \begin{hsfigure}{Figure 3 / what runs with nobody there}%
-{Blue is a door into the box, green a session, grey an automatic timer, rust a
-store. An italic line on an arrow says what passes between two parts.}
+{Outlined boxes are doors into the box, the filled one is what every event goes
+through, the tinted one is where a model runs and the faint one is a record. An
+italic line on an arrow says what passes between two parts.}
 \begin{tikzpicture}[x=1pt,y=1pt]
-  \node[hsrole,hssystem]  (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
-  \node[hsrole,hssystem]  (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
-  \node[hsrole,hsmachine] (b) at (190,36)  {\hsrolename{Broker}{every 60 s: the event door}};
-  \node[hsrole,hsagent]   (s) at (380,72)  {\hsrolename{Sessions}{the tmux windows}};
-  \node[hsrole,hsstore]   (r) at (190,-52) {\hsrolename{The board}{one row per task}};
-  \draw[hsarrow] (d) -- node[hsann] {stored, then handed over} (b);
+  \node[hsrole,hsoutlined] (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
+  \node[hsrole,hsoutlined] (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
+  \node[hsrole,hsfilled]   (b) at (176,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hsground]   (s) at (352,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]    (r) at (176,-52) {\hsrolename{The board}{one row per task}};
+  \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
   \draw[hsarrow] (m) -- (b);
-  \draw[hsarrow] (b) -- node[hsann] {one message, not six} (s);
+  \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);
   \draw[hsarrow] (b) -- (r);
 \end{tikzpicture}
 \end{hsfigure}
 ```
 
-The five role styles are `hshuman` (gold, a person), `hssystem` (blue, a door or
-an outside service), `hsagent` (green, something that runs a model),
-`hsmachine` (grey, something automatic), `hsstore` (rust, a store or a record),
-plus `hsstop` for a heavier rust box where something is refused. Each names a
-colour only, so it goes on a node beside `hsrole` or `hslane`, never alone. Use three or
-four of them in one picture, not all five, and name every one you use in the
-legend. The role colours exist for the inside of a `tikzpicture`; nothing in the
-prose of a page is set in them.
+### How a writer picks a treatment
+
+There are five, and they differ by weight rather than by hue, so a reader tells
+them apart the way they tell a heading from a caption. In the order they ask to
+be noticed:
+
+| Treatment | What it looks like | Give it to |
+| --- | --- | --- |
+| `hsfilled` | ink box, paper text | the one part the picture is about: where the work is decided, or the step everything passes through |
+| `hsmarked` | accent rule on the fill ground, accent eyebrow | the single role the mechanism turns on -- a gate, a landing, the thing that can refuse. One per picture |
+| `hsoutlined` | ink rule on paper | the ordinary parts, and usually the people |
+| `hsground` | fill ground, ink-70 rule | a part that does work but is not the subject |
+| `hsquiet` | grey rule on paper, ink-70 text | ambient things: a store, a record, a timer, anything the reader need not follow |
+
+`hsstop` is a heavier `hsmarked` for a box where something is refused. Rank the
+roles by how much the reader has to notice them, then assign from the top of the
+table down; use three or four treatments in one picture rather than all five,
+spend `hsmarked` exactly once, and name in the legend what each weight means in
+this picture, because the weights carry no fixed meaning across pictures the way
+a hue would. Each treatment names colours only, so it goes on a node beside
+`hsrole` or `hslane`, never alone.
+
+## Three traps the first composed build hit
+
+None of these is caught by the gate, and each of them cost a rebuild.
+
+- **A block that is not prose needs `hsblock`.** A `tabular`, a title page's
+  metadata strip, a pair of asides side by side: all of them are the full 468 pt
+  measure, and prose is 48 pt narrower. Without the environment the fourth
+  column of a four-column strip wraps under the first and sits on top of the
+  line above it. It looks like a spacing bug and it is a measure bug.
+- **`\hsprovenance` needs about 35 pt of room left.** It sits at the foot
+  through `\vfill`, so on a page that is already full it does not compress: it
+  goes alone to the next page, which then has a single grey line at the top and
+  nothing else. When that happens, cut prose from the page above rather than
+  move the footline.
+- **In a lane diagram, leave about two grid rows between a step box and the next
+  arrow.** A step is wider than its lane, so an arrow too close to it has its
+  annotation land on the box. If the picture then runs past the page, drop an
+  arrow rather than shrink the gaps: a diagram with one fewer annotated step
+  still reads, and one with overlapping labels does not.
 
 ## Before hand-off: render it and look at it
 

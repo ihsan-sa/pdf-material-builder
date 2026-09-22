@@ -90,8 +90,12 @@
 % node -- is already narrow, so it ranges left at its own full width.
 \newcommand{\hsfull}{\rightskip=0pt plus 1fil}
 \AtBeginDocument{\hsprose}
-\newcommand{\hsrule}{\textcolor{ink}{\rule{\linewidth}{0.75pt}}}
-\newcommand{\hsthinrule}{\textcolor{rulegrey}{\rule{\linewidth}{0.75pt}}}
+% A rule is a block, not prose, so it spans the whole measure and not the 34-em
+% one. Each ends its own paragraph inside a group, which is what puts \rightskip
+% back afterwards; without that the rule is 48 pt wider than the line allows and
+% every one of them logs an overfull box.
+\newcommand{\hsrule}{{\hsfull\textcolor{ink}{\rule{\linewidth}{0.75pt}}\par}}
+\newcommand{\hsthinrule}{{\hsfull\textcolor{rulegrey}{\rule{\linewidth}{0.75pt}}\par}}
 \newcommand{\hslabel}[1]{{\labelfont\textcolor{inkfiftyfive}{\MakeUppercase{#1}}}}
 \newcommand{\hsaccentlabel}[1]{{\labelfont\textcolor{accent}{\MakeUppercase{#1}}}}
 
@@ -162,29 +166,42 @@
   \par\vspace{7pt}{\labelfont\fontsize{7.5pt}{12pt}\selectfont\color{accent}%
   \MakeLowercase{#1}\par}}
 
-% Role colours, for a diagram that has parts of different kinds. The one-accent
-% rule governs the prose of a page, not the inside of a diagram (owner, 22
-% September 2026); outside a tikzpicture these five are not used.
-\definecolor{rolehuman}{HTML}{B8943E}
-\definecolor{rolesystem}{HTML}{3E6C8F}
-\definecolor{roleagent}{HTML}{4F7A52}
-\definecolor{rolemachine}{HTML}{7C7870}
-\definecolor{rolestore}{HTML}{9C4221}
+% Role treatments, for a diagram whose parts are of different kinds. The owner
+% took the FORM of the old lane diagrams and the PALETTE of this kit (22
+% September 2026: "they can still be redrawn in the new pallette which is prob
+% better but i mean the form etc"), so a role is told apart by weight and
+% ground rather than by a hue of its own: no colour exists here that does not
+% exist on the rest of the page.
 \tikzset{
-  % A box's shape and its role are two separate styles and a node takes one of
-  % each: \node[hsrole,hsagent] or \node[hslane,hshuman]. They do not nest,
-  % because a role style that re-applied the shape would undo a width the lane
-  % style had just set.
+  % A box's shape and its treatment are two separate styles and a node takes one
+  % of each, shape first: \node[hsrole,hsground] or \node[hslane,hsfilled].
+  % They do not nest, because a treatment that re-applied the shape would undo a
+  % width the lane style had just set.
   hsrole/.style     ={hsbox,rounded corners=2pt,fill=paper,text=ink,
                       text width=92pt,minimum height=30pt,align=center,
-                      execute at begin node={\def\hs@ebc{inkfiftyfive}}},
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkseventy}}},
   hslane/.style     ={hsrole,text width=72pt,minimum height=34pt},
-  hshuman/.style    ={draw=rolehuman,fill=rolehuman!12},
-  hssystem/.style   ={draw=rolesystem,fill=rolesystem!10},
-  hsagent/.style    ={draw=roleagent,fill=roleagent!12},
-  hsmachine/.style  ={draw=rolemachine,fill=rolemachine!10},
-  hsstore/.style    ={draw=rolestore,fill=rolestore!10},
-  hsstop/.style     ={draw=rolestore,line width=1.2pt,fill=rolestore!18},
+  % Five treatments, in order of how much they ask the reader to notice them.
+  hsfilled/.style   ={draw=ink,fill=ink,text=paper,
+                      execute at begin node={\def\hs@ebc{fill}%
+                                             \def\hs@rbc{rulegrey}}},
+  hsoutlined/.style ={draw=ink,line width=0.9pt,fill=paper,text=ink,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsground/.style   ={draw=inkseventy,fill=fill,text=ink,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsquiet/.style    ={draw=rulegrey,fill=paper,text=inkseventy,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkfiftyfive}}},
+  % Spent on the one role the mechanism turns on, and on no other.
+  hsmarked/.style   ={draw=accent,line width=1pt,fill=fill,text=ink,
+                      execute at begin node={\def\hs@ebc{accent}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsstop/.style     ={draw=accent,line width=1.4pt,fill=accent!12,text=ink,
+                      execute at begin node={\def\hs@ebc{accent}%
+                                             \def\hs@rbc{inkseventy}}},
   % a lifeline, a step sitting in one lane, an arrow's caption
   hslife/.style     ={draw=rulegrey,line width=0.6pt},
   hsstep/.style     ={hsbox,rounded corners=2pt,draw=rulegrey,fill=fill,
@@ -195,15 +212,18 @@
   hsreturn/.style   ={hsarrow,dashed},
 }
 % \hsrolename{PLANNING SEAT}{the project's session} -- a lane or role box's text.
+% Both lines take their colour from the treatment, so a filled-ink box reads.
+\providecommand{\hs@rbc}{inkseventy}
 \newcommand{\hsrolename}[2]{%
-  {\labelfont\fontsize{6.5pt}{9pt}\selectfont\color{ink}\MakeUppercase{#1}}%
-  \par\vspace{3pt}{\fontsize{8.5pt}{11pt}\selectfont\color{inkseventy}#2\par}}
+  {\labelfont\fontsize{6.5pt}{9pt}\selectfont\color{\hs@ebc}\MakeUppercase{#1}}%
+  \par\vspace{3pt}{\fontsize{8.5pt}{11pt}\selectfont\color{\hs@rbc}#2\par}}
 % \begin{hsfigure}{Figure 1 / caption label}{the legend sentence} ... \end{hsfigure}
 \newenvironment{hsfigure}[2]{%
-  \par\vspace{14pt}\hslabel{#1}\par\vspace{8pt}\hsthinrule\par\vspace{12pt}
+  \par\vspace{14pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}\hsthinrule\vspace{12pt}
   \def\hs@legend{#2}\centering}{%
-  \par\vspace{12pt}\hsthinrule\par\vspace{7pt}
-  \raggedright{\fontsize{10pt}{15pt}\selectfont\color{inkseventy}\hs@legend\par}\vspace{14pt}}
+  \par\vspace{12pt}\hsthinrule\vspace{7pt}
+  \raggedright{\hsfull\fontsize{10pt}{15pt}\selectfont\color{inkseventy}%
+    \hs@legend\par}\vspace{14pt}}
 
 % ---- 3. stat row ------------------------------------------------------------
 % \begin{hsstatrow} \hsstat{741}{caption} \hsstat{...}{...} \end{hsstatrow}
@@ -230,6 +250,13 @@
   {\par\vspace{16pt}\hsthinrule\par\vspace{16pt}}
 
 % ---- 4-5. tables ------------------------------------------------------------
+% A table is a block, not prose, so it sits on the whole measure rather than the
+% 34-em one. Wrap the label and the tabular together:
+%   \begin{hsblock}\hslabel{Table 1 / ...}\par\vspace{8pt}\begin{tabular}...
+% Without it every table logs an overfull box 48 pt wide, which then hides the
+% warning from a table that really is too wide.
+\newenvironment{hsblock}{\par\begingroup\hsfull\noindent\ignorespaces}%
+  {\par\endgroup}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
 \newcommand{\hshead}[1]{\hslabel{#1}}
@@ -242,7 +269,8 @@
 % ---- 6. figure plate --------------------------------------------------------
 % \hsplate{file}{name}{grey facts}{status}{caption}
 \newcommand{\hsplate}[5]{%
-  \par\vspace{14pt}\noindent\includegraphics[width=\linewidth]{#1}\par\vspace{7pt}
+  \par\vspace{14pt}{\hsfull\noindent\includegraphics[width=\linewidth]{#1}\par}%
+  \vspace{7pt}
   {\labelfont #2\quad\textcolor{inkfiftyfive}{#3}\quad\textcolor{accent}{#4}\par}
   \vspace{8pt}{\fontsize{10.5pt}{16pt}\selectfont #5\par}\vspace{14pt}}
 
@@ -275,7 +303,8 @@
   \begin{lrbox}{\hs@calloutbox}\begin{minipage}{\dimexpr\linewidth-28pt\relax}\hsfull
   \hsaccentlabel{#1}\par\vspace{8pt}\fontsize{10.5pt}{16pt}\selectfont}%
   {\end{minipage}\end{lrbox}%
-  \noindent\colorbox{fill}{\usebox{\hs@calloutbox}}\endgroup\par\vspace{16pt}}
+  {\hsfull\noindent\colorbox{fill}{\usebox{\hs@calloutbox}}\par}%
+  \endgroup\vspace{16pt}}
 
 % ---- 11. code ---------------------------------------------------------------
 \RequirePackage{fvextra}
