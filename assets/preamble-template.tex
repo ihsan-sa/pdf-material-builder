@@ -27,13 +27,13 @@
 % --- Headings --------------------------------------------------------------
 % Headings are unnumbered on the page (the .sty's \section). Cross-reference
 % a section by name with \nameref{sec:...}; a Part by its number, Part~\ref{part:...}.
-% A Part opens on a new page: its eyebrow, then the page heading at 28/34, no bold.
+% A Part opens on a new page: its eyebrow, then the page heading at 20/24 (the .sty's \section), no bold.
 \makeatletter
 \renewcommand{\thepart}{\arabic{part}}
 \newcommand{\hs@parteyebrow}{}
 \titleclass{\part}{top}
 \assignpagestyle{\part}{fancy}  % keep the head and the copyright foot on a Part page
-\titleformat{\part}[display]{\fontsize{28pt}{34pt}\selectfont\color{ink}}%
+\titleformat{\part}[display]{\fontsize{20pt}{24pt}\selectfont\color{ink}}%
   {\hsaccentlabel{Part \thepart\hs@parteyebrow}}{10pt}{}
 \titlespacing*{\part}{0pt}{0pt}{24pt}
 \titleformat{\subsection}{\fontsize{14pt}{19pt}\selectfont\color{ink}}{}{0pt}{}

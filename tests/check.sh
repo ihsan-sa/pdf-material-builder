@@ -10,7 +10,10 @@
 #      verbatim vendored copy, and the paths in it are lesson-builder's.
 #   3  scripts/style-check.sh passes on this repo.
 #   4  scripts/style-check.sh selfcheck: each of its rules flags its own
-#      fixture and stays quiet on the matching clean case.
+#      fixture and stays quiet on the matching clean case. The claim rule is
+#      also proved across files: a driver that \input{}s one file and
+#      \include{}s another, one \hsclaim in each, fails; the same tree with
+#      one claim passes. Both trees hold a cycle and a missing input.
 #   5  scripts/voice-drift.sh reports no drift from the canonical spec.
 #      SKIPPED, with the reason printed, when lesson-builder is not on disk.
 #   6  assets/preamble-template.tex and assets/driver-template.tex build with
@@ -157,6 +160,30 @@ selfcheck colour-hex a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
                      b.tex '% the accent is 9C4221, set by housestyle.sty\n\\textcolor{accent}{x}\n'
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
+# One claim per document, not per file: a driver and the files it pulls in.
+# The inputs sit in a subdirectory and name each other relative to themselves;
+# ch2 inputs the driver back (a cycle) and a file that does not exist.
+claim_tree() {
+  local d="$1" second="$2"
+  mkdir -p "$d/notes"
+  printf '%s\n' '\documentclass{article}' '\begin{document}' '\input{notes/ch1}' \
+    '\include{notes/ch2}' '\end{document}' > "$d/main.tex"
+  printf '%s\n' '\section{One}' '\hsclaim{The claim.}{x}' > "$d/notes/ch1.tex"
+  printf '%s\n' '\section{Two}' "$second" '\input{../main}' '\input{absent}' > "$d/notes/ch2.tex"
+}
+T="$TMPROOT/sc-claim-tree"
+claim_tree "$T/dirty" '\hsclaim{Another claim.}{y}'
+claim_tree "$T/clean" 'No claim here.'
+out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/dirty" 2>&1); rc=$?
+if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grep -q '^notes/ch2.tex:2: a second \\hsclaim'; then
+  fail "selfcheck claim-tree: a claim in each of two input files was not flagged at notes/ch2.tex:2 (exit $rc)"
+  printf '%s\n' "$out" | sed 's/^/  /'
+elif ! out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/clean" 2>&1); then
+  fail "selfcheck claim-tree: one claim across the document was flagged"; printf '%s\n' "$out" | sed 's/^/  /'
+else
+  pass "selfcheck claim-tree: counts claims across a driver's inputs, through a cycle and a missing file"
+fi
+
 # Split so this file does not itself read as a call.
 PDFL='pdf''latex'
 selfcheck pdflatex-call a.sh "$PDFL -interaction=nonstopmode notes.tex\n" \

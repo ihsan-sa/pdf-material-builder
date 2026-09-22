@@ -10,8 +10,10 @@
 #     built-in picture environment and breaks \@iiiparbox
 #   - a \footnote: sources go in one numbered list on the last  (.tex)
 #     page (spec, block 8)
-#   - a second \hsclaim in one file: exactly one claim per      (.tex)
-#     document (spec, block 9)
+#   - a second \hsclaim in one document: exactly one claim per  (.tex)
+#     document (spec, block 9). A .tex with \begin{document} is
+#     a document with every file it \input{}s or \include{}s,
+#     followed recursively; any other .tex is counted on its own
 #   - a colour outside the six tokens (spec, Colour): a hex    (.tex .sty)
 #     value not in the token set, a \definecolor in a document,
 #     or a colour name or `!` tint that is not a token name
@@ -21,7 +23,6 @@
 # The .tex and .sty rules read the line with its LaTeX comment stripped: a rule
 # written in a comment (the preamble documents \Oh by naming what it replaces)
 # cannot break a build. The ASCII and pdflatex rules read the whole line.
-# One document per .tex file: a multi-file build's claim is counted per file.
 #
 # Usage:  scripts/style-check.sh [DIR]      (default: the repo root)
 # Exit:   0 clean, 1 violations found, 2 bad usage.
@@ -33,7 +34,7 @@ ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 python3 - "$ROOT" <<'PYEOF'
 import os, re, sys, unicodedata
 
-root = sys.argv[1]
+root = os.path.realpath(sys.argv[1])
 # fonts/ and luaotfload/ are third-party files vendored verbatim.
 SKIP_DIRS = {'.git', '_extraction', 'course_materials', 'viz_src',
              'node_modules', 'claude_lessons', 'dist', '.venv',
@@ -58,6 +59,8 @@ PICTURE_BOX = re.compile(r'\\(?:new|renew)tcolorbox(?:\[[^\]]*\])?\{picture\}'
 
 FOOTNOTE = re.compile(r'\\footnote(?![A-Za-z])')
 CLAIM = re.compile(r'\\hsclaim(?![A-Za-z])')
+BEGIN_DOC = re.compile(r'\\begin\s*\{document\}')
+INPUT = re.compile(r'\\(input|include)\s*\{([^}]+)\}')
 PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
 # The six tokens of style-spec.md, the code ground and the grey rule the .sty
 # defines, by hex and by the names housestyle.sty gives them.
@@ -71,13 +74,26 @@ COLOR_USE = re.compile(
     r'\\(?:textcolor|color|colorbox|pagecolor|arrayrulecolor)\s*(?:\[[^\]]*\])?\{([^}]*)\}'
     r'|(?<![A-Za-z])(?:draw|fill|text|colback|colframe|rulecolor|bgcolor)\s*=\s*([^,\]}\s]+)')
 
+def line_events(line, n):
+    """The claims and \\input/\\include targets on one comment-stripped line,
+    in the order they appear."""
+    found = []
+    if '\\newcommand' not in line:
+        found += [(m.start(), ('claim', n)) for m in CLAIM.finditer(line)]
+    found += [(m.start(), ('input', n, m.group(1), m.group(2).strip()))
+              for m in INPUT.finditer(line)]
+    return [e for _, e in sorted(found)]
+
 problems = []
+# Per .tex (by real path), in line order: ('claim', n) and ('input', n, kind, target).
+tex_events = {}
+drivers = []
 for path in files:
     rel = os.path.relpath(path, root)
     text = open(path, encoding='utf-8').read()
     is_tex = path.endswith('.tex')
     is_sty = path.endswith('.sty')
-    claims = []
+    events = tex_events[os.path.realpath(path)] = [] if is_tex else None
     for n, line in enumerate(text.splitlines(), 1):
         for ch in line:
             if ord(ch) > 0x7e:
@@ -116,8 +132,9 @@ for path in files:
         if FOOTNOTE.search(line):
             problems.append(rf'{rel}:{n}: \footnote; put the source in the '
                             'numbered list on the last page (hssources)')
-        if CLAIM.search(line) and '\\newcommand' not in line:
-            claims.append(n)
+        if BEGIN_DOC.search(line) and path not in drivers:
+            drivers.append(path)
+        events.extend(line_events(line, n))
         if LT_GT.search(line):
             problems.append(rf'{rel}:{n}: \lt or \gt is KaTeX, undefined in LaTeX; use < or >')
         if BARE_O.search(line) and '\\newcommand' not in line:
@@ -125,9 +142,65 @@ for path in files:
         if PICTURE_BOX.search(line):
             problems.append(f'{rel}:{n}: tcolorbox named `picture` collides with '
                             'the built-in environment; name it pictureit')
+
+def read_events(real):
+    """Events of a file an \\input reaches that the walk above did not list
+    (outside ROOT, a skipped dir, or not named .tex)."""
+    if real not in tex_events:
+        lines = open(real, encoding='utf-8', errors='replace').read().splitlines()
+        tex_events[real] = [e for n, line in enumerate(lines, 1)
+                            for e in line_events(TEX_COMMENT.sub('', line), n)]
+    return tex_events[real]
+
+def resolve(including, driver, kind, target):
+    """The file an \\input or \\include names: relative to the including file,
+    then to the driver's directory (where lualatex runs). None when missing."""
+    names = [target + '.tex'] if kind == 'include' else [target, target + '.tex']
+    for base in (os.path.dirname(including), os.path.dirname(driver)):
+        for name in names:
+            p = os.path.realpath(os.path.join(base, name))
+            if os.path.isfile(p) and not os.path.islink(os.path.join(base, name)):
+                return p
+    return None
+
+def claims_in_tree(driver):
+    """Every \\hsclaim in a document, in reading order, as (path, line). A
+    missing target is skipped; a file that inputs one of its own includers (a
+    cycle) is not followed back up. A file input twice counts twice, as it
+    prints twice."""
+    out = []
+    def walk(real, stack):
+        for e in read_events(real):
+            if e[0] == 'claim':
+                out.append((real, e[1]))
+                continue
+            child = resolve(real, driver, e[2], e[3])
+            if child is not None and child not in stack:
+                walk(child, stack | {child})
+    real = os.path.realpath(driver)
+    walk(real, {real})
+    return out
+
+def where(path, n):
+    return f'{os.path.relpath(path, root)}:{n}'
+
+in_a_document = set()
+for driver in drivers:
+    claims = claims_in_tree(driver)
+    in_a_document.update(p for p, _ in claims)
+    for p, n in claims[1:]:
+        problems.append(rf'{where(p, n)}: a second \hsclaim; one claim per document '
+                        f'(the document is {os.path.relpath(driver, root)}, '
+                        f'the first claim is {where(*claims[0])})')
+# A .tex no document reaches is counted on its own.
+for path in files:
+    if not path.endswith('.tex') or os.path.realpath(path) in in_a_document:
+        continue
+    claims = [e[1] for e in tex_events[os.path.realpath(path)] if e[0] == 'claim']
     for n in claims[1:]:
-        problems.append(rf'{rel}:{n}: a second \hsclaim; one claim per document '
+        problems.append(rf'{where(path, n)}: a second \hsclaim; one claim per document '
                         f'(the first is on line {claims[0]})')
+problems = list(dict.fromkeys(problems))
 
 for p in problems:
     print(p)

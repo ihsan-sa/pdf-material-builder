@@ -37,7 +37,7 @@ It runs three lualatex passes in the document's own directory under the temp job
 
 - `\hsslug{<Course> <Doc>}` -- the running head's left side.
 - `\hssection{...}` -- its right side. The preamble sets it from each `\section` automatically; call it to override.
-- `\catbanner{A}{Title}` -- opens a Part on a new page: accent eyebrow `Part N . Category A`, then the page heading at 28/34, no bold.
+- `\catbanner{A}{Title}` -- opens a Part on a new page: accent eyebrow `Part N . Category A`, then the page heading at 20/24 (the .sty's `\section`), no bold.
 - Section headings are unnumbered on the page, so cross-reference a section by name (`\nameref{sec:...}`), a Part as `Part~\ref{part:...}`, and an equation as `\eqref{eq:...}`, which prints (1).
 
 ## The twelve blocks, as macros
@@ -124,7 +124,7 @@ The slug stays in the running head and the page number at the foot's right, as t
 
 ## Style gate
 
-`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one file; a colour outside the token set (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint mix); and a pdflatex invocation. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or a `!` tint mix); and a pdflatex invocation. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
 ```bash
 scripts/style-check.sh                # this repo
