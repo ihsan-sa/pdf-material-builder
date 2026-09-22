@@ -7,9 +7,8 @@
 # \input and \includegraphics paths stay relative to the document. It puts
 # references/house-style/ on TEXINPUTS so \usepackage{housestyle} resolves,
 # and housestyle.sty finds the vendored fonts in assets/fonts/ from its own
-# location. When the system lualatex has no luaotfload (Debian without
-# texlive-luatex), it also puts the vendored copy in
-# assets/luaotfload/ on LUAINPUTS; without one, fontspec cannot load a font.
+# location. texlive-luatex must be installed alongside lualatex: it carries
+# the font loader fontspec needs, and without it no font loads.
 #
 # Each pass writes to the temp jobname _tmp_<name> so a PDF open in a viewer
 # does not lock the build; the result is copied over <name>.pdf and the temp
@@ -25,10 +24,6 @@ name="$(basename "$src" .tex)"
 cd "$(dirname "$src")"
 
 export TEXINPUTS="$skill/references/house-style//:${TEXINPUTS:-}"
-if ! kpsewhich luaotfload-main.lua >/dev/null 2>&1; then
-  export LUAINPUTS="$skill/assets/luaotfload//:${LUAINPUTS:-}"
-  export TEXINPUTS="$skill/assets/luaotfload//:$TEXINPUTS"
-fi
 
 for pass in 1 2 3; do
   lualatex -interaction=nonstopmode -halt-on-error -jobname="_tmp_$name" "$name.tex" >/dev/null 2>&1 || true

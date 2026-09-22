@@ -21,7 +21,7 @@ git subtree add --prefix .claude/skills/pdf-material-builder \
 
 Update a vendored copy with `git subtree pull` on the same prefix. Do not edit it in place: change this repo and pull.
 
-**What must be installed: lualatex, nothing else.** The fonts (Source Serif 4, IBM Plex Mono) are vendored in `assets/fonts/`, and a copy of luaotfload in `assets/luaotfload/` covers a system lualatex that lacks it. Build any document with the skill's own script, from any repo:
+**What must be installed: lualatex, and texlive-luatex (luaotfload) alongside it.** The fonts (Source Serif 4, IBM Plex Mono) are vendored in `assets/fonts/`. Build any document with the skill's own script, from any repo:
 
 ```bash
 scripts/build.sh path/to/doc.tex

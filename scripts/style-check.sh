@@ -35,10 +35,10 @@ python3 - "$ROOT" <<'PYEOF'
 import os, re, sys, unicodedata
 
 root = os.path.realpath(sys.argv[1])
-# fonts/ and luaotfload/ are third-party files vendored verbatim.
+# fonts/ holds third-party files vendored verbatim.
 SKIP_DIRS = {'.git', '_extraction', 'course_materials', 'viz_src',
              'node_modules', 'claude_lessons', 'dist', '.venv',
-             'fonts', 'luaotfload'}
+             'fonts'}
 EM_DASH = '\u2014'
 
 files = []

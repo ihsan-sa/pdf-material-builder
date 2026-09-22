@@ -162,7 +162,6 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 - `assets/preamble-template.tex` -- the canonical preamble. Copy and adapt per document.
 - `assets/driver-template.tex` -- the multi-file `course-notes` driver.
 - `assets/fonts/` -- Source Serif 4 and IBM Plex Mono, vendored with their OFL licences.
-- `assets/luaotfload/` -- a vendored luaotfload and lualibs (GPL-2), used only when the system lualatex has none.
 - `scripts/build.sh` -- the build: three lualatex passes, temp jobname, fails on any `!` error.
 - `scripts/style-check.sh` -- the style gate.
 - `scripts/voice-drift.sh` -- reports drift of the vendored voice spec from lesson-builder; `--refresh` updates it.

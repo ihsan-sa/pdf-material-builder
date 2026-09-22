@@ -24,10 +24,7 @@ scripts/build.sh path/to/doc.tex
 
 It runs three lualatex passes in the document's own directory under the temp jobname `_tmp_<name>`, copies the result to `<name>.pdf`, removes the temp files, and exits 1 with the `!` lines if any pass errors. Run it from anywhere.
 
-**Only lualatex must be installed.** The engine is lualatex and nothing else: the `.sty` loads its faces with fontspec and finds them with Lua, and pdflatex cannot do either. Everything else is vendored in the skill:
-
-- the faces, as `.otf` files in `assets/fonts/` with their OFL licences;
-- a copy of luaotfload and lualibs in `assets/luaotfload/` (GPL-2), which `build.sh` puts on the search path only when the system lualatex has none (Debian without `texlive-luatex`).
+**lualatex and texlive-luatex (luaotfload) must be installed.** The engine is lualatex: the `.sty` loads its faces with fontspec and finds them with Lua, and pdflatex cannot do either. fontspec needs luaotfload, which Debian ships in `texlive-luatex`, so install it alongside lualatex. The faces are vendored in the skill, as `.otf` files in `assets/fonts/` with their OFL licences.
 
 **How another repo finds the style.** `build.sh` puts `references/house-style/` on `TEXINPUTS`, so `\usepackage{housestyle}` resolves from any repo, and `housestyle.sty` finds `assets/fonts/` from its own location (two directories up). In a repo that vendors the skill at `.claude/skills/pdf-material-builder/`, build with `.claude/skills/pdf-material-builder/scripts/build.sh path/to/doc.tex`. To load the faces from somewhere else, `\def\hsfontdir{/abs/path/}` (trailing slash) before `\usepackage{housestyle}`.
 
@@ -131,4 +128,4 @@ scripts/style-check.sh                # this repo
 scripts/style-check.sh <course_dir>   # a build directory
 ```
 
-It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/`, `claude_lessons/` and the vendored `assets/fonts/` and `assets/luaotfload/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
+It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/`, `claude_lessons/` and the vendored `assets/fonts/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
