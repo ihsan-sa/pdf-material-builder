@@ -46,9 +46,12 @@
 \fi
 \ifdefined\hsfontdir\else
   \edef\hsfontdir{\directlua{
-    local p = kpse.find_file("housestyle.sty", "tex") or "./housestyle.sty"
-    local d = lfs.currentdir() .. "/" .. (p:match("^(.*)/[^/]*$") or ".")
-    if p:sub(1, 1) == "/" then d = p:match("^(.*)/[^/]*$") end
+    local p = kpse.find_file("housestyle.sty", "tex") or "housestyle.sty"
+    while p:sub(1, 2) == "./" do p = p:sub(3) end
+    local d = p:match("^(.*)/[^/]*$")
+    if d == nil then d = lfs.currentdir()
+    elseif p:sub(1, 1) == "/" then
+    else d = lfs.currentdir() .. "/" .. d end
     tex.sprint(-2, (d:gsub("/[^/]+/[^/]+/?$", "")) .. "/assets/fonts/")}}
 \fi
 \IfFileExists{\hsfontdir SourceSerif4-Regular.otf}{%

@@ -8,7 +8,7 @@
 # references/house-style/ on TEXINPUTS so \usepackage{housestyle} resolves,
 # and housestyle.sty finds the vendored fonts in assets/fonts/ from its own
 # location. When the system lualatex has no luaotfload (Debian without
-# texlive-luatex, as on iiks1), it also puts the vendored copy in
+# texlive-luatex), it also puts the vendored copy in
 # assets/luaotfload/ on LUAINPUTS; without one, fontspec cannot load a font.
 #
 # Each pass writes to the temp jobname _tmp_<name> so a PDF open in a viewer

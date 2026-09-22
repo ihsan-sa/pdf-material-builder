@@ -18,8 +18,13 @@
 #      directory.
 #   7  references/house-style/example.tex builds the same way, and pdffonts
 #      shows Source Serif 4 and IBM Plex Mono embedded.
-#   6 and 7 are SKIPPED, with the reason printed, when lualatex is absent;
-#   7's font check is skipped the same way when pdffonts is absent.
+#   8  With housestyle.sty in the current directory, kpse returns it as
+#      ./housestyle.sty (a bare lualatex run there); the .sty's font lookup
+#      must still resolve to assets/fonts/. Then references/house-style/
+#      example.tex builds in place with scripts/build.sh and embeds the
+#      vendored Source Serif 4; the example.pdf it makes is removed.
+#   6, 7 and 8 are SKIPPED, with the reason printed, when lualatex is absent;
+#   7's and 8's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
 set -uo pipefail
@@ -286,6 +291,51 @@ else
         fi
       done
     fi
+  fi
+fi
+
+# --- 8. the font lookup and the example, in place ----------------------------
+# Case 7 copies the example away from housestyle.sty. build.sh puts the .sty's
+# absolute directory first on TEXINPUTS, so kpse only returns ./housestyle.sty
+# when "." is searched first, as in a bare lualatex run in that directory. The
+# probe forces that with TEXINPUTS=.: and runs only the .sty's \hsfontdir block.
+if ! command -v lualatex >/dev/null; then
+  skip "house-style font lookup in place" "no lualatex on this machine"
+  skip "house-style example in place" "no lualatex on this machine"
+else
+  HS="$REPO/references/house-style"
+  P="$TMPROOT/fontdir"; mkdir -p "$P"
+  sed -n '/^\\ifdefined\\hsfontdir/,/^\\fi/p' "$HS/housestyle.sty" > "$P/block.tex"
+  printf '%s\n' '\directlua{texio.write_nl("KPSE=" .. kpse.find_file("housestyle.sty", "tex") .. "|")}' \
+    '\input{block.tex}' '\directlua{texio.write_nl("FONTDIR=" .. "\hsfontdir" .. "|")}' '\end' > "$P/probe.tex"
+  (cd "$HS" && TEXINPUTS="$P:.:" max_print_line=10000 \
+    lualatex -interaction=nonstopmode -output-directory="$P" "$P/probe.tex" >/dev/null 2>&1)
+  kp=$(grep -o 'KPSE=[^|]*' "$P/probe.log" 2>/dev/null); fd=$(grep -o 'FONTDIR=[^|]*' "$P/probe.log" 2>/dev/null)
+  if [ ! -s "$P/block.tex" ]; then
+    fail "house-style font lookup in place: no \\hsfontdir block found in housestyle.sty"
+  elif [ "$kp" != "KPSE=./housestyle.sty" ]; then
+    fail "house-style font lookup in place: kpse returned '${kp#KPSE=}', not ./housestyle.sty"
+  elif [ "$fd" != "FONTDIR=$REPO/assets/fonts/" ]; then
+    fail "house-style font lookup in place: resolved '${fd#FONTDIR=}', expected $REPO/assets/fonts/"
+  else
+    pass "house-style font lookup resolves assets/fonts/ when kpse returns ./housestyle.sty"
+  fi
+
+  if [ -e "$HS/example.pdf" ]; then
+    fail "house-style example in place: $HS/example.pdf already exists; remove it first"
+  else
+    if ! out=$("$REPO/scripts/build.sh" "$HS/example.tex" 2>&1); then
+      fail "house-style example in place: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+    elif ! command -v pdffonts >/dev/null; then
+      pass "house-style example builds in place"
+      skip "house-style example in place fonts" "no pdffonts on this machine"
+    elif pdffonts "$HS/example.pdf" 2>&1 | grep -E '\+SourceSerif4-Regular[ -]' | grep -q ' yes '; then
+      pass "house-style example builds in place and embeds the vendored SourceSerif4-Regular"
+    else
+      fail "house-style example in place: vendored SourceSerif4-Regular is not embedded"
+      pdffonts "$HS/example.pdf" 2>&1 | sed 's/^/  /'
+    fi
+    rm -f "$HS/example.pdf"
   fi
 fi
 

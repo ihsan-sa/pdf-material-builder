@@ -9,7 +9,7 @@ Drop this folder in as `references/house-style/` and point the recipes at it.
 |---|---|
 | `house-style-template.html` | The reference document. Eight pages, every block in the kit shown once at the size it is meant to be used. Open it in a browser; print it to see the page geometry. This is the target a reformatted document should match. |
 | `style-spec.md` | The written spec: page geometry (letter and A4), the full type scale, six colour tokens, the 8 pt spacing step, and the rule for each of the twelve blocks. This is the file a skill reads. |
-| `housestyle.sty` | A LaTeX class implementing the spec. XeLaTeX or LuaLaTeX (it uses fontspec). |
+| `housestyle.sty` | A LaTeX class implementing the spec. LuaLaTeX (it uses fontspec and finds its fonts with Lua). |
 | `example.tex` | A compiling document that exercises the title block, flow diagram, stat row, claim, callout and provenance footline. |
 
 ## The short version

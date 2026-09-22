@@ -22,7 +22,7 @@ rule under it. Page number at the foot, same style, outer edge.
 
 ## Type
 
-Two faces, both open-licensed and available to pdflatex.
+Two faces, both open-licensed and vendored in `assets/fonts/` for lualatex.
 
 - **Source Serif 4** - all prose, headings, captions, tables, mathematics.
 - **IBM Plex Mono** - labels, running heads, figure numbers, statistics, code,
