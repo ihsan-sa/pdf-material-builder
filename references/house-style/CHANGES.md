@@ -126,12 +126,10 @@ I reviewed the six pages built on these templates. Fixed in the kit:
   first line of its body.
 - New `\hssourcespage`: a new page headed "Sources".
 
-Fixed in the kit's sample (the pitch is not vendored here; its source lives in
-the box's own repository, and moving it onto these styles is done there): `samples/pitch.tex` no longer defines its own box styles.
-All three figures now use `hsnode`/`hswork`/`hsgate` with `\hsnodetext`
-and `hsrole` with treatments. That gives eyebrows, rows of one height and a
-real fail path, and nothing is filled black. Its sources page uses
-`\hssourcespage`. The copy is unchanged.
+Not in this repository: Claude Design also moved its own copy of the autobox
+pitch onto these styles (house node styles, no `\tikzset` box styles,
+`\hssourcespage`). That document's source lives in the box's own repository,
+and it is changed there, not here. This repository has no `samples/` folder.
 
 Now rules in `page-composition.md` and `CONFORMANCE.md`: no `\tikzset` box
 styles in a document, stat captions of three lines at most, and no
