@@ -64,7 +64,7 @@ field is one the document already sets, so nothing is left to fill in by hand.
 accent label hanging in a 96 pt column beside the body. The #F0EADE box read
 as pasted onto the page. `fill` stays as a token (lane steps use it).
 
-**A short-form template.** `samples/short-template.tex` and
+**A short-form template.** `assets/short-template.tex` and
 `word-template/house-style-short.docx`: no title page. The title block opens
 page one and the document goes straight into prose.
 
@@ -107,9 +107,8 @@ geometry, colours and every `hs*` TikZ style are as they were.
 | `references/house-style/house-style-template.html` | new v5 reference: seven pages, every block, self-contained |
 | `references/house-style/style-spec.md`, `CONFORMANCE.md`, `page-composition.md`, `README.md` | type rules updated to match |
 | `references/house-style/example.tex` | unchanged |
-| `samples/short-template.tex` | new: the short form |
-| `samples/blank-template.tex` | uses `\hstitle`; adds the two diagram patterns and a provenance line; numbered equation; `bgcolor=codefill` on the listing |
-| `samples/pitch.tex` | unchanged (see below) |
+| `assets/short-template.tex` | new: the short form |
+| `assets/blank-template.tex` | uses `\hstitle`; adds the two diagram patterns and a provenance line; numbered equation; `bgcolor=codefill` on the listing |
 | `word-template/house-style.docx` | new: long form; styles, header and footer, sample pages |
 | `word-template/house-style-short.docx` | new: short form, same styles |
 | `word-template/WORD-STYLES.md` | the Word interface: every style name and its job |
@@ -129,7 +128,7 @@ I reviewed the six pages built on these templates. Fixed in the kit:
 Not in this repository: Claude Design also moved its own copy of the autobox
 pitch onto these styles (house node styles, no `\tikzset` box styles,
 `\hssourcespage`). That document's source lives in the box's own repository,
-and it is changed there, not here. This repository has no `samples/` folder.
+and it is changed there, not here. The kit's `samples/` folder is `assets/` here.
 
 Now rules in `page-composition.md` and `CONFORMANCE.md`: no `\tikzset` box
 styles in a document, stat captions of three lines at most, and no
