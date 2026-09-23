@@ -174,9 +174,17 @@ selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=accent!12] {x};\n' \
 # The four diagram role colours are tokens too, each with its own explicit
 # tint (slatetint, and so on), so a bare role name in draw=/fill= passes and a
 # document that tints one itself -- even a token it is otherwise allowed to
-# name -- still fails, the same as any other colour.
-selfcheck diagram-role-colour a.tex '\\node[draw=slate,fill=slate!12] {x};\n' \
-                              b.tex '\\node[draw=slate,fill=slatetint] {x};\n'
+# name -- still fails, the same as any other colour. Both fixtures sit inside
+# a tikzpicture, which is the only place a role colour is allowed at all.
+selfcheck diagram-role-colour \
+  a.tex '\\begin{tikzpicture}\\node[draw=slate,fill=slate!12] {x};\\end{tikzpicture}\n' \
+  b.tex '\\begin{tikzpicture}\\node[draw=slate,fill=slatetint] {x};\\end{tikzpicture}\n'
+# A role colour is a token, but only inside a tikzpicture: prose, headings,
+# tables, callouts and the page keep the eight kit tokens. The same colour on
+# a node inside a tikzpicture is exactly the diagram-role-colour case above.
+selfcheck role-colour-outside-tikz \
+  a.tex '\\textcolor{slate}{x}\n' \
+  b.tex '\\begin{tikzpicture}\\node[draw=slate,fill=slatetint] {x};\\end{tikzpicture}\n'
 selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
                      b.tex '% housestyle.sty paints the paper tint; a document never does\n'
 selfcheck sans-face  a.tex '{\\sffamily A label}\n' \
