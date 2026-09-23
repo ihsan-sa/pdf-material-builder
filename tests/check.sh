@@ -168,9 +168,15 @@ selfcheck definecolor a.tex '\\definecolor{gold}{HTML}{B8943E}\n' \
 selfcheck colour-name a.tex '\\textcolor{black!75}{x} \\colorbox{softbg}{y}\n' \
                       b.tex '\\textcolor{inkseventy}{x} \\colorbox{fill}{y}\n'
 # A tint is a violation in itself: the style allows no gradients and no tints,
-# only the eight tokens, so `accent!12` is as wrong as a hue that is no token.
+# only the named tokens, so `accent!12` is as wrong as a hue that is no token.
 selfcheck colour-tint a.tex '\\node[draw=teal!40,fill=accent!12] {x};\n' \
                       b.tex '\\node[draw=accent,fill=fill] {x};\n'
+# The four diagram role colours are tokens too, each with its own explicit
+# tint (slatetint, and so on), so a bare role name in draw=/fill= passes and a
+# document that tints one itself -- even a token it is otherwise allowed to
+# name -- still fails, the same as any other colour.
+selfcheck diagram-role-colour a.tex '\\node[draw=slate,fill=slate!12] {x};\n' \
+                              b.tex '\\node[draw=slate,fill=slatetint] {x};\n'
 selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
                      b.tex '% housestyle.sty paints the paper tint; a document never does\n'
 selfcheck sans-face  a.tex '{\\sffamily A label}\n' \

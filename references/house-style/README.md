@@ -38,20 +38,25 @@ each.
 1. Keep the prose. The style is a page treatment, not a rewrite.
 2. Map each existing element onto one of the twelve blocks. Anything that maps
    onto none of them is cut or turned into prose.
-3. Draw each diagram for what it shows. The three node kinds -- filled ink for
-   inputs and outputs, outlined ink for work an agent does, accent-outlined on
-   fill for a deterministic check -- are the pattern for a flow, and a lane
-   diagram is the pattern for a mechanism that crosses several actors.
+3. Draw each diagram for what it shows. The three node kinds -- a slate box for
+   inputs and outputs, a sage box for work an agent does, an accent box for a
+   deterministic check -- are the pattern for a flow, and a lane diagram is the
+   pattern for a mechanism that crosses several actors.
    *Owner's decision, 22 September 2026: "dont force diagrams into the format in
    the template", and the lane diagrams of the old documents "stay". This
    replaces the earlier rule 3, which reduced every diagram to the three
-   kinds.* Two things do not bend. The typography: mono labels and eyebrows, the
-   text serif for prose inside a node, the page's paper ground, no sans. And the
-   palette, which he settled the same day -- the old diagrams' form comes across
-   but not their colours, "they can still be redrawn in the new pallette which
-   is prob better but i mean the form etc" -- so a diagram tells its roles apart
-   by weight (filled ink, outlined ink, the fill ground, a faint rule, and the
-   accent spent on one role) rather than by a hue of its own.
+   kinds.* One thing does not bend: the typography -- mono labels and eyebrows,
+   the text serif for prose inside a node, the page's paper ground, no sans. The
+   palette he settled twice. First the same day, 22 September 2026: the old
+   diagrams' form comes across but not their colours, "they can still be
+   redrawn in the new pallette which is prob better but i mean the form etc",
+   so a role read apart by weight and never a hue of its own. Then on 23
+   September, choosing shading over the filled-ink box -- "I prefer the lightly
+   shaded or outlined boxes ... all consistent with shading but different
+   colours. basically just the black is too different" -- he overruled that: a
+   role now reads apart by one of four muted colours (slate, sage, ochre and
+   the kit's own accent), each a thin outline on a fill at about 12% of itself,
+   and no box is filled solid black.
 4. Every page carrying a figure or a statistic gets a provenance footline naming
    the command, commit, file and date the number came from. A number with no
    source and no footline does not go in.

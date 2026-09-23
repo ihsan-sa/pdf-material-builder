@@ -16,10 +16,11 @@
 #     followed recursively; any other .tex is counted on its own
 #   - a colour outside the tokens (spec, Colour): a hex value    (.tex .sty)
 #     not in the token set, a \definecolor in a document, or a
-#     colour name or `!` tint that is not a token name. A
-#     diagram is drawn in these same tokens: it tells its roles
-#     apart by weight, not by a hue of its own (CONFORMANCE
-#     item 9)
+#     colour name or `!` tint that is not a token name. The eight
+#     kit tokens plus the four diagram role colours (and their
+#     four explicit tints) are the whole set; a diagram names one
+#     of these rather than writing a hex or a tint of its own
+#     (CONFORMANCE item 9)
 #   - \pagecolor in a document: housestyle.sty paints the paper  (.tex)
 #     tint on every page and a document never repaints it
 #     (CONFORMANCE item 7)
@@ -82,11 +83,17 @@ BEGIN_DOC = re.compile(r'\\begin\s*\{document\}')
 INPUT = re.compile(r'\\(input|include)\s*\{([^}]+)\}')
 PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
 # The six tokens of style-spec.md, the code ground and the grey rule the .sty
-# defines, by hex and by the names housestyle.sty gives them.
+# defines, by hex and by the names housestyle.sty gives them -- plus the four
+# diagram role colours (slate, sage, ochre and the kit's own accent) and each
+# one's explicit ~12% tint, which exist only inside a tikzpicture but are
+# still named tokens rather than a hex or a `!` a document could write itself.
 TOKEN_HEX = {'15140F', '4A4740', '8A857A', 'FAF8F3', 'F0EADE', 'F2EEE3',
-             '9C4221', 'DED8CA'}
+             '9C4221', 'DED8CA', '4F6D8A', '5E7A5A', 'A07A2C',
+             'EAEDF1', 'ECEFEB', 'F4EFE6', 'F3E8E4'}
 TOKEN_NAMES = {'ink', 'inkseventy', 'inkfiftyfive', 'paper', 'fill',
-               'codefill', 'accent', 'rulegrey', 'none'}
+               'codefill', 'accent', 'rulegrey', 'none',
+               'slate', 'sage', 'ochre',
+               'slatetint', 'sagetint', 'ochretint', 'accenttint'}
 HEX = re.compile(r'(?:#|\{HTML\}\{)([0-9A-Fa-f]{6})\b')
 DEFINECOLOR = re.compile(r'\\definecolor(?![A-Za-z])')
 COLOR_USE = re.compile(
@@ -139,18 +146,22 @@ for path in files:
             # \color{#1} in a macro body, or text=\foo, is not a literal.
             if name.startswith(('#', '\\')) or not name:
                 continue
-            # The spec allows no tints: `accent!12` and `ink!20!paper` are
-            # as wrong as a hue that is no token at all ("No gradients, no
-            # tints of the accent, no second hue"), so the `!` is itself the
-            # violation and the whole name is reported.
+            # The spec allows no tints, in a diagram or out of one: `accent!12`
+            # and `ink!20!paper` are as wrong as a hue that is no token at all.
+            # Every diagram role colour already has its own explicit tint
+            # token (slatetint, and so on), so a document never has reason to
+            # write a `!` itself; the `!` is the violation and the whole name
+            # is reported.
             if '!' in name:
                 problems.append(f'{rel}:{n}: colour `{name}` is a tint; the '
                                 'style allows no gradients and no tints, only '
-                                'the eight tokens themselves')
+                                'the named tokens themselves')
             elif name not in TOKEN_NAMES:
                 problems.append(f'{rel}:{n}: colour `{name}` is not a house-style '
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
-                                'fill, codefill, accent, rulegrey)')
+                                'fill, codefill, accent, rulegrey, or a diagram '
+                                'role colour: slate, sage, ochre, slatetint, '
+                                'sagetint, ochretint, accenttint)')
         if SANS.search(line):
             problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
                             'Source Serif 4 and IBM Plex Mono, neither a sans')

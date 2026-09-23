@@ -5,7 +5,7 @@
 % own location, so nothing needs installing. Set \hsfontdir (with a trailing /)
 % before \usepackage{housestyle} to load them from somewhere else.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{housestyle}[2026/09/22 v3 technical document house style]
+\ProvidesPackage{housestyle}[2026/09/23 v4 technical document house style]
 
 \RequirePackage{iftex}
 % Paper is letter unless the document sets \hspaper first. For A4,
@@ -137,14 +137,30 @@
 % role kits further down are equally house style. Owner's decision, 22 September
 % 2026: "dont force diagrams into the format in the template". What a diagram
 % does keep is the typography -- mono labels, serif prose, the paper ground.
+%
+% Four colours for a diagram role, and nowhere else: prose, headings, tables,
+% callouts and the page itself keep the eight tokens above. Each role colour
+% carries its own explicit ~12% tint in hex, so a diagram never writes a `!`
+% tint itself -- the gate refuses one on sight either way. Picked from the
+% owner's swatch, 23 September 2026 (option A: "all consistent with shading
+% but different colours").
+\definecolor{slate}{HTML}{4F6D8A}
+\definecolor{sage}{HTML}{5E7A5A}
+\definecolor{ochre}{HTML}{A07A2C}
+% accent (9C4221, above) is the fourth role colour; the kit's own accent
+% doubles as one.
+\definecolor{slatetint}{HTML}{EAEDF1}
+\definecolor{sagetint}{HTML}{ECEFEB}
+\definecolor{ochretint}{HTML}{F4EFE6}
+\definecolor{accenttint}{HTML}{F3E8E4}
 \tikzset{
-  hsbox/.style    ={line width=0.6pt,inner sep=7pt,align=left,
+  hsbox/.style    ={rounded corners=2pt,line width=0.6pt,inner sep=7pt,align=left,
                     font=\fontsize{9.5pt}{12pt}\selectfont},
-  hsnode/.style   ={hsbox,draw=ink,fill=ink,text=paper,
-                    execute at begin node={\def\hs@ebc{fill}}},
-  hswork/.style   ={hsbox,draw=ink,fill=paper,text=ink,
-                    execute at begin node={\def\hs@ebc{inkfiftyfive}}},
-  hsgate/.style   ={hsbox,draw=accent,fill=fill,text=ink,
+  hsnode/.style   ={hsbox,draw=slate,fill=slatetint,text=ink,
+                    execute at begin node={\def\hs@ebc{slate}}},
+  hswork/.style   ={hsbox,draw=sage,fill=sagetint,text=ink,
+                    execute at begin node={\def\hs@ebc{sage}}},
+  hsgate/.style   ={hsbox,draw=accent,fill=accenttint,text=ink,
                     execute at begin node={\def\hs@ebc{accent}}},
   hsarrow/.style  ={-{Stealth[length=4pt]},draw=inkfiftyfive,line width=0.6pt},
   hsfail/.style   ={-{Stealth[length=4pt]},draw=accent,line width=0.6pt,dashed},
@@ -171,41 +187,55 @@
   \MakeLowercase{#1}\par}}
 
 % Role treatments, for a diagram whose parts are of different kinds. The owner
-% took the FORM of the old lane diagrams and the PALETTE of this kit (22
+% first took the FORM of the old lane diagrams and the PALETTE of this kit (22
 % September 2026: "they can still be redrawn in the new pallette which is prob
-% better but i mean the form etc"), so a role is told apart by weight and
-% ground rather than by a hue of its own: no colour exists here that does not
-% exist on the rest of the page.
+% better but i mean the form etc"), telling a role apart by weight and ground
+% rather than by a hue of its own. He overruled that for the boxes themselves
+% (23 September 2026, choosing the lightly shaded, thin-outlined look over the
+% filled-ink one: "I prefer the lightly shaded or outlined boxes ... all
+% consistent with shading but different colours. basically just the black is
+% too different"). Every role treatment below now carries the same weight -- a
+% thin outline and a fill at about 12% of the same colour -- and a role reads
+% apart by which of the four diagram colours it carries, not by how loud the
+% box is.
 \tikzset{
   % A box's shape and its treatment are two separate styles and a node takes one
-  % of each, shape first: \node[hsrole,hsground] or \node[hslane,hsfilled].
-  % They do not nest, because a treatment that re-applied the shape would undo a
+  % of each, shape first: \node[hsrole,hsslate] or \node[hslane,hsochre]. They
+  % do not nest, because a treatment that re-applied the shape would undo a
   % width the lane style had just set.
-  hsrole/.style     ={hsbox,rounded corners=2pt,fill=paper,text=ink,
+  hsrole/.style     ={hsbox,fill=paper,text=ink,
                       text width=92pt,minimum height=30pt,align=center,
                       execute at begin node={\def\hs@ebc{inkfiftyfive}%
                                              \def\hs@rbc{inkseventy}}},
   hslane/.style     ={hsrole,text width=72pt,minimum height=34pt},
-  % Five treatments, in order of how much they ask the reader to notice them.
-  hsfilled/.style   ={draw=ink,fill=ink,text=paper,
-                      execute at begin node={\def\hs@ebc{fill}%
-                                             \def\hs@rbc{rulegrey}}},
-  hsoutlined/.style ={draw=ink,line width=0.9pt,fill=paper,text=ink,
-                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+  % Four role colours, one weight: a thin outline in the colour and a fill at
+  % about 12% of it. Pick from these before reaching for hsquiet.
+  hsslate/.style    ={draw=slate,fill=slatetint,
+                      execute at begin node={\def\hs@ebc{slate}%
                                              \def\hs@rbc{inkseventy}}},
-  hsground/.style   ={draw=inkseventy,fill=fill,text=ink,
-                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+  hssage/.style     ={draw=sage,fill=sagetint,
+                      execute at begin node={\def\hs@ebc{sage}%
                                              \def\hs@rbc{inkseventy}}},
+  hsochre/.style    ={draw=ochre,fill=ochretint,
+                      execute at begin node={\def\hs@ebc{ochre}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsaccentrole/.style={draw=accent,fill=accenttint,
+                      execute at begin node={\def\hs@ebc{accent}%
+                                             \def\hs@rbc{inkseventy}}},
+  % The v3 treatment names, kept so a document written before the change still
+  % builds; each now draws the role colour in its place.
+  hsfilled/.style   ={hsslate},
+  hsoutlined/.style ={hssage},
+  hsground/.style   ={hsochre},
+  hsmarked/.style   ={hsaccentrole},
+  % Not a role: ambient things with no part to play -- a channel, a store, a
+  % timer -- stay the neutral grey rule on paper the kit always used for them.
   hsquiet/.style    ={draw=rulegrey,fill=paper,text=inkseventy,
                       execute at begin node={\def\hs@ebc{inkfiftyfive}%
                                              \def\hs@rbc{inkfiftyfive}}},
-  % Spent on the one role the mechanism turns on, and on no other.
-  hsmarked/.style   ={draw=accent,line width=1pt,fill=fill,text=ink,
-                      execute at begin node={\def\hs@ebc{accent}%
-                                             \def\hs@rbc{inkseventy}}},
   % a lifeline, a step sitting in one lane, an arrow's caption
   hslife/.style     ={draw=rulegrey,line width=0.6pt},
-  hsstep/.style     ={hsbox,rounded corners=2pt,draw=rulegrey,fill=fill,
+  hsstep/.style     ={hsbox,draw=rulegrey,fill=fill,
                       text width=96pt,align=center,
                       font=\fontsize{8.5pt}{11pt}\selectfont},
   hsann/.style      ={font=\fontsize{8pt}{10.5pt}\selectfont\itshape,

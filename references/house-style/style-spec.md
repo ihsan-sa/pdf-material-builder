@@ -78,13 +78,18 @@ head, under the title block), grey where they only divide.
 2. **Diagram** - drawn for what it shows. *Owner's decision, 22 September 2026:
    "dont force diagrams into the format in the template". This replaces the
    earlier text of this block, which allowed three node kinds and no more.* The
-   node row is one pattern: horizontal nodes, mono arrow glyphs, filled ink
-   (input, output), outlined ink (work an agent does), accent-outlined on fill
-   (a deterministic check). A lane diagram, and a role graph with annotated
-   arrows, are equally house style, and both are drawn in these same tokens:
-   a role is told apart by weight, not by a hue of its own (owner, same day:
-   "they can still be redrawn in the new pallette which is prob better but i
-   mean the form etc").
+   node row is one pattern: horizontal nodes, mono arrow glyphs, a slate box
+   (input, output), a sage box (work an agent does), an accent box (a
+   deterministic check). A lane diagram, and a role graph with annotated
+   arrows, are equally house style. All three patterns draw a role in one of
+   four muted colours -- slate `#4F6D8A`, sage `#5E7A5A`, ochre `#A07A2C` and
+   the kit's own accent -- each a thin outline with a fill at about 12% of the
+   same colour, so every box carries the same weight and a role reads apart by
+   hue rather than by how loud the box is (owner, 23 September 2026, picking
+   this over the filled-ink look: "I prefer the lightly shaded or outlined
+   boxes ... all consistent with shading but different colours. basically just
+   the black is too different"). These four colours exist only inside a
+   `tikzpicture`; the rest of the page keeps the six above.
    What every diagram owes the reader, whatever its shape: a filled figure
    label, a legend sentence under it in caption size naming the kinds it uses,
    an eyebrow in every node, one height for every box in a row, and a fail path

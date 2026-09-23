@@ -56,13 +56,19 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
    eyebrows, the text serif for prose inside a node, the page's paper tint, no
    sans-serif anywhere. The three node kinds (`hsnode`, `hswork`, `hsgate`) are
    one pattern among several; a lane diagram with an annotated arrow between
-   lanes is another, and a role graph a third. The colour is the kit's: the
-   owner settled the same day that the old diagrams' form comes across and their
-   colours do not ("they can still be redrawn in the new pallette which is prob
-   better but i mean the form etc"), so a picture differs its roles by weight --
-   the five treatments `hsfilled`, `hsmarked`, `hsoutlined`, `hsground` and
-   `hsquiet` -- and invents no hue. The three-appearance accent budget governs
-   the prose of a page; inside a picture, spend the accent on one role.
+   lanes is another, and a role graph a third.
+   The colour was the kit's own, with a role told apart by weight and never a
+   hue of its own (owner, 22 September 2026: "they can still be redrawn in the
+   new pallette which is prob better but i mean the form etc"). He overruled
+   that on 23 September 2026, choosing shading over the filled-ink box: "I
+   prefer the lightly shaded or outlined boxes ... all consistent with shading
+   but different colours. basically just the black is too different." A role
+   now reads apart by one of four muted colours -- slate, sage, ochre and the
+   kit's own accent -- each drawn the same way: a thin outline and a fill at
+   about 12% of itself. No box is filled solid black any more, and the four
+   colours exist only inside a `tikzpicture`. The three-appearance accent
+   budget still governs the prose of a page; inside a picture the accent is one
+   of the four role colours and the budget does not apply.
    What every diagram still owes the reader: a filled figure label, a legend
    sentence in caption size naming the kinds it uses, an eyebrow in every node,
    boxes of one height in a row, and a fail path as one line with its caption
