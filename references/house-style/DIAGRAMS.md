@@ -41,7 +41,7 @@ command a diagram-maker figure needs.
    `Figure N /`, and in the spec's `alt`.
 2. Render: `node <diagram-maker>/scripts/render.js figures/<name>.json`, and fix
    every `error` the report lists.
-3. Export: `<diagram-maker>/scripts/export.sh figures/<name>.svg pdf`.
+3. Export: `<diagram-maker>/scripts/export.sh figures/<name>.json <skill>/assets/fonts`, which writes `figures/<name>.pdf` and `figures/<name>.png`.
 4. Place it with `\hsdiagram{figures/<name>}` inside `hsfigure`. Its caption
    becomes the `hsfigure` legend.
 5. Keep the `.json` next to the `.pdf`, so the figure can be regenerated.
@@ -89,7 +89,7 @@ hand-off that you did.
 ## Word
 
 Diagrams reach the Word template as images, never as shapes. Export the PNG
-(`export.sh figure.svg png`, 2x). Place it in a **Figure** paragraph at the
+(`export.sh figure.json <skill>/assets/fonts` writes `figure.png` at 2x beside the PDF). Place it in a **Figure** paragraph at the
 text width, with its label above in **Label** and the caption under it in
 **Caption**.
 

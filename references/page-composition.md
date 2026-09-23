@@ -108,7 +108,7 @@ submodule that follows diagram-maker's main, and that copy is the one to use:
 2. `scripts/build.sh doc.tex` does the rest. It syncs `diagram-maker/` to its
    latest main (quietly skipped offline), renders each spec with
    `diagram-maker/scripts/render.js`, exports it with
-   `diagram-maker/scripts/export.sh <name>.svg pdf`, and fails on any error the
+   `diagram-maker/scripts/export.sh <name>.json <skill>/assets/fonts`, and fails on any error the
    render reports. Fix the spec, never the SVG.
 3. Place it inside `hsfigure` with `\hsdiagram{figures/<name>}`, which sets it
    at its own size and only ever scales it down to the measure.
