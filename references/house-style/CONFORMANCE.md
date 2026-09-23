@@ -23,13 +23,23 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
 | No provenance footline on any page, the figure note set as body prose instead | Every page carrying a figure or a statistic ends in a provenance footline | manual: see item 3 below |
 | No claim, no callout anywhere in a five-page document making a strong claim | One claim per document; the limit of that claim stated in a callout on the same page | manual: see items 4 and 5 |
 
+From `pitch (3).pdf`, built on v5, 23 September 2026 (6pp):
+
+| Seen | Rule | Now enforced by |
+|---|---|---|
+| Diagram boxes from the document's own `\tikzset`: no eyebrows, ragged heights, a "Sent back" box instead of a fail path | A document never defines a box style | manual: item 9; `style-check.sh` should grep for `\tikzset` outside `housestyle.sty` |
+| Stat captions of six to eight lines, four abreast | A stat caption is three lines at most | manual: item 2 |
+| The sources page opening on a sentence, with no heading | The last page heads itself Sources | `\hssourcespage` |
+| A section heading touching the running head | | `headsep` 26 pt |
+| 44 pt between the claim's label and its closing rule; the callout label half a line low | | `\parskip` 0 inside the claim and callout; `\leavevmode` in labels |
+
 ## The checklist
 
 1. **Blocks only.** Every element on the page is one of the twelve in
    `style-spec.md`. No tcolorbox, no coloured boxes, no invented block, no
    footnotes, no fourth diagram node kind.
 2. **Statistics.** Between two and four per row, each measured, each with a
-   caption under it. A figure that was not measured is prose.
+   caption under it of three lines at most. A figure that was not measured is prose.
 3. **Provenance.** Every page with a figure or a statistic ends in
    `\hsprovenance{...}` naming the command, file, commit or date the numbers
    came from. A number with neither a source superscript nor a footline is cut.
@@ -37,7 +47,8 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
    document exists for. Zero is as wrong as two.
 5. **Limits.** Any page making a strong claim carries the `hscallout` that
    states what the claim does not mean.
-6. **Sources.** One `hssources` list on the last page, numbered in the order the
+6. **Sources.** One `hssources` list on the last page, opened with
+   `\hssourcespage`, numbered in the order the
    superscripts appear, each with the date read, URLs in `\hsurl`.
 7. **Colour.** Only the six tokens. The accent appears at most three times on a
    page and only on a check, a source numeral or one table header cell. The warm
@@ -72,6 +83,10 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
    colours exist only inside a `tikzpicture`. The three-appearance accent
    budget still governs the prose of a page; inside a picture the accent is one
    of the four role colours and the budget does not apply.
+   A document never defines its own box style with `\tikzset`; a node row is
+   `hsnode`/`hswork`/`hsgate` with `\hsnodetext`, recoloured if need be with a
+   treatment after the shape (`\node[hswork,hsochre]`), and anything else is
+   `hsrole` or `hslane` with a treatment.
    What every diagram still owes the reader: a filled figure label, a legend
    sentence in caption size naming the kinds it uses, an eyebrow in every node,
    boxes of one height in a row, and a fail path as one line with its caption

@@ -83,6 +83,7 @@ geometry, colours and every `hs*` TikZ style are as they were.
   for the rest of the document, with numbers in the contents too. Off by
   default; `\section*` stays unnumbered. The LaTeX side only. In Word, turn on
   heading numbering on Heading 1 and Heading 2 if you need it.
+- `\hssourcespage`: starts the last page and heads it Sources.
 - `\hstitle` takes an optional size: `\hstitle[44pt]{...}` on a title page.
 - `\hsdate{...}` (defaults to the build's month and year) and the page style
   `hstitlepage`, used as `\thispagestyle{hstitlepage}` inside `titlepage`.
@@ -113,6 +114,27 @@ geometry, colours and every `hs*` TikZ style are as they were.
 | `word-template/house-style-short.docx` | new: short form, same styles |
 | `word-template/WORD-STYLES.md` | the Word interface: every style name and its job |
 | `word-template/figure-1.png` | the Figure 1 drawing used in the Word sample, rendered from the HTML reference |
+
+## After the second pitch build (`pitch (3).pdf`)
+
+I reviewed the six pages built on these templates. Fixed in the kit:
+- `headsep` went from 14 to 26 pt, so a heading at the top of a page clears
+  the head rule.
+- The claim and the callout set `\parskip` to 0 inside, which removes 11 pt
+  of stray space at every `\par`.
+- Labels start with `\leavevmode`, so the callout's label lines up with the
+  first line of its body.
+- New `\hssourcespage`: a new page headed "Sources".
+
+Fixed in the sample: `samples/pitch.tex` no longer defines its own box styles.
+All three figures now use `hsnode`/`hswork`/`hsgate` with `\hsnodetext`
+and `hsrole` with treatments. That gives eyebrows, rows of one height and a
+real fail path, and nothing is filled black. Its sources page uses
+`\hssourcespage`. The copy is unchanged.
+
+Now rules in `page-composition.md` and `CONFORMANCE.md`: no `\tikzset` box
+styles in a document, stat captions of three lines at most, and no
+`\newpage` after a page that is less than half full.
 
 ## What I could not test
 
