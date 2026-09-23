@@ -29,7 +29,7 @@ The recipe sets the **build size**, and build size is the only thing that change
 A small build is four steps, and the orchestrator does the first three itself:
 
 1. **Read the source.** For a `companion`: the lesson's run record and `lesson_build.log.md` (the plan artifact; its format is `lesson-builder/references/phase-2-plan.md`) and the lesson's `.jsx` prose. For a `cheat-sheet`: the existing reference or course notes. For a `technical-doc`: whatever the user pointed at.
-2. **Write the driver.** One file, preamble copy-adapted from `assets/preamble-template.tex`, no `\input` stubs.
+2. **Write the driver.** One file, preamble copy-adapted from `assets/preamble-template.tex`, no `\input` stubs. `assets/short-template.tex` is the shape to start from: no title page, the title block opens page one.
 3. **Write the body.** One agent, or none. Condense the source; do not re-derive it. Plan the page shapes first, per `references/page-composition.md`: list the pages, give each one a shape, and change any two in a row that came out the same.
 4. **Review.** Two reviewers, not five: the math verification agent and the cold-edit reviewer. `references/review-pipeline.md` says which three are skipped and why.
 
@@ -144,7 +144,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 
 ## Quality bar before declaring done
 
-**Compile.** `scripts/build.sh` (lualatex, three passes) exits 0; no `! Undefined control sequence`, no `! LaTeX Error`, no broken `\ref`; TOC populated (check by extracting the text of pages 2-3); page count inside the recipe's band.
+**Compile.** `scripts/build.sh` (lualatex, three passes) exits 0, which also means no Overfull `\hbox`; no `! Undefined control sequence`, no `! LaTeX Error`, no broken `\ref`; TOC populated (check by extracting the text of pages 2-3); page count inside the recipe's band.
 
 **Style.** `scripts/style-check.sh` exits 0 over the build directory.
 
@@ -157,7 +157,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 ## Files
 
 - `references/recipes.md` -- the document types, their length bands, structures and build sizes.
-- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `CONFORMANCE.md` (the ten checks), `example.tex`, and the rendered HTML target. Vendored from the owner's package at rev 03; edit only to carry a decision of his, and say so in the file.
+- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `CONFORMANCE.md` (the ten checks), `example.tex`, the rendered HTML targets (long and short), and `CHANGES.md` for what v5 changed. Vendored from the owner's package at v5 (23 September 2026); edit only to carry a decision of his, and say so in the file.
 - `references/latex-house-style.md` -- the spec mapped onto macros, the build, teaching affordances, math kit, traps, style gate.
 - `references/page-composition.md` -- how to put the blocks on a page: the reference document's eight shapes, the rhythm rule, what each block's arguments must carry, the three diagram patterns with tikz, and the render-and-look checklist.
 - `references/teaching-communication.md` -- the canonical voice, vendored from lesson-builder. Do not edit here.
@@ -166,8 +166,10 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 - `references/per-course-notes.md` -- case studies from ECE 204, ECE 205 and ECE 250: taxonomies, weak areas, banned-optional lists, scope quirks. A pattern library for a new course.
 - `assets/preamble-template.tex` -- the canonical preamble. Copy and adapt per document.
 - `assets/driver-template.tex` -- the multi-file `course-notes` driver.
-- `assets/fonts/` -- Source Serif 4 and IBM Plex Mono, vendored with their OFL licences.
-- `scripts/build.sh` -- the build: three lualatex passes, temp jobname, fails on any `!` error.
+- `assets/short-template.tex`, `assets/blank-template.tex` -- the short form (up to about twelve pages) and the long form (title page, contents, Parts), each a whole document that builds.
+- `assets/word-template/` -- the Word half of the house style: two `.docx` starting documents and `WORD-STYLES.md`, the style names that are its interface. No `.docx` to PDF path exists yet: it needs LibreOffice, which is not installed.
+- `assets/fonts/` -- Source Serif 4 (Text, Subhead and Display cuts) and IBM Plex Mono, vendored with their OFL licences.
+- `scripts/build.sh` -- the build: three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`.
 - `scripts/style-check.sh` -- the style gate.
 - `scripts/voice-drift.sh` -- reports drift of the vendored voice spec from lesson-builder; `--refresh` updates it.
 - `tests/check.sh` -- this repo's gate.

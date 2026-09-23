@@ -29,14 +29,16 @@ and this file is that judgement written down.
 
 ## The reference document's eight shapes
 
-The target is eight pages and no two of them are laid out alike. Read them as a
+The owner's original reference was eight pages and no two of them were laid
+out alike. (The v5 `house-style-template.html` shows every block once over
+seven pages and uses five of these shapes; the catalogue still stands.) Read them as a
 catalogue of shapes, not as a sequence to copy:
 
 | Page | Shape | What it is for |
 |---|---|---|
-| 1 | Title block high on the page, a long fall of white, a four-column metadata strip on the foot rule | Says what the document is and then gets out of the way. The white is deliberate. |
+| 1 | Title block high on the page, then a long fall of white (long documents; a short one opens with `\hstitleblock` and goes straight into prose, see `assets/short-template.tex`) | Says what the document is and then gets out of the way. The white is deliberate. |
 | 2 | Heading, lead, two prose paragraphs, then one figure at full measure with its legend, then the provenance footline | One mechanism, explained once and drawn once. |
-| 3 | Heading, two-line lead, a stat row of four, the claim between two rules with its mono line, a callout | The page that carries the numbers and the sentence the document exists for. |
+| 3 | Heading, two-line lead, a stat row of four, the claim between two rules with its small-caps line, a callout | The page that carries the numbers and the sentence the document exists for. |
 | 4 | Two labelled tables, one comparison and one data, and nothing else | A page may be a single kind of thing all the way down. |
 | 5 | A full-measure plate with its spec line and caption, then two half-measure plates side by side | Evidence. The pair below the single is what stops the page reading as one column. |
 | 6 | A labelled listing, a caption, a labelled display equation between rules, a callout | Exactness: the page where the literal string and the literal formula matter. |
@@ -78,7 +80,7 @@ optional.
 | `hsnodetext` | An eyebrow that names the node's kind in one or two words, a title of two or three, and a detail line that is not a repeat of the title. |
 | `hsstat` | A measured number and a caption saying what was measured and when. A figure nobody measured is prose. |
 | `hsprovenance` | The command, file, commit or date. `\hsprovenance{}` on a page of numbers is worse than none, because it claims a source it does not name. |
-| `hsclaim` | The sentence the document exists for, and a mono line under it saying what kind of sentence it is. Exactly one per document. |
+| `hsclaim` | The sentence the document exists for, and a small-caps line under it saying what kind of sentence it is. Exactly one per document. |
 | `hscallout` | The label states the objection, so `What this does not mean` rather than `Note`. |
 | `hsplate` | The image, its name, the grey facts, the status, and a caption saying what the plate is evidence of. |
 | `hslisting` | `Listing N / what it is`, and then output as it came back, trimmed but not edited. |
@@ -102,8 +104,8 @@ package README's rule 3, all three of which now say so.
 
 What does not bend, in any of the three patterns below:
 
-- **Typography is the house's.** Mono for every label and eyebrow, the text serif
-  for prose inside a node, the page's paper as the ground. No sans-serif
+- **Typography is the house's.** Small caps for every label and eyebrow (v5; they
+  were mono capitals), the text serif for prose inside a node, the page's paper as the ground. No sans-serif
   anywhere; the old documents these patterns come from were set in Helvetica and
   that part does not come with them.
 - **A role reads apart by colour, and every box carries the same weight.** The
@@ -240,11 +242,11 @@ colour only, so it goes on a node beside `hsrole` or `hslane`, never alone.
 
 None of these is caught by the gate, and each of them cost a rebuild.
 
-- **A block that is not prose needs `hsblock`.** A `tabular`, a title page's
-  metadata strip, a pair of asides side by side: all of them are the full 468 pt
-  measure, and prose is 48 pt narrower. Without the environment the fourth
-  column of a four-column strip wraps under the first and sits on top of the
-  line above it. It looks like a spacing bug and it is a measure bug.
+- **A block that is not prose needs `hsblock`.** A `tabular`, a pair of
+  asides side by side: all of them are the full 468 pt
+  measure, and prose is 48 pt narrower. Without the environment the last
+  column of a wide table wraps under the first and sits on top of the line
+  above it. It looks like a spacing bug and it is a measure bug.
 - **`\hsprovenance` needs about 35 pt of room left.** It sits at the foot
   through `\vfill`, so on a page that is already full it does not compress: it
   goes alone to the next page, which then has a single grey line at the top and
@@ -276,8 +278,9 @@ and read the images, page by page, beside the reference rendering. Check:
    footline**, and that footline names a command, a file, a commit or a date.
 7. **The claim appears once**, and the callout stating its limit is on the same
    page.
-8. **Labels read as words, not as spaced capitals.** If `HOUSE STYLE` has come
-   out as `H O U S E  S T Y L E`, the label tracking is wrong.
+8. **Labels read as words.** They are serif small caps; a figure label shows its
+   number in small caps and its title in italic. A label in mono capitals means
+   an old `housestyle.sty` was loaded.
 9. **The paper is warm.** A page that renders pure white has lost the tint, which
    means `housestyle.sty` did not load.
 10. **The sources are one numbered list on the last page**, which heads itself

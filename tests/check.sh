@@ -19,7 +19,13 @@
 #   6  assets/preamble-template.tex and assets/driver-template.tex build with
 #      scripts/build.sh (lualatex, three passes) to a non-empty PDF in a temp
 #      directory. With pdfinfo present, the default build is letter and the
-#      template's A4 line, uncommented, builds A4.
+#      template's A4 line, uncommented, builds A4. assets/short-template.tex
+#      and assets/blank-template.tex build the same way, and so does
+#      blank-template with \hsnumbersections on and with the A4 line on; the
+#      contents page shows the Part in its small-caps column (and, numbered,
+#      the section number), and the blank template embeds the Subhead,
+#      Display and Semibold cuts. build.sh failing on an overfull box is
+#      what makes each of these a check that nothing overruns the measure.
 #   7  Every ```latex block in references/page-composition.md compiles against
 #      housestyle.sty, each as its own page, and none of them logs an overfull
 #      box: a writer copies these patterns out of the file, so a style the .sty
@@ -31,7 +37,12 @@
 #      must still resolve to assets/fonts/. Then references/house-style/
 #      example.tex builds in place with scripts/build.sh and embeds the
 #      vendored Source Serif 4; the example.pdf it makes is removed.
-#   6 to 9 are SKIPPED, with the reason printed, when lualatex is absent;
+#  10  scripts/build.sh exits 1 on a document with an Overfull \hbox and
+#      names it, and 0 on the same document without one.
+#  11  \hsprovenance keeps a typed "--state" as two hyphens, both with the
+#      .sty's own provenance font and with that font swapped for one whose
+#      TeX ligatures are on, so the guard does not rest on the font feature.
+#   6 to 11 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -290,7 +301,7 @@ Text before a sheet equation.
 \begin{equation} e^{i\theta} = \cos\theta + i\sin\theta \end{equation}
 See \eqref{eq:a} and \nameref{sec:first}.
 \probhead{Final 2024 Q3}{method}{A}
-\begin{tabularx}{\linewidth}{L{3cm}YR{2cm}}\hstoprule \hshead{Key} & \hsaccenthead{New} & \hshead{N} \\ \hstoprule a & b & 1 \\ \hline c & d & 2 \\ \hstoprule\end{tabularx}
+\begin{hsblock}\begin{tabularx}{\linewidth}{L{3cm}YR{2cm}}\hstoprule \hshead{Key} & \hsaccenthead{New} & \hshead{N} \\ \hstoprule a & b & 1 \\ \hline c & d & 2 \\ \hstoprule\end{tabularx}\end{hsblock}
 \begin{hscallout}{The objection} Not a box.\end{hscallout}
 \hslisting{Listing 1 / code}
 \begin{Verbatim}[bgcolor=codefill]
@@ -367,6 +378,62 @@ PYEOF
   fi
 fi
 
+# --- 6b. the short and long templates build ------------------------------------
+# Both \input the preamble, as a document started from them does. The long one
+# is built three ways: as shipped, with its \hsnumbersections line uncommented,
+# and on A4. An overfull box fails the build, so each also proves the page fits.
+if command -v lualatex >/dev/null; then
+  cp "$REPO/assets/short-template.tex" "$REPO/assets/blank-template.tex" "$D/"
+  sed 's/^% \\hsnumbersections .*/\\hsnumbersections/' "$D/blank-template.tex" > "$D/blank-numbered.tex"
+  sed 's/preamble-template\.tex/preamble-a4.tex/' "$D/blank-template.tex" > "$D/blank-a4.tex"
+  [ -f "$D/preamble-a4.tex" ] || sed 's/^% \\newcommand\\hspaper{a4paper}$/\\newcommand\\hspaper{a4paper}/' \
+    "$D/preamble-template.tex" > "$D/preamble-a4.tex"
+  if cmp -s "$D/blank-template.tex" "$D/blank-numbered.tex"; then
+    fail "blank-numbered: blank-template.tex has no '% \\hsnumbersections' line to uncomment"
+  fi
+  for job in short-template blank-template blank-numbered blank-a4; do
+    if ! out=$("$REPO/scripts/build.sh" "$D/$job.tex" 2>&1); then
+      fail "$job: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+    else
+      pass "$job builds in three lualatex passes with no overfull box"
+    fi
+  done
+  if ! command -v pdftotext >/dev/null; then
+    skip "contents page" "no pdftotext on this machine"
+  else
+    # Page 2 is the contents. The Part number is small caps, which pdftotext
+    # reads back as capitals; without titlesec's newparttoc the line is a bare
+    # "1" and there is no PART at all.
+    toc=$(pdftotext -f 2 -l 2 "$D/blank-template.pdf" - 2>/dev/null)
+    if printf '%s\n' "$toc" | grep -qx 'PART 1'; then
+      pass "contents page sets the Part as a small-caps 'Part 1' column"
+    else
+      fail "contents page: no 'PART 1' line on page 2"; printf '%s\n' "$toc" | head -12 | sed 's/^/  /'
+    fi
+    toc=$(pdftotext -f 2 -l 2 "$D/blank-numbered.pdf" - 2>/dev/null)
+    if printf '%s\n' "$toc" | grep -qx '1 First section'; then
+      pass "numbered contents page carries the section number"
+    else
+      fail "numbered contents page: no '1 First section' line on page 2"; printf '%s\n' "$toc" | head -12 | sed 's/^/  /'
+    fi
+  fi
+  if command -v pdfinfo >/dev/null; then
+    as=$(pdfinfo "$D/blank-a4.pdf" 2>/dev/null | awk '/^Page size:/ { printf "%.0f x %.0f pts", $3, $5 }')
+    if [ "$as" = "595 x 842 pts" ]; then pass "blank-template on A4 is A4 ($as)"
+    else fail "blank-template on A4: pdfinfo says '$as', expected 595 x 842 pts"; fi
+  fi
+  if command -v pdffonts >/dev/null; then
+    fonts=$(pdffonts "$D/blank-template.pdf" 2>&1)
+    for face in SourceSerif4Subhead-Regular SourceSerif4Display-Regular SourceSerif4-Semibold; do
+      if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grep -q ' yes '; then
+        pass "blank-template embeds $face"
+      else
+        fail "blank-template: $face is not embedded"; printf '%s\n' "$fonts" | sed 's/^/  /'
+      fi
+    done
+  fi
+fi
+
 # --- 7. the diagram patterns in references/page-composition.md still compile ---
 # A writer copies these three straight out of the file, so a style the .sty
 # renamed and a snippet nobody recompiled is a pattern that fails in their
@@ -391,7 +458,7 @@ PYEOF
   if [ "$n" -lt 3 ]; then
     fail "page-composition snippets: found $n latex blocks, expected the three diagram patterns"
   elif ! out=$("$REPO/scripts/build.sh" "$C/patterns.tex" 2>&1); then
-    fail "page-composition snippets: one of the $n patterns does not compile"
+    fail "page-composition snippets: one of the $n patterns does not build cleanly"
     printf '%s\n' "$out" | head -8 | sed 's/^/  /'
   else
     pass "page-composition's $n diagram patterns compile against housestyle.sty"
@@ -485,6 +552,49 @@ else
     fi
     rm -f "$HS/example.pdf"
   fi
+fi
+
+# --- 10. build.sh fails on an overfull box ------------------------------------
+if ! command -v lualatex >/dev/null; then
+  skip "build.sh overfull selfcheck" "no lualatex on this machine"
+else
+  O="$TMPROOT/overfull"; mkdir -p "$O"
+  printf '%s\n' '\documentclass{article}' '\begin{document}' '\noindent\hbox to 700pt{wide\hfil}' \
+    '\end{document}' > "$O/wide.tex"
+  printf '%s\n' '\documentclass{article}' '\begin{document}' '\noindent\hbox to 300pt{fits\hfil}' \
+    '\end{document}' > "$O/fits.tex"
+  out=$("$REPO/scripts/build.sh" "$O/wide.tex" 2>&1); rc=$?
+  if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grep -q 'Overfull \\hbox'; then
+    fail "selfcheck build.sh overfull: a 700 pt box exited $rc without naming the overfull box"
+    printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  elif ! out=$("$REPO/scripts/build.sh" "$O/fits.tex" 2>&1); then
+    fail "selfcheck build.sh overfull: a box that fits was refused"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "selfcheck build.sh: fails on an Overfull \\hbox, passes the same document that fits"
+  fi
+fi
+
+# --- 11. provenance keeps a command's -- ---------------------------------------
+if ! command -v lualatex >/dev/null; then
+  skip "provenance keeps --" "no lualatex on this machine"
+elif ! command -v pdftotext >/dev/null; then
+  skip "provenance keeps --" "no pdftotext on this machine"
+else
+  V="$TMPROOT/provenance"; mkdir -p "$V"
+  printf '%s\n' '\documentclass[11pt]{article}' '\usepackage{housestyle}' '%SWAP' '\begin{document}' \
+    'Body.' '\hsprovenance{741 from gh pr list --state merged; a---b.}' '\end{document}' > "$V/own.tex"
+  # The same document with the provenance font replaced by the body face,
+  # whose TeX ligatures are on: only the .sty's own guard can keep the -- now.
+  sed 's/^%SWAP$/\\makeatletter\\let\\hs@notefont\\rmfamily\\makeatother/' "$V/own.tex" > "$V/swapped.tex"
+  for job in own swapped; do
+    if ! out=$("$REPO/scripts/build.sh" "$V/$job.tex" 2>&1); then
+      fail "provenance ($job font): scripts/build.sh failed"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+    elif txt=$(pdftotext "$V/$job.pdf" - 2>/dev/null) && printf '%s\n' "$txt" | grep -q -- 'list --state merged; a---b\.'; then
+      pass "provenance ($job font) keeps --state and --- as typed"
+    else
+      fail "provenance ($job font): a typed -- came out as a dash"; printf '%s\n' "$txt" | sed 's/^/  /'
+    fi
+  done
 fi
 
 echo

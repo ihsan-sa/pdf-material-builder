@@ -1,0 +1,119 @@
+\input{preamble-template.tex}
+% \hsnumbersections  % uncomment for numbered sections (1, 1.1, ...)
+\hsslug{<Course> <Doc>}
+\hsdate{<Month Year>}
+\begin{document}
+\begin{titlepage}
+\thispagestyle{hstitlepage}
+\vspace*{\fill}
+\hsaccentlabel{<Course> \textperiodcentered\ Document type}\par\vspace{14pt}
+\hstitle[44pt]{Document title goes here}\vspace{20pt}
+\hslead{A one-sentence lead that says what this document is for and who should read it.}
+\vspace*{\fill}\vspace*{\fill}
+\end{titlepage}
+\setcounter{page}{2}
+\tableofcontents
+\clearpage
+
+\catbanner{A}{First part title}
+\section{First section}
+\hslead{A lead paragraph in the larger grey face, opening the section.}
+
+Body text sits here. Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
+minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat.
+
+\subsection{A subsection}
+Placeholder paragraph with an inline equation $f(\bx) = \bx^\trans A \bx$ and a
+displayed one:
+\begin{equation}
+\grad f(\bx) = (A + A^\trans)\,\bx.
+\end{equation}
+Here $A$ is the matrix of the quadratic form and $\bx$ the point at which the
+gradient is taken.
+
+\begin{itemize}
+\item First bullet point.
+\item Second bullet point.
+\end{itemize}
+
+\begin{hsstatrow}[3]
+\hsstat{42}{Caption for the first figure}
+\hsstat{7.5}{Caption for the second figure}
+\hsstat{100\%}{Caption for the third figure}
+\end{hsstatrow}
+
+\begin{hscallout}{Callout label}
+A callout holds one point the reader must not miss. Placeholder text.
+\end{hscallout}
+
+\hsclaim{A single pull-quote claim, set large between two rules.}{Attribution label}
+
+\clearpage
+\section{How the pieces connect}
+\begin{hsfigure}{Figure 1 / node-and-arrow flow}%
+{Slate boxes are inputs and outputs. Sage boxes are work an agent does.
+Rust boxes are deterministic checks that pass or fail.}
+\begin{tikzpicture}[node distance=14pt]
+  \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
+  \node[hswork,right=of a] (b) {\hsnodetext{Agent}{Draft}{structure first, then prose}};
+  \node[hsgate,right=of b] (c) {\hsnodetext{Gate}{Style check}{pass, or back with reasons}};
+  \node[hsnode,right=of c] (d) {\hsnodetext{Output}{A PDF}{with its sources attached}};
+  \draw[hsarrow] (a) -- (b); \draw[hsarrow] (b) -- (c); \draw[hsarrow] (c) -- (d);
+  \draw[hsfail] (c.south) -- ++(0,-12pt) -| (b.south);
+\end{tikzpicture}
+\hsfailnote{A failed gate returns to the draft step, twice, then to a person.}
+\end{hsfigure}
+
+\hsprovenance{Figure 1 from core/docs/DESIGN.md at commit 4f2a9c1, 21 September 2026.}
+% Two diagrams do not fit one page with their legends; a figure that breaks
+% leaves its legend alone on the next page.
+\clearpage
+\begin{hsfigure}{Figure 2 / what runs with nobody there}%
+{Slate boxes are doors into the box, the rust one is what every event goes
+through, the sage one is where a model runs and the grey one is a record. An
+italic line on an arrow says what passes between two parts.}
+\begin{tikzpicture}[x=1pt,y=1pt]
+  \node[hsrole,hsslate]      (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
+  \node[hsrole,hsslate]      (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
+  \node[hsrole,hsaccentrole] (b) at (170,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hssage]       (s) at (340,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]      (r) at (170,-52) {\hsrolename{The board}{one row per task}};
+  \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
+  \draw[hsarrow] (m) -- (b);
+  \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);
+  \draw[hsarrow] (b) -- (r);
+\end{tikzpicture}
+\end{hsfigure}
+
+\hsprovenance{Figure 2 from core/docs/DESIGN.md at commit 4f2a9c1, 21 September 2026.}
+\clearpage
+\section{Second section}
+\begin{hsblock}
+\hslabel{Table 1 / Placeholder table}\par\vspace{8pt}
+\begin{tabular}{@{}lll@{}}
+\hstoprule
+\hshead{Column A} & \hshead{Column B} & \hshead{Column C} \\
+\hline
+Row one & value & value \\
+Row two & value & value \\
+\hline
+\end{tabular}
+\end{hsblock}
+
+\hslisting{Listing 1 / Placeholder code}
+\begin{Verbatim}[bgcolor=codefill]
+def placeholder(x):
+    return x * 2
+\end{Verbatim}
+
+% Sources open their own page: the running head takes the last heading on a
+% page, so a Sources heading lower down would retitle the page above it.
+\clearpage
+\section*{Sources}
+\begin{hssources}
+\item Author, \emph{Title of the first source}, Publisher, Year.
+\item Author, \emph{Title of the second source}. \hsurl{https://example.com/source}
+\end{hssources}
+\end{document}

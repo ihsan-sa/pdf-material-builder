@@ -1,0 +1,60 @@
+% Short document: no title page. The title block opens page one and the
+% document goes straight into its prose. Use this for anything up to about
+% twelve pages; past that, blank-template.tex (a dedicated title page and a
+% contents page). Build: lualatex, three passes.
+\input{preamble-template.tex}
+% \hsnumbersections  % uncomment for numbered sections (1, 1.1, ...)
+\hsslug{<Slug>}
+\begin{document}
+
+\hstitleblock{<Eyebrow> \textperiodcentered\ <Month Year>}{<Document title>}%
+{<A one-sentence lead that says what this document is for.>}
+
+The opening paragraph is the only general one. It says what the thing is and
+why a reader should care, before any number or mechanism appears.
+
+A second paragraph can set up the figure below. Nothing is illustrated twice:
+if the diagram carries it, the prose does not repeat it.
+
+\begin{hsfigure}{Figure 1 / node-and-arrow flow}%
+{Slate boxes are inputs and outputs. Sage boxes are work an agent does.
+Rust boxes are deterministic checks that pass or fail.}
+\begin{tikzpicture}[node distance=14pt]
+  \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
+  \node[hswork,right=of a] (b) {\hsnodetext{Agent}{Draft}{structure first, then prose}};
+  \node[hsgate,right=of b] (c) {\hsnodetext{Gate}{Style check}{pass, or back with reasons}};
+  \node[hsnode,right=of c] (d) {\hsnodetext{Output}{A PDF}{with its sources attached}};
+  \draw[hsarrow] (a) -- (b); \draw[hsarrow] (b) -- (c); \draw[hsarrow] (c) -- (d);
+  \draw[hsfail] (c.south) -- ++(0,-12pt) -| (b.south);
+\end{tikzpicture}
+\hsfailnote{A failed gate returns to the draft step, twice, then to a person.}
+\end{hsfigure}
+
+\hsprovenance{Figure 1 from <file>, read <date>.}
+\newpage
+
+\section{Measured results}
+\hslead{Two to four measured figures, each saying what was measured and when.}
+
+\begin{hsstatrow}[3]
+\hsstat{42}{What was counted, and on which date.}
+\hsstat{7.5}{Caption for the second figure.}
+\hsstat{100\%}{Caption for the third figure.}
+\end{hsstatrow}
+
+\hsclaim{A single pull-quote claim, set large between two rules.}{Attribution label}
+
+\begin{hscallout}{What this does not mean}
+A callout holds the objection a careful reader would raise, stated before they
+have to. Placeholder text.
+\end{hscallout}
+
+\hsprovenance{Figures read on <date> from <command or file>.}
+\newpage
+
+\section*{Sources}
+\begin{hssources}
+\item Author, \emph{Title of the first source}, Publisher, Year.
+\item Author, \emph{Title of the second source}. \hsurl{https://example.com/source}
+\end{hssources}
+\end{document}
