@@ -31,7 +31,7 @@ The landing page (`lessons/bin/gen-index.mjs`) then needs the companion to appea
 
 Do not edit the vendored copy in place, for the same reason as lesson-builder's: change this repo, then pull the subtree. If `follow-skill` grows a second source, it should run this repo's `tests/check.sh` on the result exactly as it runs lesson-builder's.
 
-A session there builds a companion with the vendored skill's own script, `.claude/skills/pdf-material-builder/scripts/build.sh <COURSE>/claude_lessons/<slug>/<file>.tex`. It compiles with lualatex in the document's directory, and the house style and its fonts travel inside the subtree, so the workspace's machine needs only lualatex and texlive-luatex (luaotfload) installed. If `build-all.sh` ever compiles rather than only copies, it calls that script too.
+A session there builds a companion with the vendored skill's own script, `.claude/skills/pdf-material-builder/scripts/build.sh <COURSE>/claude_lessons/<slug>/<file>.tex`. It compiles with lualatex in the document's directory, and the house style and its fonts travel inside the subtree, so the workspace's machine needs only lualatex and texlive-luatex (luaotfload) installed. The subtree does not carry the `diagram-maker/` submodule, so a companion built there draws its figures with the TikZ kit, which `references/house-style/DIAGRAMS.md` allows when diagram-maker cannot run. If `build-all.sh` ever compiles rather than only copies, it calls that script too.
 
 The alternative, for a machine rather than a workspace, is a clone into `~/.claude/skills/pdf-material-builder/`. The README says both.
 

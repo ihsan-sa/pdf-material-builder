@@ -9,8 +9,10 @@ A Claude Code skill that builds teaching material and technical documentation as
 Machine-wide, for every session on this box:
 
 ```bash
-git clone https://github.com/ihsan-sa/pdf-material-builder ~/.claude/skills/pdf-material-builder
+git clone --recurse-submodules https://github.com/ihsan-sa/pdf-material-builder ~/.claude/skills/pdf-material-builder
 ```
+
+The skill carries [diagram-maker](https://github.com/ihsan-sa/diagram-maker) as a submodule in `diagram-maker/`, which is where its figures come from. `./install.sh`, run from any checkout of this repo, fast-forwards that clone to main and moves its diagram-maker to diagram-maker's latest main; on this box the landing runs it after every merge. It never makes the installed skill a symlink, and it leaves a missing or foreign directory alone. `scripts/build.sh` also moves diagram-maker to its latest main before it renders a document's figures, and quietly skips that offline.
 
 Or vendored into one workspace, so the skill travels with the repo and every worktree of it:
 
@@ -19,7 +21,7 @@ git subtree add --prefix .claude/skills/pdf-material-builder \
   https://github.com/ihsan-sa/pdf-material-builder main --squash
 ```
 
-Update a vendored copy with `git subtree pull` on the same prefix. Do not edit it in place: change this repo and pull.
+Update a vendored copy with `git subtree pull` on the same prefix. Do not edit it in place: change this repo and pull. A subtree does not carry the diagram-maker submodule, so a vendored copy draws its figures with the TikZ kit unless diagram-maker is checked out into its `diagram-maker/`.
 
 **What must be installed: lualatex, and texlive-luatex (luaotfload) alongside it.** The fonts (Source Serif 4, IBM Plex Mono) are vendored in `assets/fonts/`. Build any document with the skill's own script, from any repo:
 
@@ -58,6 +60,6 @@ The [lesson-builder](https://github.com/ihsan-sa/lesson-builder) skill owns the 
 tests/check.sh
 ```
 
-Hermetic, no network, under a minute. Frontmatter, every path the docs mention, the style gate and its selfcheck, voice drift, and a real lualatex build of both templates. Drift and compile cases skip with a printed reason when lesson-builder or lualatex is absent.
+Hermetic, no network, a few minutes. Frontmatter, every path the docs mention, the style gate and its selfcheck, voice drift, a real lualatex build of the templates, a diagram-maker figure placed with `\hsdiagram`, and `install.sh` and the diagram-maker sync against scratch clones. Drift and compile cases skip with a printed reason when lesson-builder or lualatex is absent.
 
 `docs/integration.md` lists what the lesson-builder and lessons repos must change before companions can be published.

@@ -9,7 +9,9 @@ Drop this folder in as `references/house-style/` and point the recipes at it.
 |---|---|
 | `house-style-template.html` | The reference document (v5). Seven pages, every block in the kit shown once at the size it is meant to be used. Open it in a browser; print it to see the page geometry. This is the target a reformatted document should match. |
 | `style-spec.md` | The written spec: page geometry (letter and A4), the full type scale, six colour tokens, the 8 pt spacing step, and the rule for each of the twelve blocks. This is the file a skill reads. |
-| `housestyle.sty` | A LaTeX class implementing the spec. LuaLaTeX (it uses fontspec and finds its fonts with Lua). |
+| `housestyle.sty` | A LaTeX class implementing the spec: the page, type and every block's frame. LuaLaTeX (it uses fontspec and finds its fonts with Lua). |
+| `hsdiagrams.sty` | The TikZ diagram kit, a module of its own; `housestyle.sty` loads it. |
+| `DIAGRAMS.md` | The contract between the page and the pictures in it: diagram-maker figures through `\hsdiagram`, or the TikZ kit. |
 | `house-style-template-short.html` | The same reference in the short form: no title page, the title block opens page one. |
 | `../../assets/short-template.tex` | The short form: no title page, the title block opens page one and the prose follows. Up to about twelve pages. |
 | `../../assets/blank-template.tex` | The long form: title page, contents, Parts. |
@@ -29,7 +31,9 @@ Five neutrals and one accent: ink `#15140F`, ink-70 `#4A4740`, ink-55
 The accent marks a deterministic check or a source numeral. It is never
 decoration and never appears more than three times on a page.
 
-Page: portrait, 54 pt top, 72 pt sides, 44 pt foot, measure 34 ems. Running head
+Page: portrait, 90 pt sides, text block from 92 pt to 70 pt off the foot, one
+measure (415 pt on A4) for prose and blocks alike. Prose ranged left, or
+justified with `\hsjustified` for essays and write-ups. Running head
 on every page but the first. One 8 pt spacing step used as 8 / 16 / 24 / 32 / 56.
 Rules are 0.75 pt, ink for structure and grey for division.
 

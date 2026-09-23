@@ -1,0 +1,121 @@
+% hsdiagrams.sty - the house style's own TikZ diagram kit
+% Split out of housestyle.sty in v5.1 (23 September 2026) so that diagrams are
+% a module of their own. housestyle.sty loads it unless the document asks for
+% [nodiagramkit]. Everything a picture draws lives here; the frame around a
+% picture (its label, rules, legend, fail note) is housestyle.sty's hsfigure and
+% does not change with the picture. See DIAGRAMS.md.
+%
+% Two sources of pictures, one socket:
+%   - diagram-maker (github.com/ihsan-sa/diagram-maker) renders a JSON spec to
+%     SVG and PDF; the document places it with \hsdiagram{file} inside hsfigure.
+%     This file is not used for those, and nothing here restyles them.
+%   - this kit, drawn in the document with TikZ. The fallback when diagram-maker
+%     cannot run, and the form the older documents use.
+% A document uses one source or the other, never both.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{hsdiagrams}[2026/09/23 v5.1 house-style TikZ diagram kit]
+\RequirePackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
+\@ifpackageloaded{housestyle}{}{\PackageError{hsdiagrams}{Load housestyle, not
+  hsdiagrams on its own}{hsdiagrams.sty takes its colours and faces from
+  housestyle.sty, which loads it.}}
+
+% The node row below is the template's own flow diagram. It is ONE available
+% pattern, not the mould: a diagram is drawn for its content, and the lane and
+% role kits further down are equally house style (owner, 22 September 2026:
+% "dont force diagrams into the format in the template").
+%
+% Four colours for a diagram role, and nowhere else. Each carries its own
+% explicit ~12% tint in hex, so a diagram never writes a `!` tint itself.
+% Owner's choice, 23 September 2026: lightly shaded, thin-outlined boxes, all
+% the same weight, told apart by hue; never filled black.
+\definecolor{slate}{HTML}{4F6D8A}
+\definecolor{sage}{HTML}{5E7A5A}
+\definecolor{ochre}{HTML}{A07A2C}
+% accent (9C4221, above) is the fourth role colour.
+\definecolor{slatetint}{HTML}{EAEDF1}
+\definecolor{sagetint}{HTML}{ECEFEB}
+\definecolor{ochretint}{HTML}{F4EFE6}
+\definecolor{accenttint}{HTML}{F3E8E4}
+\tikzset{
+  hsbox/.style    ={rounded corners=2pt,line width=0.6pt,inner sep=6pt,align=left,
+                    font=\fontsize{8.5pt}{11pt}\selectfont},
+  hsnode/.style   ={hsbox,draw=slate,fill=slatetint,text=ink,
+                    execute at begin node={\def\hs@ebc{slate}}},
+  hswork/.style   ={hsbox,draw=sage,fill=sagetint,text=ink,
+                    execute at begin node={\def\hs@ebc{sage}}},
+  hsgate/.style   ={hsbox,draw=accent,fill=accenttint,text=ink,
+                    execute at begin node={\def\hs@ebc{accent}}},
+  hsarrow/.style  ={-{Stealth[length=4pt]},draw=inkfiftyfive,line width=0.6pt},
+  hsfail/.style   ={-{Stealth[length=4pt]},draw=accent,line width=0.6pt,dashed},
+}
+% Every node in a row carries the same three parts and the same height, so the
+% eyebrows sit on one line and no box is ragged:
+%   \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries}};
+% \hsnodesize{width}{height} changes both for the rest of the picture.
+% 81 pt plus 6 pt of inner sep a side, four across at node distance=14pt, is
+% 414 pt: the A4 measure.
+\newlength{\hs@nodew}\setlength{\hs@nodew}{81pt}
+\newlength{\hs@nodeh}\setlength{\hs@nodeh}{46pt}
+\newcommand{\hsnodesize}[2]{\setlength{\hs@nodew}{#1}\setlength{\hs@nodeh}{#2}}
+\providecommand{\hs@ebc}{inkfiftyfive}
+% The eyebrow is Semibold small caps at 8.5 pt in the role colour: at that
+% size the Regular cut is too light to carry a hue.
+\newcommand{\hs@eyebrow}[1]{%
+  \leavevmode{\hs@eyebrowfont\fontsize{7.5pt}{8.5pt}\selectfont\color{\hs@ebc}#1}}
+\newcommand{\hsnodetext}[3]{%
+  \begin{minipage}[t][\hs@nodeh][t]{\hs@nodew}\hsfull\hyphenpenalty=10000
+    \hs@eyebrow{#1}%
+    \par\vspace{4pt}
+    {\fontsize{10pt}{12pt}\selectfont #2}\par\vspace{3pt}
+    {\fontsize{8pt}{10.5pt}\selectfont #3\par}%
+  \end{minipage}}
+% Role treatments, for a diagram whose parts are of different kinds. Every one
+% carries the same weight -- a thin outline and a fill at about 12% of the same
+% colour -- and a role reads apart by which of the four colours it carries.
+\tikzset{
+  % A box's shape and its treatment are two separate styles and a node takes one
+  % of each, shape first: \node[hsrole,hsslate] or \node[hslane,hsochre].
+  hsrole/.style     ={hsbox,fill=paper,text=ink,
+                      text width=84pt,minimum height=28pt,align=center,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkseventy}}},
+  hslane/.style     ={hsrole,text width=66pt,minimum height=30pt},
+  hsslate/.style    ={draw=slate,fill=slatetint,
+                      execute at begin node={\def\hs@ebc{slate}%
+                                             \def\hs@rbc{inkseventy}}},
+  hssage/.style     ={draw=sage,fill=sagetint,
+                      execute at begin node={\def\hs@ebc{sage}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsochre/.style    ={draw=ochre,fill=ochretint,
+                      execute at begin node={\def\hs@ebc{ochre}%
+                                             \def\hs@rbc{inkseventy}}},
+  hsaccentrole/.style={draw=accent,fill=accenttint,
+                      execute at begin node={\def\hs@ebc{accent}%
+                                             \def\hs@rbc{inkseventy}}},
+  % The v3 treatment names, kept so a document written before the change still
+  % builds; each now draws the role colour in its place.
+  hsfilled/.style   ={hsslate},
+  hsoutlined/.style ={hssage},
+  hsground/.style   ={hsochre},
+  hsmarked/.style   ={hsaccentrole},
+  % Not a role: ambient things -- a channel, a store, a timer.
+  hsquiet/.style    ={draw=rulegrey,fill=paper,text=inkseventy,
+                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
+                                             \def\hs@rbc{inkfiftyfive}}},
+  % a lifeline, a step sitting in one lane, an arrow's caption
+  hslife/.style     ={draw=rulegrey,line width=0.6pt},
+  hsstep/.style     ={hsbox,draw=rulegrey,fill=fill,
+                      text width=84pt,align=center,
+                      font=\fontsize{8pt}{10.5pt}\selectfont},
+  hsann/.style      ={font=\fontsize{7.5pt}{10pt}\selectfont\itshape,
+                      text=inkfiftyfive,fill=paper,inner sep=2pt,align=center},
+  hsreturn/.style   ={hsarrow,dashed},
+}
+% \hsrolename{Planning seat}{the project's session} -- a lane or role box's text.
+\providecommand{\hs@rbc}{inkseventy}
+\newcommand{\hsrolename}[2]{%
+  \hs@eyebrow{#1}%
+  \par\vspace{3pt}{\fontsize{8pt}{10.5pt}\selectfont\color{\hs@rbc}#2\par}}
+
+\endinput

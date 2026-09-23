@@ -8,17 +8,40 @@ what `housestyle.sty` renders, in points, and the HTML reference matches it.
 | | Letter | A4 |
 |---|---|---|
 | Trim | 8.5 x 11 in | 210 x 297 mm |
-| Top margin | 54 pt | 54 pt |
-| Side margins | 72 pt | 72 pt |
-| Foot margin | 44 pt | 44 pt |
-| Measure | 34 em of body text (~420 pt) | same |
+| Top of text block | 92 pt | 92 pt |
+| Running head baseline | 47 pt from the top edge | same |
+| Side margins | 90 pt | 90 pt |
+| Bottom of text block | 70 pt | 70 pt |
+| Page number baseline | 38 pt from the bottom edge | same |
+| Measure | 432 pt | 415 pt |
+
+*v5.1, 23 September 2026 (owner, option 2a).* **One measure for everything.**
+Prose, rules, figures, tables, stat rows and the running head all run the same
+width, so both edges of the text block line up with the rules. Before, prose
+stopped 48 pt short of the rules, and the page looked as if it ended early on
+the right. The whole scale also came down one step, and the running head moved
+off the top edge.
 
 Portrait only. One geometry for every recipe; a landscape reference sheet is a
 separate class, not a variant of this one.
 
-Running head on every page but the first: document slug at the left, section name
-at the right, serif small caps 10.5 pt, +5% tracking, ink 55%, with a 0.75 pt grey
-rule under it. Page number at the foot, same style, outer edge.
+Running head on every page but the first: document slug at the left, section
+name at the right, serif small caps 8 pt, +9% tracking, ink 55%, with a 0.5 pt
+grey rule 4 pt under it. Page number at the foot, same style, outer edge.
+
+## Alignment
+
+Prose is ranged left (the default) or justified (`\hsjustified`), chosen once
+per document:
+
+- **Justified** for an essay, a write-up, a letter or reading notes: pages
+  that are mostly continuous paragraphs.
+- **Ranged left** for a technical document (notes with maths and code, a
+  reference, a spec), and for any document whose prose is broken up by a
+  block on most pages. The pitch is one (the owner's pick, 2a).
+
+Lead lines, captions, legends, labels, stat captions, callouts and sources
+are ranged left in both.
 
 ## Type
 
@@ -42,26 +65,29 @@ machine-made.*
 
 | Role | Face | Size / leading (pt) | Notes |
 |---|---|---|---|
-| Document title | Display 400 | 36 / 40 | `\hstitle`, `\hstitleblock` |
-| Part and section heading | Subhead 400 | 20 / 24 | unnumbered; `\hsnumbersections` adds "2" in ink 55%, 14 pt before the title |
-| Subsection | Subhead 400 | 14 / 19 | numbered "2.1" when switched on |
-| Sub-subsection | Text italic | 11.5 / 18.5 | |
-| Lead line | Text 400 | 12.5 / 19 | ink 70%, two lines max |
-| Body | Text 400 | 11.5 / 18.5 | the default for prose |
-| Claim (pull quote) | Subhead 400 | 19 / 25 | one per document |
-| Legend, caption | Text 400 | 10 / 15 | ink 70% |
-| Callout body, sources | Text 400 | 10.5 / 16 | callout label hangs in a 96 pt column |
-| Statistic | Display 400 | 28 / 28 | lining tabular figures; four abreast, never five |
-| Stat caption | Text 400 | 9.5 / 14 | ink 70% |
-| Label | Text, all small caps | 10.5 / 14, +5% | ink 55%, or accent |
-| Node eyebrow | Semibold, all small caps | 8.5 / 9, +6% | the role colour |
-| Node title, node detail | Text 400 | 11 / 13, 8.5 / 11.5 | |
-| Fail note | Text italic | 9 / 12 | accent |
-| Provenance | Text 400 | 8.5 / 12 | ink 55%, as typed (TeX ligatures off) |
+| Document title | Display 400 | 32 / 35; 40 / 44 on a title page | `\hstitle`, `\hstitleblock` |
+| Part and section heading | Subhead 400 | 17 / 21 | 32 pt above, 8 below; unnumbered; `\hsnumbersections` adds "2" in ink 55%, 12 pt before the title |
+| Subsection | Subhead 400 | 13 / 17 | numbered "2.1" when switched on |
+| Sub-subsection | Text italic | 10.5 / 16 | |
+| Lead line | Text 400 | 11.5 / 17 | ink 70%, two lines max |
+| Body | Text 400 | 10.5 / 16 | paragraphs 8 pt apart |
+| Claim (pull quote) | Subhead 400 | 17 / 23 | one per document |
+| Legend, caption | Text 400 | 9 / 13 | ink 70% |
+| Callout body | Text 400 | 10 / 15 | label hangs in a 96 pt column |
+| Sources | Text 400 | 9.5 / 14 | |
+| Statistic | Display 400 | 24 / 24 | lining tabular figures; four abreast, never five |
+| Stat caption | Text 400 | 8.5 / 12 | ink 70% |
+| Label | Text, all small caps | 8.5 / 12, +5% | ink 55%, or accent; a label's italic title is 9.5 |
+| Running head, page number | Text, all small caps | 8 / 10, +9% | ink 55% |
+| Node eyebrow | Semibold, all small caps | 7.5 / 8.5, +6% | the role colour (TikZ kit) |
+| Node title, node detail | Text 400 | 10 / 12, 8 / 10.5 | TikZ kit |
+| Fail note | Text italic | 8.5 / 11.5 | accent |
+| Provenance | Text 400 | 7.5 / 11 | ink 55%, as typed (TeX ligatures off) |
 | Code | Plex Mono 400 | 10 x 0.86 / 15 | no syntax colour in print |
 
 No bold in body text. Emphasis is italic. Small caps only through the label
-macros. No sans-serif anywhere. No underline except on links.
+macros. No sans-serif on the page; inside a diagram-maker picture its own
+`STYLE.md` governs (`DIAGRAMS.md`). No underline except on links.
 
 ## Colour
 
@@ -86,8 +112,8 @@ page's prose; inside a diagram, block 2 governs.
 
 ## Spacing
 
-One 8 pt step, used as 8 / 16 / 24 / 32 / 56. Blocks are separated by 32, a new
-section by 56. Rules are 0.75 pt: ink where they carry structure (above a table
+One 8 pt step, used as 8 / 16 / 24 / 32. Paragraphs are 8 apart, blocks 24,
+a new section 32. Rules are 0.75 pt: ink where they carry structure (above a table
 head, under the title block), grey where they only divide.
 
 ## The twelve blocks
@@ -98,7 +124,9 @@ head, under the title block), grey where they only divide.
    bottom one, no page number. Between them, the eyebrow, the title at 44 / 48
    and the lead, a third of the way down, and white. Shorter documents open
    with the title block at the top of page one and go straight into prose.
-2. **Diagram** - drawn for what it shows. *Owner's decision, 22 September 2026:
+2. **Diagram** - a module of its own (`DIAGRAMS.md`): the kit draws the frame
+   (label, rules, legend), and the picture comes from diagram-maker through
+   `\hsdiagram`, or from the TikZ kit in `hsdiagrams.sty`. Drawn for what it shows. *Owner's decision, 22 September 2026:
    "dont force diagrams into the format in the template". This replaces the
    earlier text of this block, which allowed three node kinds and no more.* The
    node row is one pattern: horizontal nodes joined by grey arrows, a slate box

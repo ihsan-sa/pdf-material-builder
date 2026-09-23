@@ -21,25 +21,25 @@
 % Foot: the copyright line at the left, the page number at the right. The
 % first page has no head, per the spec.
 \hsslug{<COURSE> <DOC>}
-\fancyfoot[L]{\hslabel{\textcopyright{} <YEAR> <NAME>. All rights reserved.}}
+\fancyfoot[L]{\hsrunlabel{\textcopyright{} <YEAR> <NAME>. All rights reserved.}}
 \renewcommand{\sectionmark}[1]{\markboth{#1}{}}
 \hssection{\leftmark}
 
 % --- Headings --------------------------------------------------------------
 % Headings are unnumbered on the page (the .sty's \section). Cross-reference
 % a section by name with \nameref{sec:...}; a Part by its number, Part~\ref{part:...}.
-% A Part opens on a new page: its eyebrow, then the page heading at 20/24 in the
+% A Part opens on a new page: its eyebrow, then the page heading at 17/21 in the
 % Subhead cut (the .sty's \section), no bold.
 \makeatletter
 \renewcommand{\thepart}{\arabic{part}}
 \newcommand{\hs@parteyebrow}{}
 \titleclass{\part}{top}
 \assignpagestyle{\part}{fancy}  % keep the head and the copyright foot on a Part page
-\titleformat{\part}[display]{\hssubheadfont\fontsize{20pt}{24pt}\selectfont\color{ink}}%
+\titleformat{\part}[display]{\hssubheadfont\fontsize{17pt}{21pt}\selectfont\color{ink}}%
   {\hsaccentlabel{Part \thepart\hs@parteyebrow}}{10pt}{}
 \titlespacing*{\part}{0pt}{0pt}{24pt}
-\titleformat{\subsection}{\hssubheadfont\fontsize{14pt}{19pt}\selectfont\color{ink}}{}{0pt}{}
-\titlespacing*{\subsection}{0pt}{18pt}{6pt}
+\titleformat{\subsection}{\hssubheadfont\fontsize{13pt}{17pt}\selectfont\color{ink}}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{16pt}{4pt}
 \titleformat{\subsubsection}{\itshape\color{ink}}{}{0pt}{}
 \titlespacing*{\subsubsection}{0pt}{12pt}{2pt}
 
@@ -52,6 +52,11 @@
 \makeatother
 % Numbered sections (1, 1.1, ...): uncomment. Off by default.
 % \hsnumbersections
+% Justified prose: uncomment for an essay, a write-up or notes that run as
+% continuous prose. Leave it off for a technical document, or any document
+% whose prose is broken up by figures, tables, stats and code (style-spec.md,
+% Alignment).
+% \hsjustified
 \newcommand{\cat}[1]{\hslabel{[#1]}}      % [A]
 \newcommand{\tool}[1]{\hslabel{[T#1]}}    % [T5]
 \newcommand{\tools}[1]{\hslabel{[#1]}}    % [T4,T5]

@@ -12,17 +12,18 @@
 % small-caps number and an italic title. Mono is kept for code, URLs and paths
 % only. Every command name and argument is unchanged; see CHANGES.md.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{housestyle}[2026/09/23 v5 technical document house style]
+\ProvidesPackage{housestyle}[2026/09/23 v5.1 technical document house style]
 
 \RequirePackage{iftex}
 % Paper is letter unless the document sets \hspaper first. For A4,
 % \newcommand\hspaper{a4paper} before \usepackage{housestyle}; margins unchanged.
 \providecommand\hspaper{letterpaper}
-\RequirePackage[\hspaper,top=54pt,bottom=44pt,left=72pt,right=72pt,%
-  headsep=26pt,footskip=26pt]{geometry}
-% headsep is 26 pt, not 14: a \section at the top of a page loses its 28 pt
-% before-space, so at 14 pt its capitals sat 8 pt under the head rule (pitch,
-% 23 September 2026).
+\RequirePackage[\hspaper,top=92pt,bottom=70pt,left=90pt,right=90pt,%
+  headheight=10pt,headsep=45pt,footskip=32pt]{geometry}
+% v5.1 (23 September 2026): 90 pt sides and one measure for everything --
+% 415 pt on A4, 432 pt on Letter. The running head's baseline sits 47 pt from
+% the top edge and the text block starts at 92 pt, so a heading at the top of a
+% page has room under the head rule.
 
 \RequirePackage{fontspec}
 \RequirePackage{xcolor}
@@ -104,6 +105,9 @@
   \newfontfamily\hs@eyebrowfont{SourceSerif4}[Path=\hsfontdir,Extension=.otf,
     UprightFont=*-Semibold,
     Letters={SmallCaps,UppercaseSmallCaps},Numbers=Lining,LetterSpace=6.0]
+  \newfontfamily\hs@runfont{SourceSerif4}[Path=\hsfontdir,Extension=.otf,
+    UprightFont=*-Regular,
+    Letters={SmallCaps,UppercaseSmallCaps},Numbers=Lining,LetterSpace=9.0]
   \newfontfamily\hs@notefont{SourceSerif4}[Path=\hsfontdir,Extension=.otf,
     UprightFont=*-Regular,ItalicFont=*-It,Ligatures=TeXOff,
     Numbers={Lining,Proportional}]
@@ -121,21 +125,42 @@
     LetterSpace=5.0]
   \newfontfamily\hs@eyebrowfont{Source Serif 4 Semibold}[
     Letters={SmallCaps,UppercaseSmallCaps},Numbers=Lining,LetterSpace=6.0]
+  \newfontfamily\hs@runfont{Source Serif 4}[
+    Letters={SmallCaps,UppercaseSmallCaps},Numbers=Lining,LetterSpace=9.0]
   \newfontfamily\hs@notefont{Source Serif 4}[Ligatures=TeXOff,
     Numbers={Lining,Proportional}]
   \newfontfamily\hs@figfont{Source Serif 4}[Numbers={Lining,Tabular}]
   \setmonofont{IBM Plex Mono}[Scale=0.86]
 }
 
-\renewcommand{\normalsize}{\fontsize{11.5pt}{18.5pt}\selectfont}
+\renewcommand{\normalsize}{\fontsize{10.5pt}{16pt}\selectfont}
 \normalsize
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{11pt}
-% Spec, Page: prose sits on a 34 em measure (about 420 pt) and is left-ranged,
-% while rules, figures, tables and stat rows run the full 468 pt text width.
-% \rightskip does both at once, so \linewidth stays the full measure.
-\newlength{\hsprosegap}\setlength{\hsprosegap}{48pt}
-\newcommand{\hsprose}{\rightskip=\dimexpr\hsprosegap\relax plus 1fil\hyphenpenalty=2000}
+\setlength{\parskip}{8pt}
+% Prose runs the full measure, the same width as the rules, figures, tables and
+% stat rows (v5.1; before, it stopped 48 pt short and the page looked as if it
+% ended early on the right). Ranged left by default. \hsjustified in the
+% preamble, or \usepackage[justified]{housestyle}, justifies it instead: see
+% style-spec.md, "Alignment", for which documents take which. Lead lines,
+% captions, legends, labels and anything in a box of its own stay ranged left
+% either way. \hsprosegap is kept for old documents and is 0.
+\newlength{\hsprosegap}\setlength{\hsprosegap}{0pt}
+\newif\ifhs@justified
+% \dimexpr: \hsprosegap is a skip, and "\rightskip=\hsprosegap plus 3em"
+% assigns the whole register and then prints "plus 3em" on the page.
+\newcommand{\hs@ragged}{\rightskip=\dimexpr\hsprosegap\relax plus 3em\relax
+  \hyphenpenalty=1000\exhyphenpenalty=1000}
+\newcommand{\hs@justify}{\rightskip=\dimexpr\hsprosegap\relax\relax
+  \hyphenpenalty=200\exhyphenpenalty=200\emergencystretch=1.5em}
+\newcommand{\hsprose}{\ifhs@justified\hs@justify\else\hs@ragged\fi}
+\newcommand{\hsjustified}{\hs@justifiedtrue\hsprose}
+\newcommand{\hsragged}{\hs@justifiedfalse\hsprose}
+\DeclareOption{justified}{\hs@justifiedtrue}
+% [nodiagramkit]: do not load hsdiagrams.sty. For a document whose figures all
+% come from diagram-maker; the hs* TikZ styles are then undefined.
+\newif\ifhs@diagramkit\hs@diagramkittrue
+\DeclareOption{nodiagramkit}{\hs@diagramkitfalse}
+\ProcessOptions\relax
 % Anything set inside a box of its own -- a stat caption, a callout, a diagram
 % node -- is already narrow, so it ranges left at its own full width.
 \newcommand{\hsfull}{\rightskip=0pt plus 1fil}
@@ -150,7 +175,7 @@
 % \leavevmode first: a label that opens a [t] minipage (the callout) would
 % otherwise put its colour special on the vertical list ahead of the line, and
 % the minipage would align on that instead of on the label's baseline.
-% \hslabel{text}, \hsaccentlabel{text}: all small caps at 10.5 pt, +5%
+% \hslabel{text}, \hsaccentlabel{text}: all small caps at 8.5 pt, +5%
 % tracking, in ink-55 or the accent. Whatever case the text is written in, it
 % comes out as small caps, so "INPUT", "Input" and "input" all look the same.
 % A label with a " / " in it splits at the first one: the part before it (the
@@ -165,7 +190,7 @@
   {
     \leavevmode
     \group_begin:
-      \labelfont \fontsize{10.5pt}{14pt} \selectfont
+      \labelfont \fontsize{8.5pt}{12pt} \selectfont
       \tl_if_in:nnTF {#2} { ~/~ }
         { \__hs_label_split:nw {#1} #2 \q_stop }
         { \color{#1} #2 }
@@ -175,7 +200,8 @@
   {
     { \color{#1} \tl_trim_spaces:n {#2} }
     \hspace{0.6em}
-    { \rmfamily \itshape \color{inkseventy} \tl_trim_spaces:n {#3} }
+    { \rmfamily \itshape \fontsize{9.5pt}{12pt} \selectfont \color{inkseventy}
+      \tl_trim_spaces:n {#3} }
   }
 \NewDocumentCommand \hslabel { m } { \hs_label:nn { inkfiftyfive } {#1} }
 \NewDocumentCommand \hsaccentlabel { m } { \hs_label:nn { accent } {#1} }
@@ -188,15 +214,19 @@
 % group (the sources list, block 8) needs the value to survive the group and
 % reach the output routine, which runs long after \end{hssources}.
 \newcommand{\hsgsection}[1]{\gdef\@hssection{#1}}
+% \hsrunlabel{text}: the running head's and foot's face, 8 pt small caps at
+% +9%, ink-55. New in v5.1; a document's copyright foot uses it.
+\newcommand{\hsrunlabel}[1]{{\hs@runfont\fontsize{8pt}{10pt}\selectfont
+  \color{inkfiftyfive}#1}}
 \pagestyle{fancy}\fancyhf{}
-\renewcommand{\headrulewidth}{0.75pt}
-\renewcommand{\headrule}{\textcolor{rulegrey}{\rule{\headwidth}{0.75pt}}}
-\fancyhead[L]{\hslabel{\@hsslug}}
-\fancyhead[R]{\hslabel{\@hssection}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\vskip 4pt\textcolor{rulegrey}{\rule{\headwidth}{0.5pt}}}
+\fancyhead[L]{\hsrunlabel{\@hsslug}}
+\fancyhead[R]{\hsrunlabel{\@hssection}}
 % The slug prints in the running head already. This slot stays empty unless a
 % document puts its copyright line here.
 \fancyfoot[L]{}
-\fancyfoot[R]{\hslabel{\thepage}}
+\fancyfoot[R]{\hsrunlabel{\thepage}}
 % Spec: running head on every page but the first. The first page keeps the foot.
 \fancypagestyle{hsfirst}{\fancyhead{}\renewcommand{\headrule}{}}
 % A dedicated title page is framed by two ink rules: the slug and the date
@@ -209,17 +239,17 @@
   April\or May\or June\or July\or August\or September\or October\or
   November\or December\fi\space\number\year}
 \fancypagestyle{hstitlepage}{%
-  \fancyhead[L]{\hslabel{\@hsslug}}\fancyhead[R]{\hslabel{\@hsdate}}%
+  \fancyhead[L]{\hsrunlabel{\@hsslug}}\fancyhead[R]{\hsrunlabel{\@hsdate}}%
   \fancyfoot[R]{}%
-  \renewcommand{\headrule}{\textcolor{ink}{\rule{\headwidth}{0.75pt}}}%
+  \renewcommand{\headrule}{\vskip 4pt\textcolor{ink}{\rule{\headwidth}{0.75pt}}}%
   \renewcommand{\footrulewidth}{0.75pt}%
   \renewcommand{\footrule}{\textcolor{ink}{\rule{\headwidth}{0.75pt}}}}
 \AtBeginDocument{\thispagestyle{hsfirst}}
 
 % ---- headings ---------------------------------------------------------------
-\titleformat{\section}{\hssubheadfont\fontsize{20pt}{24pt}\selectfont\color{ink}}{}{0pt}{}
-\titlespacing*{\section}{0pt}{28pt}{10pt}
-\newcommand{\hslead}[1]{{\fontsize{12.5pt}{19pt}\selectfont\color{inkseventy}#1\par}}
+\titleformat{\section}{\hssubheadfont\fontsize{17pt}{21pt}\selectfont\color{ink}}{}{0pt}{}
+\titlespacing*{\section}{0pt}{32pt}{8pt}
+\newcommand{\hslead}[1]{{\hsfull\fontsize{11.5pt}{17pt}\selectfont\color{inkseventy}#1\par}}
 
 % ---- contents ---------------------------------------------------------------
 % The table of contents is the kit's too: no bold, no dot leaders. A Part is a
@@ -234,7 +264,7 @@
   {\makebox[64pt][l]{\hslabel{Part \thecontentslabel}}}{\makebox[64pt][l]{}}%
   {\hfill\hs@tocpage}[\addvspace{2pt}]
 \titlecontents{section}[64pt]{\addvspace{1pt}}{}{}{\hfill\hs@tocpage}
-\titlecontents{subsection}[80pt]{\fontsize{10.5pt}{15pt}\selectfont\color{inkseventy}}%
+\titlecontents{subsection}[80pt]{\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}}%
   {}{}{\hfill\hs@tocpage}
 \let\hs@tableofcontents\tableofcontents
 \renewcommand{\tableofcontents}{\begingroup\hsfull\hs@tableofcontents\endgroup}
@@ -249,23 +279,23 @@
 % (the preamble sets the subsection format, and this overrides it). New in v5.
 \newcommand{\hs@tocnum}[1]{\llap{\textcolor{inkfiftyfive}{\hs@figfont #1}\hspace{10pt}}}
 \newcommand{\hsnumbersections}{%
-  \titleformat{\section}{\hssubheadfont\fontsize{20pt}{24pt}\selectfont\color{ink}}%
-    {\textcolor{inkfiftyfive}{\thesection}}{14pt}{}%
-  \titleformat{\subsection}{\hssubheadfont\fontsize{14pt}{19pt}\selectfont\color{ink}}%
-    {\textcolor{inkfiftyfive}{\thesubsection}}{10pt}{}%
+  \titleformat{\section}{\hssubheadfont\fontsize{17pt}{21pt}\selectfont\color{ink}}%
+    {\textcolor{inkfiftyfive}{\thesection}}{12pt}{}%
+  \titleformat{\subsection}{\hssubheadfont\fontsize{13pt}{17pt}\selectfont\color{ink}}%
+    {\textcolor{inkfiftyfive}{\thesubsection}}{8pt}{}%
   \titlecontents{section}[64pt]{\addvspace{1pt}}%
     {\hs@tocnum{\thecontentslabel}}{}{\hfill\hs@tocpage}%
-  \titlecontents{subsection}[80pt]{\fontsize{10.5pt}{15pt}\selectfont\color{inkseventy}}%
+  \titlecontents{subsection}[80pt]{\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}}%
     {\hs@tocnum{\thecontentslabel}}{}{\hfill\hs@tocpage}}
 
 % ---- lists ------------------------------------------------------------------
 \setlist[itemize,1]{label=\textcolor{inkfiftyfive}{\textbullet}}
 
 % ---- 1. title block ---------------------------------------------------------
-% \hstitle[size]{title}: the document title alone. New in v5. 36 pt by
+% \hstitle[size]{title}: the document title alone. New in v5. 32 pt by
 % default (the short form's \hstitleblock); a dedicated title page sets it at
-% 44 pt, \hstitle[44pt]{...}. Leading is 1.1 times the size.
-\newcommand{\hstitle}[2][36pt]{%
+% 40 pt, \hstitle[40pt]{...}. Leading is 1.1 times the size.
+\newcommand{\hstitle}[2][32pt]{%
   {\hsdisplayfont\fontsize{#1}{\dimexpr #1*11/10\relax}\selectfont
    \hsfull\hyphenpenalty=10000 #2\par}}
 % \hstitleblock{eyebrow}{title}{lead}
@@ -274,120 +304,50 @@
   \hstitle{#2}\vspace{12pt}
   \hslead{#3}\vspace{18pt}}
 
-% ---- 2. diagrams ------------------------------------------------------------
-% The node row below is the template's own flow diagram. It is ONE available
-% pattern, not the mould: a diagram is drawn for its content, and the lane and
-% role kits further down are equally house style (owner, 22 September 2026:
-% "dont force diagrams into the format in the template").
+% ---- 2. figures: the frame, and the socket a picture goes in ---------------
+% A figure is two modules. The frame is here: \begin{hsfigure}{label}{legend}
+% draws the label, the grey rules, the legend and (with \hsfailnote) the fail
+% caption. The picture inside it comes from one of two places, and never
+% changes the frame:
+%   \hsdiagram{figures/name}   a PDF from diagram-maker (DIAGRAMS.md)
+%   \begin{tikzpicture}...     the TikZ kit in hsdiagrams.sty
+% Nothing in a picture may redefine a frame command, and nothing in the frame
+% reaches into a picture.
 %
-% Four colours for a diagram role, and nowhere else. Each carries its own
-% explicit ~12% tint in hex, so a diagram never writes a `!` tint itself.
-% Owner's choice, 23 September 2026: lightly shaded, thin-outlined boxes, all
-% the same weight, told apart by hue; never filled black.
-\definecolor{slate}{HTML}{4F6D8A}
-\definecolor{sage}{HTML}{5E7A5A}
-\definecolor{ochre}{HTML}{A07A2C}
-% accent (9C4221, above) is the fourth role colour.
-\definecolor{slatetint}{HTML}{EAEDF1}
-\definecolor{sagetint}{HTML}{ECEFEB}
-\definecolor{ochretint}{HTML}{F4EFE6}
-\definecolor{accenttint}{HTML}{F3E8E4}
-\tikzset{
-  hsbox/.style    ={rounded corners=2pt,line width=0.6pt,inner sep=7pt,align=left,
-                    font=\fontsize{9.5pt}{12pt}\selectfont},
-  hsnode/.style   ={hsbox,draw=slate,fill=slatetint,text=ink,
-                    execute at begin node={\def\hs@ebc{slate}}},
-  hswork/.style   ={hsbox,draw=sage,fill=sagetint,text=ink,
-                    execute at begin node={\def\hs@ebc{sage}}},
-  hsgate/.style   ={hsbox,draw=accent,fill=accenttint,text=ink,
-                    execute at begin node={\def\hs@ebc{accent}}},
-  hsarrow/.style  ={-{Stealth[length=4pt]},draw=inkfiftyfive,line width=0.6pt},
-  hsfail/.style   ={-{Stealth[length=4pt]},draw=accent,line width=0.6pt,dashed},
-}
-% Every node in a row carries the same three parts and the same height, so the
-% eyebrows sit on one line and no box is ragged:
-%   \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries}};
-% \hsnodesize{width}{height} changes both for the rest of the picture.
-\newlength{\hs@nodew}\setlength{\hs@nodew}{88pt}
-\newlength{\hs@nodeh}\setlength{\hs@nodeh}{54pt}
-\newcommand{\hsnodesize}[2]{\setlength{\hs@nodew}{#1}\setlength{\hs@nodeh}{#2}}
-\providecommand{\hs@ebc}{inkfiftyfive}
-% The eyebrow is Semibold small caps at 8.5 pt in the role colour: at that
-% size the Regular cut is too light to carry a hue.
-\newcommand{\hs@eyebrow}[1]{%
-  \leavevmode{\hs@eyebrowfont\fontsize{8.5pt}{9pt}\selectfont\color{\hs@ebc}#1}}
-\newcommand{\hsnodetext}[3]{%
-  \begin{minipage}[t][\hs@nodeh][t]{\hs@nodew}\hsfull\hyphenpenalty=10000
-    \hs@eyebrow{#1}%
-    \par\vspace{5pt}
-    {\fontsize{11pt}{13pt}\selectfont #2}\par\vspace{4pt}
-    {\fontsize{8.5pt}{11.5pt}\selectfont #3\par}%
-  \end{minipage}}
+% \hsdiagram[includegraphics keys]{file}: the picture at its own size, or
+% scaled down to the measure if it is wider. Never scaled up, so a figure
+% rendered at the measure (DIAGRAMS.md, "Size") lands at 1:1 and its type
+% matches the page's. Ranged left like every other block.
+\newsavebox{\hs@diagbox}
+\newcommand{\hsdiagram}[2][]{%
+  \sbox{\hs@diagbox}{\includegraphics[#1]{#2}}%
+  {\hsfull\noindent\ifdim\wd\hs@diagbox>\linewidth
+    \includegraphics[width=\linewidth,#1]{#2}%
+  \else\usebox{\hs@diagbox}\fi\par}}
 % The fail path is one accent line and one accent caption, and the caption sits
 % under the picture rather than inside the arrows. Text italic, as written.
 \newcommand{\hsfailnote}[1]{%
-  \par\vspace{7pt}{\rmfamily\itshape\fontsize{9pt}{12pt}\selectfont\color{accent}%
+  \par\vspace{7pt}{\hsfull\rmfamily\itshape\fontsize{8.5pt}{11.5pt}\selectfont\color{accent}%
   #1\par}}
 
-% Role treatments, for a diagram whose parts are of different kinds. Every one
-% carries the same weight -- a thin outline and a fill at about 12% of the same
-% colour -- and a role reads apart by which of the four colours it carries.
-\tikzset{
-  % A box's shape and its treatment are two separate styles and a node takes one
-  % of each, shape first: \node[hsrole,hsslate] or \node[hslane,hsochre].
-  hsrole/.style     ={hsbox,fill=paper,text=ink,
-                      text width=92pt,minimum height=30pt,align=center,
-                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
-                                             \def\hs@rbc{inkseventy}}},
-  hslane/.style     ={hsrole,text width=72pt,minimum height=34pt},
-  hsslate/.style    ={draw=slate,fill=slatetint,
-                      execute at begin node={\def\hs@ebc{slate}%
-                                             \def\hs@rbc{inkseventy}}},
-  hssage/.style     ={draw=sage,fill=sagetint,
-                      execute at begin node={\def\hs@ebc{sage}%
-                                             \def\hs@rbc{inkseventy}}},
-  hsochre/.style    ={draw=ochre,fill=ochretint,
-                      execute at begin node={\def\hs@ebc{ochre}%
-                                             \def\hs@rbc{inkseventy}}},
-  hsaccentrole/.style={draw=accent,fill=accenttint,
-                      execute at begin node={\def\hs@ebc{accent}%
-                                             \def\hs@rbc{inkseventy}}},
-  % The v3 treatment names, kept so a document written before the change still
-  % builds; each now draws the role colour in its place.
-  hsfilled/.style   ={hsslate},
-  hsoutlined/.style ={hssage},
-  hsground/.style   ={hsochre},
-  hsmarked/.style   ={hsaccentrole},
-  % Not a role: ambient things -- a channel, a store, a timer.
-  hsquiet/.style    ={draw=rulegrey,fill=paper,text=inkseventy,
-                      execute at begin node={\def\hs@ebc{inkfiftyfive}%
-                                             \def\hs@rbc{inkfiftyfive}}},
-  % a lifeline, a step sitting in one lane, an arrow's caption
-  hslife/.style     ={draw=rulegrey,line width=0.6pt},
-  hsstep/.style     ={hsbox,draw=rulegrey,fill=fill,
-                      text width=96pt,align=center,
-                      font=\fontsize{8.5pt}{11pt}\selectfont},
-  hsann/.style      ={font=\fontsize{8pt}{10.5pt}\selectfont\itshape,
-                      text=inkfiftyfive,fill=paper,inner sep=2pt,align=center},
-  hsreturn/.style   ={hsarrow,dashed},
-}
-% \hsrolename{Planning seat}{the project's session} -- a lane or role box's text.
-\providecommand{\hs@rbc}{inkseventy}
-\newcommand{\hsrolename}[2]{%
-  \hs@eyebrow{#1}%
-  \par\vspace{3pt}{\fontsize{8.5pt}{11pt}\selectfont\color{\hs@rbc}#2\par}}
 % \begin{hsfigure}{Figure 1 / caption label}{the legend sentence} ... \end{hsfigure}
+% \parskip is 0 inside, as in the claim and the callout: pitch (4) had 11 pt
+% more at every \par, about 70 pt of air in every figure.
 \newenvironment{hsfigure}[2]{%
-  \par\vspace{14pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}\hsthinrule\vspace{12pt}
-  \def\hs@legend{#2}\centering}{%
-  \par\vspace{12pt}\hsthinrule\vspace{7pt}
-  \raggedright{\hsfull\fontsize{10pt}{15pt}\selectfont\color{inkseventy}%
-    \hs@legend\par}\vspace{14pt}}
+  \par\vspace{24pt}\setlength{\parskip}{0pt}{\hsfull\hslabel{#1}\par}\nopagebreak\vspace{8pt}\hsthinrule\nopagebreak\vspace{14pt}
+  \def\hs@legend{#2}\hsfull\noindent\ignorespaces}{%
+  \par\vspace{10pt}\hsthinrule\vspace{7pt}
+  \raggedright{\hsfull\fontsize{9pt}{13pt}\selectfont\color{inkseventy}%
+    \hs@legend\par}\vspace{24pt}}
+
+% The TikZ kit: its own file, so a change to it (or to diagram-maker) cannot
+% touch the page.
+\ifhs@diagramkit\RequirePackage{hsdiagrams}\fi
 
 % ---- 3. stat row ------------------------------------------------------------
 % \begin{hsstatrow}[n] \hsstat{741}{caption} ... \end{hsstatrow}, n = 2, 3 or 4.
 % Four is the maximum. A fifth \hsstat raises an error rather than wrapping.
-% The figure is Source Serif 4 Display at 28 pt with lining tabular figures.
+% The figure is Source Serif 4 Display at 24 pt with lining tabular figures.
 \newcounter{hs@stats}\newcounter{hs@statmax}
 \newlength{\hs@statwidth}
 \newcommand{\hsstat}[2]{%
@@ -398,14 +358,14 @@
       table.}%
   \fi
   \begin{minipage}[t]{\hs@statwidth}\hsfull
-    {\statfont\fontsize{28pt}{28pt}\selectfont #1}\par\vspace{7pt}
-    {\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}#2\par}
+    {\statfont\fontsize{24pt}{24pt}\selectfont #1}\par\vspace{6pt}
+    {\fontsize{8.5pt}{12pt}\selectfont\color{inkseventy}#2\par}
   \end{minipage}\hfill}
 \newenvironment{hsstatrow}[1][4]{%
-  \setcounter{hs@stats}{0}\setcounter{hs@statmax}{#1}%
+  \setcounter{hs@stats}{0}\setcounter{hs@statmax}{#1}\setlength{\parskip}{0pt}%
   \setlength{\hs@statwidth}{\dimexpr(\linewidth-#1\dimexpr 16pt\relax)/#1\relax}%
-  \par\vspace{16pt}\hsrule\par\vspace{16pt}\hsfull\noindent}%
-  {\par\vspace{16pt}\hsthinrule\par\vspace{16pt}}
+  \par\vspace{20pt}\hsrule\par\nopagebreak\vspace{14pt}\hsfull\noindent}%
+  {\par\nopagebreak\vspace{14pt}\hsthinrule\par\vspace{20pt}}
 
 % ---- 4-5. tables ------------------------------------------------------------
 % A table is a block, not prose, so it sits on the whole measure:
@@ -426,12 +386,12 @@
 \newcommand{\hsplate}[5]{%
   \par\vspace{14pt}{\hsfull\noindent\includegraphics[width=\linewidth]{#1}\par}%
   \vspace{7pt}
-  {\labelfont\fontsize{10.5pt}{14pt}\selectfont #2\quad
+  {\labelfont\fontsize{8.5pt}{12pt}\selectfont #2\quad
     \textcolor{inkfiftyfive}{#3}\quad\textcolor{accent}{#4}\par}
-  \vspace{8pt}{\fontsize{10.5pt}{16pt}\selectfont #5\par}\vspace{14pt}}
+  \vspace{8pt}{\hsfull\fontsize{9.5pt}{14pt}\selectfont #5\par}\vspace{24pt}}
 
 % ---- 7. provenance footline -------------------------------------------------
-% Serif at 8.5 pt in ink-55, as written: no case change, and TeX ligatures off
+% Serif at 7.5 pt in ink-55, as written: no case change, and TeX ligatures off
 % so a command's "--flag" survives. The font feature alone is not relied on:
 % every "--" at the argument's top level also gets a zero kern between its two
 % hyphens, which no font can join into a dash. A braced group, such as an
@@ -450,7 +410,7 @@
 \ExplSyntaxOff
 \newcommand{\hsprovenance}[1]{%
   \par\vfill\hsthinrule\par\vspace{6pt}
-  {\hsfull\hs@notefont\fontsize{8.5pt}{12pt}\selectfont\color{inkfiftyfive}%
+  {\setlength{\parskip}{0pt}\hsfull\hs@notefont\fontsize{7.5pt}{11pt}\selectfont\color{inkfiftyfive}%
   \hs@keephyphens{#1}\par}}
 
 % ---- 8. sources -------------------------------------------------------------
@@ -458,22 +418,32 @@
 \setlist[hssources]{label=\textcolor{accent}{\hs@figfont\arabic*},
   align=left,leftmargin=26pt,labelsep=0pt,labelwidth=26pt,
   itemsep=9pt,topsep=12pt,parsep=0pt,
-  before=\hsgsection{Sources}\fontsize{10.5pt}{16pt}\selectfont\raggedright}
+  before=\hsgsection{Sources}\fontsize{9.5pt}{14pt}\selectfont\raggedright}
 % \hssourcespage: the last page opens with this. It starts a new page and heads
 % it "Sources", which is what the running head also says. New in v5; the
 % pitch build skipped the heading and the page opened on a bare sentence.
 \newcommand{\hssourcespage}{\clearpage\section*{Sources}\hsgsection{Sources}}
 % A URL inside a source entry: mono, ink-70, breaks anywhere, never hyphenated.
+% xurl lets a URL break anywhere; these penalties make it prefer a break after
+% / . - and break inside a word only when nothing else fits (pitch (4) split
+% "git/hub"). A little stretch between characters absorbs the rest.
+\mathchardef\UrlBreakPenalty=6000
+\mathchardef\UrlBigBreakPenalty=0
+\def\UrlBigBreaks{\do\/\do\.\do\-\do\_}
+\Urlmuskip=0mu plus 1.5mu
 \newcommand{\hsurl}[1]{{\ttfamily\color{inkseventy}\url{#1}}}
 
 % ---- 9. claim ---------------------------------------------------------------
+% \nopagebreak between its parts, here and in hsstatrow and hsfigure: a v5.1
+% build left a block's opening rule alone at the foot of one page and the rest
+% of the block on the next.
 % \parskip is 0 inside, so the gaps are the ones written here and not 11 pt
 % more at every \par (the pitch build had 44 pt between the label and the
 % closing rule).
 \newcommand{\hsclaim}[2]{%
-  \par\vspace{16pt}\begingroup\setlength{\parskip}{0pt}\hsrule\vspace{14pt}
-  {\hssubheadfont\fontsize{19pt}{25pt}\selectfont #1\par}\vspace{10pt}
-  {\fontsize{10.5pt}{14pt}\selectfont\hslabel{#2}\par}\vspace{2pt}\hsrule
+  \par\vspace{16pt}\begingroup\setlength{\parskip}{0pt}\hsrule\nopagebreak\vspace{14pt}
+  {\hsfull\hssubheadfont\fontsize{17pt}{23pt}\selectfont #1\par}\nopagebreak\vspace{10pt}
+  {\hslabel{#2}\par}\nopagebreak\vspace{4pt}\hsrule
   \endgroup\vspace{16pt}}
 
 % ---- 10. callout ------------------------------------------------------------
@@ -487,10 +457,10 @@
   \par\vspace{8pt}\begingroup\setlength{\parskip}{0pt}\hsthinrule\vspace{9pt}%
   \hsfull\noindent
   \begin{minipage}[t]{96pt}\hsfull\hyphenpenalty=10000
-    \fontsize{10.5pt}{14pt}\selectfont\hsaccentlabel{#1}\par\end{minipage}%
+    \fontsize{8.5pt}{15pt}\selectfont\hsaccentlabel{#1}\par\end{minipage}%
   \hspace{16pt}%
   \begin{minipage}[t]{\dimexpr\linewidth-112pt\relax}\hsfull
-  \fontsize{10.5pt}{16pt}\selectfont\ignorespaces}%
+  \fontsize{10pt}{15pt}\selectfont\ignorespaces}%
   {\par\end{minipage}\par\vspace{10pt}\hsthinrule\endgroup\vspace{8pt}}
 
 % ---- 11. code ---------------------------------------------------------------
@@ -498,7 +468,7 @@
 \fvset{fontsize=\small,breaklines=true,breakanywhere=true,numbers=none,
   frame=topline,framerule=0.75pt,rulecolor=\color{ink},
   framesep=10pt,baselinestretch=1.25}
-\newcommand{\hslisting}[1]{\par\vspace{14pt}\hslabel{#1}\par\vspace{8pt}}
+\newcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}}
 % Use: \hslisting{Listing 1 / the gate} \begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}
 
 % ---- 12. display equation ---------------------------------------------------

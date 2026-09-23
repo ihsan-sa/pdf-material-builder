@@ -11,6 +11,7 @@ Three things are settled before any writing starts, and each has its own referen
 
 - **Which document.** `references/recipes.md` -- role, length band, structure and build size per recipe.
 - **How it looks.** `references/house-style/style-spec.md` is the look: one portrait page, two faces, five neutrals and one accent, twelve blocks. `references/latex-house-style.md` maps it onto macros and carries the build, the teaching affordances, the math kit, the traps and the style gate.
+- **Where the figures come from.** diagram-maker, which this skill carries as its own copy in `diagram-maker/`, kept at diagram-maker's latest main. Write each figure's spec to `figures/<name>.json` beside the `.tex`, with `canvas` 553 on A4 or 576 on letter; `scripts/build.sh` syncs the copy, renders the spec with `diagram-maker/scripts/render.js` and exports it with `diagram-maker/scripts/export.sh <name>.svg pdf`; place it inside `hsfigure` with `\hsdiagram{figures/<name>}`. When `export.sh` exits 2 (no converter), draw with the TikZ kit in `references/house-style/hsdiagrams.sty` instead. One picture source per document. The contract is `references/house-style/DIAGRAMS.md`.
 - **How a page is put together.** `references/page-composition.md`. Calling every macro correctly is not enough and the first real build proved it: read this before the first page and again with the rendered PDF open. `references/house-style/CONFORMANCE.md` is the owner's own ten checks and the defects each one exists to stop.
 - **How it explains.** `references/teaching-communication.md` is the canonical voice, shared with the lesson-builder skill. `references/voice.md` says which LaTeX construct carries each of its representations, and holds the three page-level rules the spec has no row for.
 
@@ -86,8 +87,9 @@ Once the anchor exists, spawn the remaining short-form builders in one message: 
 **Step 6.3 -- Every writer brief carries these.** Do not economise; repeat them in each prompt.
 
 - The conventions doc path (mandatory critical reading)
-- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure` with `\hsnodetext` and `\hsfailnote`, `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead` inside `hsblock`), and the rule that nothing else is drawn: no boxes, no colour outside the tokens, no footnotes
-- `references/page-composition.md`, which is what stops a writer filling the form instead of composing the page: the shape catalogue, the arguments that must not be empty, and the three diagram patterns with tikz to copy
+- The driver file path, which shows the macros available (`\insight`, `derivation`, `\onsheet`, `\opt`, `\tool`, `\tools`, `\cat`, `\catbanner`, `\probhead`, `\Oh`, and the house-style blocks: `hsfigure` with `\hsdiagram` (or, when the document uses the TikZ kit, `\hsnodetext` and `\hsfailnote`), `\hsplate`, `hscallout`, `\hslisting` with `Verbatim`, tables with `\hstoprule` and `\hshead` inside `hsblock`), and the rule that nothing else is drawn: no boxes, no colour outside the tokens, no footnotes
+- `references/page-composition.md`, which is what stops a writer filling the form instead of composing the page: the shape catalogue, the arguments that must not be empty, the diagram-maker workflow, and the three TikZ fallback patterns to copy
+- Which picture source the document uses: diagram-maker (the spec goes in `figures/<name>.json`) or, when it cannot run, the TikZ kit for every figure
 - `references/voice.md` and `references/teaching-communication.md`, plus a sibling section as a voice sample
 - The relevant extraction files, the target page count, and whether this is a weak-area section
 - Hard rules: no emojis, no em-dashes, no `\footnote`, no colour but the tokens, at most one `\hsclaim` per document, no `\lt` / `\gt` (LaTeX is not KaTeX), `\Oh{...}` not bare `$O()$`
@@ -133,6 +135,7 @@ A large course build:
   <name>_visual_intuition.tex
   <name>_worked_examples.tex       # driver with TOC
   worked_examples/problem_01_<slug>.tex ...
+  figures/<name>.json  <name>.pdf  # diagram-maker specs and what build.sh renders from them
   viz_src/generate_all.py  _style.py  fig_<name>.py  viz_<name>.png
   _extraction/                     # local-only
     L1_<topic>.md ...  _notation_L<range>.md  _pset_NN_<slug>.md
@@ -157,9 +160,9 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 ## Files
 
 - `references/recipes.md` -- the document types, their length bands, structures and build sizes.
-- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `CONFORMANCE.md` (the ten checks), `example.tex`, the rendered HTML targets (long and short), and `CHANGES.md` for what v5 changed. Vendored from the owner's package at v5 (23 September 2026); edit only to carry a decision of his, and say so in the file.
+- `references/house-style/` -- the look: `style-spec.md` (the spec), `housestyle.sty` (its LaTeX), `hsdiagrams.sty` (the TikZ diagram kit it loads), `DIAGRAMS.md` (the contract between the page and its pictures), `CONFORMANCE.md` (the ten checks), `example.tex`, the rendered HTML targets (long and short), and `CHANGES.md` for what v5 and v5.1 changed. Vendored from the owner's package at v5.1 (23 September 2026); edit only to carry a decision of his, and say so in the file.
 - `references/latex-house-style.md` -- the spec mapped onto macros, the build, teaching affordances, math kit, traps, style gate.
-- `references/page-composition.md` -- how to put the blocks on a page: the reference document's eight shapes, the rhythm rule, what each block's arguments must carry, the three diagram patterns with tikz, and the render-and-look checklist.
+- `references/page-composition.md` -- how to put the blocks on a page: the reference document's eight shapes, the rhythm rule, what each block's arguments must carry, the diagram-maker workflow and the three TikZ fallback patterns, and the render-and-look checklist.
 - `references/teaching-communication.md` -- the canonical voice, vendored from lesson-builder. Do not edit here.
 - `references/voice.md` -- representation to LaTeX construct, and the three page-level rules.
 - `references/review-pipeline.md` -- the five reviewers, which run at which build size, the filter protocol, the false-positive catalogue.
@@ -169,7 +172,10 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 - `assets/short-template.tex`, `assets/blank-template.tex` -- the short form (up to about twelve pages) and the long form (title page, contents, Parts), each a whole document that builds.
 - `assets/word-template/` -- the Word half of the house style: two `.docx` starting documents and `WORD-STYLES.md`, the style names that are its interface. No `.docx` to PDF path exists yet: it needs LibreOffice, which is not installed.
 - `assets/fonts/` -- Source Serif 4 (Text, Subhead and Display cuts) and IBM Plex Mono, vendored with their OFL licences.
-- `scripts/build.sh` -- the build: three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`.
+- `diagram-maker/` -- the bundled diagram-maker skill, a git submodule on its `main`. The skill's figures come from this copy. `install.sh` and `scripts/sync-diagram-maker.sh` keep it at diagram-maker's latest main; it is another project's repo, so change it there, never here.
+- `scripts/build.sh` -- the build: renders `figures/*.json` through diagram-maker, then three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`.
+- `scripts/sync-diagram-maker.sh` -- brings `diagram-maker/` to its latest main; a quiet no-op offline or in a vendored copy. `build.sh` calls it.
+- `install.sh` -- fast-forwards the installed skill at `~/.claude/skills/pdf-material-builder` to main and updates its diagram-maker; the landing runs it after every merge.
 - `scripts/style-check.sh` -- the style gate.
 - `scripts/voice-drift.sh` -- reports drift of the vendored voice spec from lesson-builder; `--refresh` updates it.
 - `tests/check.sh` -- this repo's gate.

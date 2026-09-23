@@ -1,5 +1,6 @@
 \input{preamble-template.tex}
 % \hsnumbersections  % uncomment for numbered sections (1, 1.1, ...)
+% \hsjustified       % uncomment for justified prose (essays, write-ups)
 \hsslug{<Course> <Doc>}
 \hsdate{<Month Year>}
 \begin{document}
@@ -7,7 +8,7 @@
 \thispagestyle{hstitlepage}
 \vspace*{\fill}
 \hsaccentlabel{<Course> \textperiodcentered\ Document type}\par\vspace{14pt}
-\hstitle[44pt]{Document title goes here}\vspace{20pt}
+\hstitle[40pt]{Document title goes here}\vspace{20pt}
 \hslead{A one-sentence lead that says what this document is for and who should read it.}
 \vspace*{\fill}\vspace*{\fill}
 \end{titlepage}
@@ -77,9 +78,9 @@ italic line on an arrow says what passes between two parts.}
 \begin{tikzpicture}[x=1pt,y=1pt]
   \node[hsrole,hsslate]      (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
   \node[hsrole,hsslate]      (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
-  \node[hsrole,hsaccentrole] (b) at (170,36)  {\hsrolename{Broker}{every 60 s: the event door}};
-  \node[hsrole,hssage]       (s) at (340,72)  {\hsrolename{Sessions}{the tmux windows}};
-  \node[hsrole,hsquiet]      (r) at (170,-52) {\hsrolename{The board}{one row per task}};
+  \node[hsrole,hsaccentrole] (b) at (158,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hssage]       (s) at (316,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]      (r) at (158,-52) {\hsrolename{The board}{one row per task}};
   \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
   \draw[hsarrow] (m) -- (b);
   \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);

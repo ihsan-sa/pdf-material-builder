@@ -23,8 +23,10 @@
 #     (CONFORMANCE item 9). The eight kit tokens read anywhere;
 #     the four role colours and their tints read only inside a
 #     tikzpicture -- prose, headings, tables, callouts and the
-#     page keep the eight kit tokens. housestyle.sty, which
-#     defines the role colours, is exempt from that restriction.
+#     page keep the eight kit tokens. hsdiagrams.sty, the TikZ
+#     kit that defines the role colours, is exempt from that
+#     restriction; housestyle.sty and any other .sty are not,
+#     since the page module holds no picture code (DIAGRAMS.md).
 #   - \pagecolor in a document: housestyle.sty paints the paper  (.tex)
 #     tint on every page and a document never repaints it
 #     (CONFORMANCE item 7)
@@ -57,10 +59,12 @@ python3 - "$ROOT" <<'PYEOF'
 import os, re, sys, unicodedata
 
 root = os.path.realpath(sys.argv[1])
-# fonts/ holds third-party files vendored verbatim.
+# fonts/ holds third-party files vendored verbatim. diagram-maker/ is the
+# bundled diagram-maker skill, a submodule: another project's repo, under its
+# own STYLE.md and its own gate.
 SKIP_DIRS = {'.git', '_extraction', 'course_materials', 'viz_src',
              'node_modules', 'claude_lessons', 'dist', '.venv',
-             'fonts'}
+             'fonts', 'diagram-maker'}
 EM_DASH = '\u2014'
 
 files = []
@@ -92,8 +96,9 @@ PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
 # read anywhere -- prose, headings, tables, callouts and the page. The four
 # diagram role colours (slate, sage, ochre and the kit's own accent, which
 # doubles as the fourth) and each one's explicit ~12% tint are tokens too,
-# but exist only inside a tikzpicture; the .sty itself is exempt, since it is
-# what defines them.
+# but exist only inside a tikzpicture; hsdiagrams.sty is exempt, since it is
+# what defines them. housestyle.sty is not: since v5.1 it holds the page and
+# every block's frame, and the pictures are hsdiagrams.sty's.
 KIT_HEX = {'15140F', '4A4740', '77716A', 'FAF8F3', 'F0EADE', 'F2EEE3',
            '9C4221', 'DED8CA'}
 ROLE_HEX = {'4F6D8A', '5E7A5A', 'A07A2C',
@@ -109,7 +114,7 @@ DEFINECOLOR = re.compile(r'\\definecolor(?![A-Za-z])')
 COLOR_USE = re.compile(
     r'\\(?:textcolor|color|colorbox|pagecolor|arrayrulecolor)\s*(?:\[[^\]]*\])?\{([^}]*)\}'
     r'|(?<![A-Za-z])(?:draw|fill|text|colback|colframe|rulecolor|bgcolor)\s*=\s*([^,\]}\s]+)')
-# hsslate / hssage / hsochre / hsaccentrole (housestyle.sty's tikz style
+# hsslate / hssage / hsochre / hsaccentrole (hsdiagrams.sty's tikz style
 # names for the role treatments) are never matched by COLOR_USE: they show up
 # bare, as a node option, never as the value of draw=/fill=/textcolor{} and
 # so on, so they are never mistaken for a colour name here.
@@ -135,6 +140,8 @@ for path in files:
     text = open(path, encoding='utf-8').read()
     is_tex = path.endswith('.tex')
     is_sty = path.endswith('.sty')
+    # The TikZ kit defines the role colours, so they read anywhere in it.
+    is_kit = os.path.basename(path) == 'hsdiagrams.sty'
     events = tex_events[os.path.realpath(path)] = [] if is_tex else None
     tikz_depth = 0
     for n, line in enumerate(text.splitlines(), 1):
@@ -159,7 +166,7 @@ for path in files:
         # that sets a role colour in its own options still reads as inside
         # one, and an \end{tikzpicture} line still covers what came before
         # the \end on that same line.
-        in_tikz = bool(is_sty or tikz_depth > 0 or TIKZ_BEGIN.search(line))
+        in_tikz = bool(is_kit or tikz_depth > 0 or TIKZ_BEGIN.search(line))
         tikz_depth = max(0, tikz_depth + len(TIKZ_BEGIN.findall(line))
                                        - len(TIKZ_END.findall(line)))
         for m in HEX.finditer(line):

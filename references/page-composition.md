@@ -97,6 +97,35 @@ Two page-level obligations no macro enforces:
 
 ## Diagrams
 
+Figures come from diagram-maker first (`references/house-style/DIAGRAMS.md`).
+This skill carries its own copy of diagram-maker in `diagram-maker/`, a
+submodule that follows diagram-maker's main, and that copy is the one to use:
+
+1. Write the spec to `figures/<name>.json` next to the `.tex`. Set `canvas` to
+   the measure where the type takes one: 553 on A4, 576 on letter, so the
+   figure lands at 1:1. The figure's message goes in the `hsfigure` label and
+   in the spec's `alt`.
+2. `scripts/build.sh doc.tex` does the rest. It syncs `diagram-maker/` to its
+   latest main (quietly skipped offline), renders each spec with
+   `diagram-maker/scripts/render.js`, exports it with
+   `diagram-maker/scripts/export.sh <name>.svg pdf`, and fails on any error the
+   render reports. Fix the spec, never the SVG.
+3. Place it inside `hsfigure` with `\hsdiagram{figures/<name>}`, which sets it
+   at its own size and only ever scales it down to the measure.
+
+```tex
+\begin{hsfigure}{Figure 2 / what a change goes through before it merges}%
+{The legend: how to read the picture, what the dashed line is.}
+\hsdiagram{figures/merge-gates}
+\end{hsfigure}
+```
+
+The three patterns below are the TikZ kit in `hsdiagrams.sty`. They are the
+fallback for when diagram-maker cannot run: when `export.sh` exits 2 (no
+converter on the machine) or there is no node. One picture source per
+document, so a fallback draws every figure in the document with the kit, and
+the hand-off says so.
+
 A diagram is drawn for what it shows. The owner decided this on 22 September
 2026 -- "dont force diagrams into the format in the template" -- and it overrides
 the earlier wording of `style-spec.md` block 2, `CONFORMANCE.md` item 9 and the
@@ -147,7 +176,7 @@ Rust boxes are deterministic checks that pass or fail.}
 ```
 
 `\hsnodesize{width}{height}` changes both dimensions for the rest of the picture;
-the default 88 pt by 54 pt fits four across the measure.
+the default 81 pt by 46 pt fits four across the A4 measure (415 pt).
 
 ### Pattern 2 -- the lane diagram
 
@@ -162,7 +191,7 @@ reads downwards.
 {Each column is one actor and time runs down the page. The ochre lane decides
 and the rust one is where work becomes public; a dashed arrow is a return, and
 the italic line on an arrow says what crosses.}
-\begin{tikzpicture}[x=92pt,y=-15pt]
+\begin{tikzpicture}[x=82pt,y=-15pt]
   \node[hslane,hsslate]      (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
   \node[hslane,hsquiet]      (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
   \node[hslane,hsochre]      (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
@@ -207,9 +236,9 @@ italic line on an arrow says what passes between two parts.}
 \begin{tikzpicture}[x=1pt,y=1pt]
   \node[hsrole,hsslate]      (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
   \node[hsrole,hsslate]      (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
-  \node[hsrole,hsaccentrole] (b) at (176,36)  {\hsrolename{Broker}{every 60 s: the event door}};
-  \node[hsrole,hssage]       (s) at (352,72)  {\hsrolename{Sessions}{the tmux windows}};
-  \node[hsrole,hsquiet]      (r) at (176,-52) {\hsrolename{The board}{one row per task}};
+  \node[hsrole,hsaccentrole] (b) at (158,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hssage]       (s) at (316,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]      (r) at (158,-52) {\hsrolename{The board}{one row per task}};
   \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
   \draw[hsarrow] (m) -- (b);
   \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);
@@ -243,10 +272,10 @@ colour only, so it goes on a node beside `hsrole` or `hslane`, never alone.
 None of these is caught by the gate, and each of them cost a rebuild.
 
 - **A block that is not prose needs `hsblock`.** A `tabular`, a pair of
-  asides side by side: all of them are the full 468 pt
-  measure, and prose is 48 pt narrower. Without the environment the last
-  column of a wide table wraps under the first and sits on top of the line
-  above it. It looks like a spacing bug and it is a measure bug.
+  asides side by side: all of them are set as boxes, not
+  prose, so they range left at the full measure whatever the prose alignment.
+  Without the environment a table under `\hsjustified` gets its cells
+  stretched.
 - **`\hsprovenance` needs about 35 pt of room left.** It sits at the foot
   through `\vfill`, so on a page that is already full it does not compress: it
   goes alone to the next page, which then has a single grey line at the top and
@@ -294,6 +323,51 @@ or a rule here.
   now 0 inside the claim and the callout). The callout's label sat half a
   line below its body's first line (labels now start with `\leavevmode`).
 
+## What the third pitch build showed
+
+`pitch (4).pdf` (A4, 6 pp) used the kit's boxes everywhere and headed its
+sources page. The remaining faults were in the kit or in the sample it copied:
+
+- **Air inside every figure and stat row.** `\parskip` (11 pt) was added at
+  every `\par` inside `hsfigure` and `hsstatrow`. That put about 70 pt of
+  white in each figure and 140 pt between two stat rows. Fixed: both set
+  `\parskip` to 0 inside, as the claim and the callout already did.
+- **Stat captions still ran to eight lines**, because the kit's `samples/pitch.tex`
+  itself had them and the build copied it. The sample now keeps each caption
+  under ten words and moves the rest into a sentence under the row. The same
+  applies to any document: **the caption names what was counted; the prose
+  under the row says what it means.**
+- **Two stat rows never touch.** Back to back, the first row's grey closing
+  rule and the second's ink opening rule make a double rule with a band of
+  white between them. Put a sentence between the rows, or make it one row.
+- **A URL split inside a word** ("git / hub"). URLs now prefer to break after
+  `/ . - _`. **An entry that cites several URLs puts each on its own line**
+  with `\\`, as the sample's product-pages entry now does.
+- **The callout's two-line label drifted from the body** by 2 pt a line. The
+  label now uses the body's 16 pt leading.
+
+**How much white above a footline is fine.** A one-figure page (shape 2) may
+leave white between its last block and the provenance footline, up to about a
+third of the page. More than that, and the next section should start on the
+same page, or the page should carry more. Pages 4 and 5 of the build each left
+about 40%; page 5's prose could have joined page 4 under the callout.
+
+## Justified or ranged left
+
+Pick once per document, in the preamble, before writing:
+
+- **`\hsjustified`** for an essay, a write-up, a letter, reading notes:
+  anything whose pages are mostly continuous paragraphs. Both edges of the text
+  block are hard and line up with the rules.
+- **Ranged left** (the default) for a technical document: course notes with
+  maths and code, a reference, a runbook, a spec. Also for any document whose
+  prose is broken up by a block on most pages, like the pitch (the owner picked
+  ranged left for it, 23 September 2026). Short paragraphs between blocks
+  justify badly, and paths, commands and URLs in the text stretch the spaces
+  around them.
+
+If in doubt, range left. Never mix the two in one document.
+
 ## Before hand-off: render it and look at it
 
 The style gate is mechanical and this part is not. Build the document, then:
@@ -324,6 +398,7 @@ and read the images, page by page, beside the reference rendering. Check:
     anywhere.
 11. **No box is drawn with the document's own `\tikzset`.** Every node carries
     an `hs*` shape style, and every node in a row has an eyebrow.
-12. **No stat caption runs past three lines.**
+12. **No stat caption runs past three lines**, and no two stat rows sit back to back.
+13. **No URL breaks inside a word.** Several URLs in one source go one per line.
 
 Say in the hand-off which pages you compared and what you changed after looking.

@@ -114,6 +114,69 @@ geometry, colours and every `hs*` TikZ style are as they were.
 | `word-template/WORD-STYLES.md` | the Word interface: every style name and its job |
 | `word-template/figure-1.png` | the Figure 1 drawing used in the Word sample, rendered from the HTML reference |
 
+## v5.1: one measure, a smaller scale, diagrams as a module (23 September 2026)
+
+The owner said the pitch looked cramped and too big, with the text ending well
+short of the right edge. He picked option 2a from the scale study, and wants
+2b available for text-heavy documents.
+
+**Page and scale** (`housestyle.sty`, both HTML references, both Word files in
+`assets/word-template/`):
+- Side margins went from 72 to 90 pt. Text starts at 92 pt, and the running
+  head's baseline is 47 pt from the top edge. It had been 28.
+- **One measure for everything** (415 pt on A4, 432 pt on Letter). Prose no
+  longer stops 48 pt short of the rules (`\hsprosegap` is now 0).
+- Everything is one step smaller:
+  - Body 10.5/16, lead 11.5/17 and headings 17/21, subsections 13/17.
+  - Labels 8.5 pt, running head 8 pt at +9% (new `\hsrunlabel`).
+  - Statistics 24 pt, captions 8.5/12, legends 9/13, provenance 7.5/11.
+  - Titles 32 pt, or 40 pt on a title page.
+- Blocks are 24 pt apart and paragraphs 8 pt.
+- Figures now align to the left margin instead of being centred. The TikZ
+  node default is now 81 x 46 pt, so four fit across the A4 measure.
+
+**Alignment.** Ranged left is the default (2a). `\hsjustified`, or
+`\usepackage[justified]{housestyle}`, justifies the prose (2b). The rule for
+choosing is in `style-spec.md` and `page-composition.md`: justified for
+essays and write-ups that run as continuous prose, ranged left for technical
+documents and for anything broken up by blocks, like the pitch. Word gets a
+new style, **Body Justified**.
+
+**Diagrams are a module** (`DIAGRAMS.md`):
+- The TikZ kit moved out of `housestyle.sty` into `hsdiagrams.sty`, which
+  `housestyle.sty` loads unless you pass `[nodiagramkit]`. The kit's names
+  are unchanged.
+- The figure frame (`hsfigure`, `\hsfailnote`) stays in `housestyle.sty`.
+- A new socket, `\hsdiagram{file}`, places a diagram-maker PDF at its own
+  size. It scales the PDF down to the measure if it is wider, and never scales
+  it up.
+- For a 1:1 fit, render diagram-maker figures with `canvas` 553 (A4) or 576
+  (Letter).
+- One picture source per document.
+- **Open:** diagram-maker's style differs from the page's in typeface, rust,
+  role hues and canvas colour. `DIAGRAMS.md` lists each difference. They need
+  the owner's call.
+
+**Interface added:** `\hsjustified`, `\hsragged`, `[justified]`,
+`[nodiagramkit]`, `\hsdiagram` and `\hsrunlabel`, the file
+`hsdiagrams.sty`, and the Word style Body Justified. Nothing was renamed or
+removed.
+
+**Repo note:** `scripts/style-check.sh` looks up the TikZ style names in
+`housestyle.sty`. It should now read `hsdiagrams.sty` as well.
+`references/latex-house-style.md` should mention `\hsjustified` and
+`\hsdiagram`.
+
+**Fixed in this repository after the first v5.1 build:**
+- `\hs@ragged` wrote `\rightskip=\hsprosegap plus 3em`, which assigns the
+  whole skip register and prints "plus 3em" on the page. It now reads the gap
+  through `\dimexpr`.
+- The claim, the stat row and the figure's label keep their parts on one
+  page (`\nopagebreak`); the smaller scale had left an opening rule alone at
+  the foot of a page.
+- `assets/driver-template.tex` lists the companion files one per line; four
+  mono file names in a row overran the 432 pt measure.
+
 ## After the second pitch build (`pitch (3).pdf`)
 
 I reviewed the six pages built on these templates. Fixed in the kit:
@@ -133,6 +196,20 @@ and it is changed there, not here. The kit's `samples/` folder is `assets/` here
 Now rules in `page-composition.md` and `CONFORMANCE.md`: no `\tikzset` box
 styles in a document, stat captions of three lines at most, and no
 `\newpage` after a page that is less than half full.
+
+## After the third pitch build (`pitch (4).pdf`)
+
+- `hsfigure`, `hsstatrow` and `\hsprovenance` set `\parskip` to 0 inside.
+  That takes about 70 pt of air out of each figure and about 100 pt out of the
+  gap between two stat rows.
+- URLs prefer to break after `/ . - _` (penalty 0) over mid-word (6000).
+- The callout label's leading now matches its body's (16 pt).
+- `page-composition.md`: third-build findings, including that two stat rows
+  never sit back to back.
+- The kit's `samples/pitch.tex`: stat captions shortened to under ten words,
+  with the detail moved into a sentence under each row. The product-pages
+  source lists one URL per line. No facts changed. The pitch is not in this
+  repository; it is changed in its own.
 
 ## What I could not test
 

@@ -42,7 +42,24 @@
 #  11  \hsprovenance keeps a typed "--state" as two hyphens, both with the
 #      .sty's own provenance font and with that font swapped for one whose
 #      TeX ligatures are on, so the guard does not rest on the font feature.
-#   6 to 11 are SKIPPED, with the reason printed, when lualatex is absent;
+#  12  A label splits at " / " and not at a bare "/".
+#  13  \hsdiagram places a diagram-maker PDF: build.sh renders two specs in
+#      figures/ with the bundled diagram-maker's render.js and exports them
+#      with its export.sh, one at canvas 576 (placed 1:1 on letter) and one at
+#      its default width (scaled down to the measure), and the page carries the
+#      figure's text with no overfull box. A spec render.js rejects fails the
+#      build. SKIPPED, with the reason, when diagram-maker is not checked out,
+#      node is absent, or export.sh has no converter (exit 2).
+#  14  install.sh against scratch clones, all on local file URLs: a missing
+#      directory, a plain one, a symlink and a clone of another origin are
+#      left alone with exit 0; a clone of this origin is fast-forwarded and
+#      its diagram-maker moved to diagram-maker's latest main, past the pin; a
+#      second run changes nothing; a pin bump fast-forwards over a submodule
+#      already ahead of it; a local commit in the way is exit 1 and moves
+#      nothing. scripts/sync-diagram-maker.sh moves the submodule to the new
+#      tip, is a silent exit 0 when the remote is unreachable, and does not
+#      touch the enclosing repo of a vendored copy.
+#   6 to 13 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -104,7 +121,7 @@ docs = [d for d in docs if d not in EXEMPT and os.path.exists(os.path.join(repo,
 # or it names a top-level file. Anything else (course_notes/, viz_src/,
 # lesson-builder/..., <build_dir>/...) belongs to a build or another repo.
 ROOTS = tuple(d + '/' for d in ('references', 'assets', 'scripts', 'tests', 'docs'))
-TOPLEVEL = {'SKILL.md', 'README.md'}
+TOPLEVEL = {'SKILL.md', 'README.md', 'install.sh'}
 CANDIDATE = re.compile(r'`([^`\s]+)`|\]\(([^)\s]+)\)')
 
 missing = []
@@ -196,6 +213,12 @@ selfcheck diagram-role-colour \
 selfcheck role-colour-outside-tikz \
   a.tex '\\textcolor{slate}{x}\n' \
   b.tex '\\begin{tikzpicture}\\node[draw=slate,fill=slatetint] {x};\\end{tikzpicture}\n'
+# The role colours are defined in hsdiagrams.sty, the TikZ kit, and read
+# anywhere in it; any other .sty -- housestyle.sty included, since v5.1 it
+# holds no picture code -- keeps them inside a tikzpicture like a document.
+selfcheck role-colour-in-page-sty \
+  a.sty '\\newcommand{\\hsx}{\\color{slate}x}\n' \
+  hsdiagrams.sty '\\newcommand{\\hsx}{\\color{slate}x}\n'
 selfcheck pagecolor  a.tex '\\pagecolor{paper}\n' \
                      b.tex '% housestyle.sty paints the paper tint; a document never does\n'
 selfcheck sans-face  a.tex '{\\sffamily A label}\n' \
@@ -386,12 +409,16 @@ if command -v lualatex >/dev/null; then
   cp "$REPO/assets/short-template.tex" "$REPO/assets/blank-template.tex" "$D/"
   sed 's/^% \\hsnumbersections .*/\\hsnumbersections/' "$D/blank-template.tex" > "$D/blank-numbered.tex"
   sed 's/preamble-template\.tex/preamble-a4.tex/' "$D/blank-template.tex" > "$D/blank-a4.tex"
+  sed 's/^% \\hsjustified .*/\\hsjustified/' "$D/blank-template.tex" > "$D/blank-justified.tex"
   [ -f "$D/preamble-a4.tex" ] || sed 's/^% \\newcommand\\hspaper{a4paper}$/\\newcommand\\hspaper{a4paper}/' \
     "$D/preamble-template.tex" > "$D/preamble-a4.tex"
   if cmp -s "$D/blank-template.tex" "$D/blank-numbered.tex"; then
     fail "blank-numbered: blank-template.tex has no '% \\hsnumbersections' line to uncomment"
   fi
-  for job in short-template blank-template blank-numbered blank-a4; do
+  if cmp -s "$D/blank-template.tex" "$D/blank-justified.tex"; then
+    fail "blank-justified: blank-template.tex has no '% \\hsjustified' line to uncomment"
+  fi
+  for job in short-template blank-template blank-numbered blank-a4 blank-justified; do
     if ! out=$("$REPO/scripts/build.sh" "$D/$job.tex" 2>&1); then
       fail "$job: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
     else
@@ -410,6 +437,16 @@ if command -v lualatex >/dev/null; then
     else
       fail "contents page: no 'PART 1' line on page 2"; printf '%s\n' "$toc" | head -12 | sed 's/^/  /'
     fi
+    # The prose setting is a glue assignment; written wrong ("\rightskip=
+    # \hsprosegap plus 3em" with a skip register), it prints "plus 3em" on
+    # the page instead of stretching the line.
+    for job in short-template blank-template blank-justified; do
+      if pdftotext "$D/$job.pdf" - 2>/dev/null | grep -Eq 'plus [0-9.]*(em|fil|pt)'; then
+        fail "$job: a glue spec ('plus ...') is printed on the page"
+      else
+        pass "$job: no glue spec leaks onto the page"
+      fi
+    done
     toc=$(pdftotext -f 2 -l 2 "$D/blank-numbered.pdf" - 2>/dev/null)
     if printf '%s\n' "$toc" | grep -qx '1 First section'; then
       pass "numbered contents page carries the section number"
@@ -615,6 +652,179 @@ else
     fail "label split: a bare / split a label, or \" / \" did not"; printf '%s\n' "$txt" | sed 's/^/  /'
   fi
 fi
+
+# --- 13. \hsdiagram places a diagram-maker PDF -----------------------------------
+# The bundled diagram-maker draws two of its own examples: a flow at canvas 576,
+# the letter measure in px, which lands at 1:1, and a gate at its default width,
+# which \hsdiagram scales down. build.sh renders and exports both. PMB_SYNC=0
+# keeps the case hermetic: it uses the diagram-maker already checked out.
+DM="$REPO/diagram-maker"
+if ! command -v lualatex >/dev/null; then
+  skip "hsdiagram" "no lualatex on this machine"
+elif [ ! -f "$DM/scripts/render.js" ] || [ ! -f "$DM/examples/flow.json" ]; then
+  skip "hsdiagram" "diagram-maker is not checked out in $DM (git submodule update --init)"
+elif ! command -v node >/dev/null; then
+  skip "hsdiagram" "no node on this machine"
+else
+  G="$TMPROOT/hsdiagram"; mkdir -p "$G/figures"
+  python3 - "$DM/examples" "$G/figures" <<'PYEOF'
+import json, os, sys
+src, dst = sys.argv[1], sys.argv[2]
+flow = json.load(open(os.path.join(src, 'flow.json')))
+flow['nodes'] = flow['nodes'][:2] + flow['nodes'][-1:]   # three boxes fit 576 px
+flow['canvas'] = 576
+json.dump(flow, open(os.path.join(dst, 'flow.json'), 'w'))
+json.dump(json.load(open(os.path.join(src, 'gate.json'))), open(os.path.join(dst, 'gate.json'), 'w'))
+PYEOF
+  printf '%s\n' '\documentclass[11pt]{article}' '\usepackage{housestyle}' '\hsslug{Socket}' \
+    '\begin{document}' 'Body.' \
+    '\begin{hsfigure}{Figure 1 / at the measure}{Rendered at canvas 576.}' '\hsdiagram{figures/flow}' '\end{hsfigure}' \
+    '\begin{hsfigure}{Figure 2 / scaled down}{Rendered at its default width.}' '\hsdiagram{figures/gate}' '\end{hsfigure}' \
+    '\end{document}' > "$G/doc.tex"
+  out=$(PMB_SYNC=0 "$REPO/scripts/build.sh" "$G/doc.tex" 2>&1); rc=$?
+  if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grep -q 'export.sh found no converter'; then
+    skip "hsdiagram" "diagram-maker's export.sh has no converter here (no rsvg-convert, no Chrome)"
+  elif [ "$rc" -ne 0 ]; then
+    fail "hsdiagram: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  elif ! [ -s "$G/figures/flow.pdf" ] || ! [ -s "$G/figures/gate.pdf" ]; then
+    fail "hsdiagram: build.sh exited 0 but did not export figures/flow.pdf and figures/gate.pdf"
+  elif command -v pdftotext >/dev/null && ! pdftotext "$G/doc.pdf" - 2>/dev/null | grep -q 'Planning agent'; then
+    fail "hsdiagram: the page does not carry the flow figure's text"
+  else
+    fw=$(pdfinfo "$G/figures/flow.pdf" 2>/dev/null | awk '/^Page size:/ { printf "%.0f", $3 }')
+    pass "hsdiagram places two diagram-maker figures, ${fw:-?} pt and wider, with no overfull box"
+  fi
+  # A spec diagram-maker rejects stops the build before lualatex runs.
+  printf '%s\n' '{"type": "flow", "alt": "too wide", "canvas": 300, "nodes": [' \
+    '{"title": "One", "role": "io"}, {"title": "Two", "role": "work"}, {"title": "Three", "role": "io"}]}' \
+    > "$G/figures/gate.json"
+  out=$(PMB_SYNC=0 "$REPO/scripts/build.sh" "$G/doc.tex" 2>&1); rc=$?
+  if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -q 'could not render figures/gate.json'; then
+    pass "hsdiagram: a spec diagram-maker rejects fails the build and names it"
+  else
+    fail "hsdiagram: a rejected spec exited $rc without naming it"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  fi
+fi
+
+# --- 14. install.sh and the diagram-maker sync, on scratch clones -----------------
+# Everything is a local bare repo: $I/origin.git plays this repo's GitHub,
+# $I/dm.git diagram-maker's. A "dev" clone carries install.sh as cc-land runs it,
+# from a checkout; $I/skill is the installed clone it updates.
+I="$TMPROOT/install"; mkdir -p "$I"
+export GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=protocol.file.allow GIT_CONFIG_VALUE_0=always \
+  GIT_CONFIG_KEY_1=user.name GIT_CONFIG_VALUE_1=check GIT_CONFIG_KEY_2=user.email GIT_CONFIG_VALUE_2=check@localhost
+q() { git "$@" >/dev/null 2>&1; }
+dmtip() { git -C "$I/dm.git" rev-parse main; }
+dmcommit() {   # one more commit on diagram-maker's main
+  q -C "$I/dmwork" commit --allow-empty -m "$1" && q -C "$I/dmwork" push -q origin main
+}
+q init -q --bare -b main "$I/dm.git" && q clone -q "$I/dm.git" "$I/dmwork" \
+  && q -C "$I/dmwork" checkout -q -b main && echo one > "$I/dmwork/f" && q -C "$I/dmwork" add f \
+  && q -C "$I/dmwork" commit -q -m one && q -C "$I/dmwork" push -q origin main
+q init -q --bare -b main "$I/origin.git" && q clone -q "$I/origin.git" "$I/dev" && q -C "$I/dev" checkout -q -b main
+mkdir -p "$I/dev/scripts"
+cp "$REPO/install.sh" "$I/dev/"; cp "$REPO/scripts/sync-diagram-maker.sh" "$I/dev/scripts/"
+q -C "$I/dev" submodule add -q -b main "$I/dm.git" diagram-maker
+q -C "$I/dev" add -A && q -C "$I/dev" commit -q -m first && q -C "$I/dev" push -q origin main
+q clone -q --recurse-submodules "$I/origin.git" "$I/skill"
+pin1=$(git -C "$I/dev" rev-parse HEAD:diagram-maker 2>/dev/null)
+
+inst() { PMB_SKILL_DIR="$1" "$I/dev/install.sh" 2>&1; }
+state() { git -C "$I/skill" rev-parse HEAD 2>/dev/null; git -C "$I/skill/diagram-maker" rev-parse HEAD 2>/dev/null; git -C "$I/skill" status --porcelain 2>/dev/null; }
+
+if [ -z "$pin1" ] || [ ! -f "$I/skill/diagram-maker/f" ]; then
+  fail "install.sh: could not build the scratch repositories"
+else
+  # Left alone, exit 0: missing, a plain directory, a symlink, a foreign clone.
+  mkdir -p "$I/plain"; ln -s "$I/dev" "$I/link"; q clone -q "$I/dm.git" "$I/foreign"
+  devhead=$(git -C "$I/dev" rev-parse HEAD); ok=1
+  for d in "$I/missing" "$I/plain" "$I/link" "$I/foreign"; do
+    out=$(inst "$d"); rc=$?
+    if [ "$rc" -ne 0 ] || [ -z "$out" ]; then
+      ok=0; fail "install.sh on $(basename "$d"): exit $rc, expected 0 with a reason"; printf '%s\n' "$out" | sed 's/^/  /'
+    fi
+  done
+  if [ -e "$I/missing" ] || [ -n "$(ls -A "$I/plain")" ] || [ "$(git -C "$I/dev" rev-parse HEAD)" != "$devhead" ] \
+     || [ "$(git -C "$I/foreign" rev-parse HEAD)" != "$(git -C "$I/dm.git" rev-parse main)" ]; then
+    ok=0; fail "install.sh touched a directory it should have left alone"
+  fi
+  [ "$ok" = 1 ] && pass "install.sh leaves a missing, plain, symlinked or foreign directory alone, exit 0"
+
+  # Behind by one commit, and diagram-maker has moved past the pin.
+  echo two > "$I/dev/x" && q -C "$I/dev" add x && q -C "$I/dev" commit -q -m second && q -C "$I/dev" push -q origin main
+  dmcommit "dm two"
+  out=$(inst "$I/skill"); rc=$?
+  if [ "$rc" -ne 0 ]; then
+    fail "install.sh: exit $rc on a clone one commit behind"; printf '%s\n' "$out" | sed 's/^/  /'
+  elif [ "$(git -C "$I/skill" rev-parse HEAD)" != "$(git -C "$I/origin.git" rev-parse main)" ]; then
+    fail "install.sh: the clone was not fast-forwarded to origin/main"
+  elif [ "$(git -C "$I/skill/diagram-maker" rev-parse HEAD)" != "$(dmtip)" ]; then
+    fail "install.sh: diagram-maker is not at its latest main (the pin is behind it)"
+  elif [ -L "$I/skill" ]; then
+    fail "install.sh: the installed skill became a symlink"
+  else
+    pass "install.sh fast-forwards the clone and moves diagram-maker past the pin to its main"
+    before=$(state); out=$(inst "$I/skill"); rc=$?
+    if [ "$rc" -eq 0 ] && [ "$(state)" = "$before" ]; then
+      pass "install.sh run again changes nothing"
+    else
+      fail "install.sh run again: exit $rc, or the clone changed"; printf '%s\n' "$out" | sed 's/^/  /'
+    fi
+  fi
+
+  # A pin bump lands while the installed submodule is already ahead of it.
+  q -C "$I/dev/diagram-maker" fetch -q origin && q -C "$I/dev/diagram-maker" checkout -q origin/main \
+    && q -C "$I/dev" add diagram-maker && q -C "$I/dev" commit -q -m bump && q -C "$I/dev" push -q origin main
+  dmcommit "dm three"
+  out=$(inst "$I/skill"); rc=$?
+  if [ "$rc" -eq 0 ] && [ "$(git -C "$I/skill" rev-parse HEAD)" = "$(git -C "$I/origin.git" rev-parse main)" ] \
+     && [ "$(git -C "$I/skill/diagram-maker" rev-parse HEAD)" = "$(dmtip)" ]; then
+    pass "install.sh fast-forwards over a pin bump with the submodule already ahead"
+  else
+    fail "install.sh over a pin bump: exit $rc, or the clone or diagram-maker is behind"; printf '%s\n' "$out" | sed 's/^/  /'
+  fi
+
+  # The sync: a new diagram-maker commit reaches the skill with no landing here.
+  dmcommit "dm four"
+  out=$("$I/skill/scripts/sync-diagram-maker.sh" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ "$(git -C "$I/skill/diagram-maker" rev-parse HEAD)" = "$(dmtip)" ]; then
+    pass "sync-diagram-maker moves the bundled diagram-maker to its new main, silently"
+  else
+    fail "sync-diagram-maker: exit $rc, or diagram-maker is not at its new main"; printf '%s\n' "$out" | sed 's/^/  /'
+  fi
+  # Unreachable: the submodule's remote points nowhere. Exit 0, nothing printed.
+  have=$(git -C "$I/skill/diagram-maker" rev-parse HEAD)
+  q -C "$I/skill/diagram-maker" remote set-url origin "$I/nowhere.git"
+  out=$("$I/skill/scripts/sync-diagram-maker.sh" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ "$(git -C "$I/skill/diagram-maker" rev-parse HEAD)" = "$have" ]; then
+    pass "sync-diagram-maker with the remote unreachable: exit 0, silent, copy kept"
+  else
+    fail "sync-diagram-maker unreachable: exit $rc, or it printed or moved something"; printf '%s\n' "$out" | sed 's/^/  /'
+  fi
+  q -C "$I/skill/diagram-maker" remote set-url origin "$I/dm.git"
+  # Vendored inside another repo: the enclosing repo's submodules are not its own.
+  q init -q -b main "$I/host" && mkdir -p "$I/host/.claude/skills/pmb/scripts" \
+    && cp "$I/skill/scripts/sync-diagram-maker.sh" "$I/host/.claude/skills/pmb/scripts/" \
+    && cp "$I/skill/.gitmodules" "$I/host/.claude/skills/pmb/" && q -C "$I/host" add -A && q -C "$I/host" commit -q -m host
+  out=$("$I/host/.claude/skills/pmb/scripts/sync-diagram-maker.sh" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -z "$(git -C "$I/host" status --porcelain)" ] && [ ! -e "$I/host/.claude/skills/pmb/diagram-maker/f" ]; then
+    pass "sync-diagram-maker in a vendored copy is a no-op"
+  else
+    fail "sync-diagram-maker in a vendored copy touched the enclosing repo (exit $rc)"; git -C "$I/host" status --porcelain | sed 's/^/  /'
+  fi
+
+  # A local commit in the installed clone: exit 1, nothing moved.
+  q -C "$I/skill" commit -q --allow-empty -m local
+  echo three > "$I/dev/y" && q -C "$I/dev" add y && q -C "$I/dev" commit -q -m third && q -C "$I/dev" push -q origin main
+  mine=$(git -C "$I/skill" rev-parse HEAD)
+  out=$(inst "$I/skill"); rc=$?
+  if [ "$rc" -eq 1 ] && [ "$(git -C "$I/skill" rev-parse HEAD)" = "$mine" ] && printf '%s\n' "$out" | grep -q 'cannot fast-forward'; then
+    pass "install.sh refuses, exit 1, when a local commit is in the way, and moves nothing"
+  else
+    fail "install.sh with a local commit: exit $rc, expected 1 with main left where it was"; printf '%s\n' "$out" | sed 's/^/  /'
+  fi
+fi
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1 GIT_CONFIG_KEY_2 GIT_CONFIG_VALUE_2
 
 echo
 if [ "$FAILED" -eq 0 ]; then echo 'check.sh: green'; else echo 'check.sh: RED'; fi
