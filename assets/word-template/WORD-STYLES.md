@@ -17,8 +17,9 @@ removed.
 
 ## Page
 
-- Letter, 8.5 x 11 in. Margins match `housestyle.sty`: top 54 pt, sides 72 pt,
-  bottom 44 pt; header 28 pt from the top edge, footer 18 pt from the bottom.
+- Letter, 8.5 x 11 in. Margins match `housestyle.sty` (v5.1): text from 92 pt,
+  sides 90 pt, bottom 70 pt; header 36 pt from the top edge, footer 28 pt from
+  the bottom. One measure for prose and blocks: 432 pt on Letter.
 - **A4:** change only the page size, to 11906 x 16838 twips (`w:pgSz` in the
   section properties, or Layout > Size). Margins stay.
 - Page colour `#FAF8F3` is set as the document background. If a LibreOffice
@@ -49,7 +50,8 @@ in the **Label Title** character style.
 | Style | Block | What it is for |
 |---|---|---|
 | Normal | | The base. 11.5 / 18.5 pt Source Serif 4, ink. Not applied directly. |
-| Body | | Prose, on the 34-em measure (48 pt short of the right margin). |
+| Body | | Prose, ranged left, on the full measure. 10.5 / 16 pt. |
+| Body Justified | | The same, justified. Use it instead of Body for an essay or write-up; never mix the two in one document. |
 | Eyebrow | 1 | The accent small-caps line over a title or a Part heading. |
 | Title | 1 | The document title. Source Serif 4 Display, 36 / 40 pt. |
 | Title Page Eyebrow | 1 | The Eyebrow on a dedicated title page; drops the title block to about a third of the page. |
@@ -106,6 +108,11 @@ in the **Label Title** character style.
 
 - `house-style.docx`: the long form. Title page, then the body from page two, with every style shown once.
 - `house-style-short.docx`: the short form. Eyebrow, Title and Lead open page one and the prose follows on the same page. Same styles; use it for anything up to about twelve pages.
+
+## Diagrams
+
+Diagrams arrive as images from diagram-maker (`references/house-style/DIAGRAMS.md`):
+the 2x PNG in a Figure paragraph at the text width, never shapes drawn in Word.
 
 ## Fonts
 

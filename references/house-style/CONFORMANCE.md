@@ -33,6 +33,14 @@ From `pitch (3).pdf`, built on v5, 23 September 2026 (6pp):
 | A section heading touching the running head | | `headsep` 26 pt |
 | 44 pt between the claim's label and its closing rule; the callout label half a line low | | `\parskip` 0 inside the claim and callout; `\leavevmode` in labels |
 
+From `pitch (4).pdf`, built on v5, 23 September 2026 (A4, 6pp):
+
+| Seen | Rule | Now enforced by |
+|---|---|---|
+| About 70 pt of air in every figure; 140 pt between two stat rows | | `\parskip` 0 inside `hsfigure` and `hsstatrow` |
+| Eight-line stat captions, copied from the sample | A stat caption is three lines at most | the sample is fixed; manual: item 2 |
+| A URL split mid-word ("git / hub") | A URL breaks at `/ . - _`; several URLs go one per line | URL break penalties in the `.sty`; manual: item 6 |
+
 ## The checklist
 
 1. **Blocks only.** Every element on the page is one of the twelve in
@@ -49,7 +57,8 @@ From `pitch (3).pdf`, built on v5, 23 September 2026 (6pp):
    states what the claim does not mean.
 6. **Sources.** One `hssources` list on the last page, opened with
    `\hssourcespage`, numbered in the order the
-   superscripts appear, each with the date read, URLs in `\hsurl`.
+   superscripts appear, each with the date read, URLs in `\hsurl`, one URL
+   per line when an entry cites several.
 7. **Colour.** Only the six tokens. The accent appears at most three times on a
    page and only on a check, a source numeral or one table header cell. The warm
    paper tint is part of the style and `housestyle.sty` paints it on every page,
@@ -61,7 +70,10 @@ From `pitch (3).pdf`, built on v5, 23 September 2026 (6pp):
    macros, no underline except links, no size outside the scale in
    `style-spec.md`. A label that comes out in mono capitals means an old
    `housestyle.sty` was loaded.
-9. **Diagrams.** A diagram is drawn for what it shows, not poured into the
+9. **Diagrams.** A figure is two modules (`DIAGRAMS.md`): the frame is the
+   kit's `hsfigure`; the picture is a diagram-maker PDF placed with
+   `\hsdiagram`, or the TikZ kit, never both in one document, and nothing in
+   the document restyles either. A diagram is drawn for what it shows, not poured into the
    template's node row. *Owner's decision, 22 September 2026: "dont force
    diagrams into the format in the template", and the lane diagrams of the old
    pitch and deeper-look documents "stay". It overrides the earlier wording of

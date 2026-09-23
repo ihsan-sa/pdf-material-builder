@@ -1,0 +1,4 @@
+[submodule "diagram-maker"]
+	path = diagram-maker
+	url = https://github.com/ihsan-sa/diagram-maker.git
+	branch = main

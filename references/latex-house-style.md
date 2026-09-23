@@ -6,7 +6,7 @@ It stands alone. Nothing here is about teaching or voice -- for those see `refer
 
 ## The look
 
-`references/house-style/style-spec.md` is the look, in the owner's words, and `references/house-style/housestyle.sty` implements it. Read the spec; this file does not copy its tables. In a few lines:
+`references/house-style/style-spec.md` is the look, in the owner's words, and `references/house-style/housestyle.sty` implements it, with the TikZ diagram kit in `references/house-style/hsdiagrams.sty`, which it loads. Read the spec; this file does not copy its tables. In a few lines:
 
 - **One family, and a mono for literal strings.** Source Serif 4 for everything read: prose, headings (its Subhead cut), the title and statistics (its Display cut), captions, tables, and every label, running head and figure number, which are its own small caps. IBM Plex Mono only for code listings, `\hsurl` and `\texttt`. No sans-serif anywhere (v5, 23 September 2026).
 - **Five neutrals and one accent**, as colour tokens: `ink`, `inkseventy`, `inkfiftyfive`, `paper`, `fill`, `codefill`, `rulegrey`, and `accent`. The accent marks a deterministic check or a pointer, never decoration, and appears at most three times on a page. No other colour exists in the prose of a page: no category colours, no tints, no second hue. **A diagram gets four colours of its own**: slate, sage, ochre and the kit's own accent, each a thin outline with a fill at about 12% of itself, one colour per role (owner's decision, 23 September 2026, overruling the 22 September call to tell roles apart by weight alone; `references/house-style/CONFORMANCE.md`, item 9). The four exist only inside a `tikzpicture` -- the rest of the page keeps the eight above -- and inside one the three-appearance accent budget does not apply.
@@ -14,7 +14,7 @@ It stands alone. Nothing here is about teaching or voice -- for those see `refer
 - **One portrait geometry for every recipe**, letter or A4. No landscape variant.
 - **No bold in body text**, emphasis is italic, and there are no footnotes: sources go in one numbered list on the last page.
 - **Twelve blocks and no thirteenth.** Anything that maps onto none of them is cut or turned into prose.
-- **Prose sits on a 34 em measure and is left-ranged**, while rules, figures, tables and stat rows run the full 468 pt text width. The class does this with `\rightskip`, so `\linewidth` stays the full measure; `\hsfull` inside a box of your own resets it.
+- **One measure for everything** (v5.1): 415 pt on A4, 432 pt on letter, for prose, rules, figures, tables and stat rows alike. Prose is ranged left by default. `\hsjustified` in the preamble, or `\usepackage[justified]{housestyle}`, justifies it: use it for an essay or write-up that runs as continuous prose, and keep ranged left for a technical document broken up by blocks (`references/house-style/style-spec.md`, Alignment). Lead lines, captions and anything in a box of its own stay ranged left either way; `\hsfull` inside a box of your own gives it that.
 
 `references/house-style/README.md` says how to reformat an existing document, and `house-style-template.html` is the rendered target.
 
@@ -25,6 +25,8 @@ scripts/build.sh path/to/doc.tex
 ```
 
 It runs three lualatex passes in the document's own directory under the temp jobname `_tmp_<name>`, copies the result to `<name>.pdf`, removes the temp files, and exits 1 with the `!` lines if any pass errors. It also exits 1 if the last pass logs an Overfull `\hbox`, printing the log lines: something prints past the right margin, and a build that only warns about it lets it reach the reader. The PDF is still written so you can look. Run it from anywhere.
+
+**Figures are rendered first.** When `figures/*.json` sits next to the document, `build.sh` runs `scripts/sync-diagram-maker.sh` (the bundled `diagram-maker/` to its latest main; a quiet no-op offline), renders each spec with `diagram-maker/scripts/render.js` and exports `figures/<name>.pdf` with `diagram-maker/scripts/export.sh`, before the first pass. A spec error fails the build. Without node, or when `export.sh` exits 2, a figure keeps the PDF it already has; one with none fails the build, and the document is drawn with the TikZ kit instead (`references/house-style/DIAGRAMS.md`). `PMB_SYNC=0` skips the sync.
 
 **lualatex and texlive-luatex (luaotfload) must be installed.** The engine is lualatex: the `.sty` loads its faces with fontspec and finds them with Lua, and pdflatex cannot do either. fontspec needs luaotfload, which Debian ships in `texlive-luatex`, so install it alongside lualatex. The faces are vendored in the skill, as `.otf` files in `assets/fonts/` with their OFL licences.
 
@@ -43,8 +45,8 @@ It runs three lualatex passes in the document's own directory under the temp job
 
 | # | Block | Macro |
 |---|---|---|
-| 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}` opens page one of a short document (`assets/short-template.tex`). Over twelve pages, a dedicated title page instead: `\thispagestyle{hstitlepage}` inside `titlepage` frames it with two ink rules, and `\hstitle[44pt]{...}` sets the title; `assets/driver-template.tex` and `assets/blank-template.tex` have one. `\hsdate{...}` sets the date it shows. |
-| 2 | Diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around a `tikzpicture`. Neither argument is ever empty. Node row: `hsnode` (slate: input, output), `hswork` (sage: work), `hsgate` (accent: a deterministic check), edges `hsarrow` / `hsfail`, and every node's body is `\hsnodetext{eyebrow}{title}{detail}`, which gives it its eyebrow and holds the row to one height (`\hsnodesize{w}{h}` changes both). The fail path's caption goes under the picture in `\hsfailnote`. The lane and role-graph patterns, the four role colours and how a writer picks one are in `references/page-composition.md`. |
+| 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}` opens page one of a short document (`assets/short-template.tex`). Over twelve pages, a dedicated title page instead: `\thispagestyle{hstitlepage}` inside `titlepage` frames it with two ink rules, and `\hstitle[40pt]{...}` sets the title; `assets/driver-template.tex` and `assets/blank-template.tex` have one. `\hsdate{...}` sets the date it shows. |
+| 2 | Diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around the picture. Neither argument is ever empty. The picture is a diagram-maker PDF placed with `\hsdiagram{figures/<name>}`, which sets it at its own size and only ever scales it down to the measure (`references/house-style/DIAGRAMS.md`). When diagram-maker cannot run, it is a `tikzpicture` from the kit in `hsdiagrams.sty`, and then every figure in the document is. Node row: `hsnode` (slate: input, output), `hswork` (sage: work), `hsgate` (accent: a deterministic check), edges `hsarrow` / `hsfail`, and every node's body is `\hsnodetext{eyebrow}{title}{detail}`, which gives it its eyebrow and holds the row to one height (`\hsnodesize{w}{h}` changes both). The fail path's caption goes under the picture in `\hsfailnote`. The lane and role-graph patterns, the four role colours and how a writer picks one are in `references/page-composition.md`. |
 | 3 | Stat row | `\begin{hsstatrow}[n] \hsstat{741}{caption} ... \end{hsstatrow}`, where `n` is 2, 3 or 4 and defaults to 4. Measured numbers only, and a fifth `\hsstat` is a `\PackageError` rather than a ragged second line. |
 | 4 | Comparison table | `tabular` or `tabularx` inside `hsblock`, with `\hstoprule` above and below the head, `\hshead{...}` for header cells and `\hsaccenthead{...}` for the one new column. No vertical rules. |
 | 5 | Data table | Same rules, grey `\hline` between rows; column types `L{w}` and `R{w}` (ragged, right-aligned numerals) from the `.sty`, `Y` for a tabularx column from the preamble. |
@@ -58,7 +60,7 @@ It runs three lualatex passes in the document's own directory under the temp job
 
 Primitives for anything built on top: `\hslabel{...}` (small caps, ink-55 at 5% tracking, whatever case it is typed in; `Figure 2 / what it shows` splits at the first ` / ` into a small-caps number and an italic title), `\hsaccentlabel{...}`, `\hstitle[size]{...}`, `\hslead{...}`, `\hsrule` (ink), `\hsthinrule` (grey), `\hsrolename{name}{detail}` for a role or lane box, `\hsfull` to reset the prose measure inside a box, and `hsblock` around anything that is a block rather than prose.
 
-**`hsblock` is not optional around a table or a row of minipages.** Prose sits on a 34 em measure, which the class sets with a 48 pt `\rightskip`; a `tabular` or a pair of side-by-side `minipage`s is a block and wants the whole 468 pt. Without `hsblock` the row is 48 pt too wide for the line it is on, so the last `minipage` wraps underneath the others and the table logs an overfull box that then hides the warning from a table that really is too wide. The blocks that carry their own full measure already are the rules, the callout, the plate, the stat row and the figure.
+**Put `hsblock` around a table or a row of minipages.** Since v5.1 prose and blocks share one measure, so a block no longer overruns the prose line, but ranged-left prose still carries a stretchable `\rightskip` that a block should not inherit; `hsblock` resets it. The blocks that carry their own measure already are the rules, the callout, the plate, the stat row and the figure.
 
 ## Teaching affordances
 
@@ -125,7 +127,7 @@ The foot's left slot is empty by default, which is why the copyright line can ha
 
 ## Style gate
 
-`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, inside a diagram as much as outside one (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or any `!` tint at all, since the style allows no gradients and no tints); a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
+`scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, inside a diagram as much as outside one (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or any `!` tint at all, since the style allows no gradients and no tints); a diagram role colour outside a `tikzpicture`, where only `hsdiagrams.sty`, which defines them, is exempt; a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
 
 It also reads the composition defects the reference rendering exposed: an empty mandatory argument to `hsfigure`, `hstitleblock`, `hstitle`, `hsclaim`, `hsprovenance`, `hslisting`, `hsnodetext`, `hsplate` or `hscallout`; an `hsnode` / `hswork` / `hsgate` whose body is not `\hsnodetext`; and a fifth `\hsstat` in one row. What no script can judge is the ten-point list at the end of `references/page-composition.md`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
@@ -134,4 +136,4 @@ scripts/style-check.sh                # this repo
 scripts/style-check.sh <course_dir>   # a build directory
 ```
 
-It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/`, `claude_lessons/` and the vendored `assets/fonts/`, and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
+It skips `_extraction/`, `course_materials/`, `viz_src/`, `node_modules/`, `claude_lessons/`, the vendored `assets/fonts/` and the bundled `diagram-maker/` (another project's repo, under its own rules), and exits non-zero with one line per offending file. `tests/check.sh` runs it against this repo, so the skill's own text obeys the rules it hands out.
