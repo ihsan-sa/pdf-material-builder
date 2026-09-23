@@ -258,6 +258,42 @@ None of these is caught by the gate, and each of them cost a rebuild.
   arrow rather than shrink the gaps: a diagram with one fewer annotated step
   still reads, and one with overlapping labels does not.
 
+## What the second pitch build got wrong
+
+`pitch (3).pdf`, built on the v5 templates on 23 September 2026, called every
+macro and still drifted in five places. Each is now either fixed in the kit
+or a rule here.
+
+- **It drew its own boxes.** The document defined `who`, `ai`, `chk` and
+  `stop` styles with `\tikzset`, so the nodes had no eyebrows, their heights
+  followed their text (the Review box stood taller than its row), and a
+  "Sent back" box sat where the fail path belonged. **A document never writes
+  `\tikzset` for a box.** A node row is `hsnode` / `hswork` / `hsgate` with
+  `\hsnodetext`. To give a node-row box another colour, add the treatment
+  after the shape: `\node[hswork,hsochre]`. Anything else is `hsrole` or
+  `hslane` with a treatment. `assets/blank-template.tex` shows the node row
+  and the role graph drawn this way.
+- **Stat captions ran to eight lines.** Four abreast, a caption has about
+  100 pt of width. **Keep a stat caption to three lines, about fifteen words**:
+  what was counted, over what, and when. The rest of the sentence belongs in
+  the lead or in the provenance footline, which is where the command goes
+  anyway. If every caption in a row needs more, use `hsstatrow[2]` or a
+  data table.
+- **The sources page had no heading.** It opened on "All sources opened on
+  21 September 2026." under a running head that said Sources. **Open the last
+  page with `\hssourcespage`**, which starts the page and heads it. A dating
+  sentence goes under the heading, before the list.
+- **Page one ended at 40%.** The title block, two paragraphs and one figure,
+  then a forced `\newpage` and white down to the footline. The footline's
+  `\vfill` does not fill a page, it only moves the footline down. Either let
+  the next section follow on the same page or give page one more to carry.
+  Don't `\newpage` after a page that is short of half full.
+- **Spacing the kit got wrong, now fixed in `housestyle.sty`:** a heading at
+  the top of a page sat 8 pt under the head rule (`headsep` is now 26 pt).
+  The claim had 44 pt between its label and its closing rule (`\parskip` is
+  now 0 inside the claim and the callout). The callout's label sat half a
+  line below its body's first line (labels now start with `\leavevmode`).
+
 ## Before hand-off: render it and look at it
 
 The style gate is mechanical and this part is not. Build the document, then:
@@ -283,7 +319,11 @@ and read the images, page by page, beside the reference rendering. Check:
    an old `housestyle.sty` was loaded.
 9. **The paper is warm.** A page that renders pure white has lost the tint, which
    means `housestyle.sty` did not load.
-10. **The sources are one numbered list on the last page**, which heads itself
-    `Sources`, and no footnote exists anywhere.
+10. **The sources are one numbered list on the last page**, opened with
+    `\hssourcespage` so the page heads itself `Sources`, and no footnote exists
+    anywhere.
+11. **No box is drawn with the document's own `\tikzset`.** Every node carries
+    an `hs*` shape style, and every node in a row has an eyebrow.
+12. **No stat caption runs past three lines.**
 
 Say in the hand-off which pages you compared and what you changed after looking.
