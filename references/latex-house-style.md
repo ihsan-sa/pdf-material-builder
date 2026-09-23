@@ -8,7 +8,7 @@ It stands alone. Nothing here is about teaching or voice -- for those see `refer
 
 `references/house-style/style-spec.md` is the look, in the owner's words, and `references/house-style/housestyle.sty` implements it. Read the spec; this file does not copy its tables. In a few lines:
 
-- **Two faces.** Source Serif 4 for prose, headings, captions, tables and mathematics; IBM Plex Mono for every label, running head, statistic, path and code listing.
+- **One family, and a mono for literal strings.** Source Serif 4 for everything read: prose, headings (its Subhead cut), the title and statistics (its Display cut), captions, tables, and every label, running head and figure number, which are its own small caps. IBM Plex Mono only for code listings, `\hsurl` and `\texttt`. No sans-serif anywhere (v5, 23 September 2026).
 - **Five neutrals and one accent**, as colour tokens: `ink`, `inkseventy`, `inkfiftyfive`, `paper`, `fill`, `codefill`, `rulegrey`, and `accent`. The accent marks a deterministic check or a pointer, never decoration, and appears at most three times on a page. No other colour exists in the prose of a page: no category colours, no tints, no second hue. **A diagram gets four colours of its own**: slate, sage, ochre and the kit's own accent, each a thin outline with a fill at about 12% of itself, one colour per role (owner's decision, 23 September 2026, overruling the 22 September call to tell roles apart by weight alone; `references/house-style/CONFORMANCE.md`, item 9). The four exist only inside a `tikzpicture` -- the rest of the page keeps the eight above -- and inside one the three-appearance accent budget does not apply.
 - **The paper tint is part of the style.** `housestyle.sty` paints `#FAF8F3` on every page; a document never calls `\pagecolor` itself, and a build that comes out on plain white did not load the class.
 - **One portrait geometry for every recipe**, letter or A4. No landscape variant.
@@ -24,7 +24,7 @@ It stands alone. Nothing here is about teaching or voice -- for those see `refer
 scripts/build.sh path/to/doc.tex
 ```
 
-It runs three lualatex passes in the document's own directory under the temp jobname `_tmp_<name>`, copies the result to `<name>.pdf`, removes the temp files, and exits 1 with the `!` lines if any pass errors. Run it from anywhere.
+It runs three lualatex passes in the document's own directory under the temp jobname `_tmp_<name>`, copies the result to `<name>.pdf`, removes the temp files, and exits 1 with the `!` lines if any pass errors. It also exits 1 if the last pass logs an Overfull `\hbox`, printing the log lines: something prints past the right margin, and a build that only warns about it lets it reach the reader. The PDF is still written so you can look. Run it from anywhere.
 
 **lualatex and texlive-luatex (luaotfload) must be installed.** The engine is lualatex: the `.sty` loads its faces with fontspec and finds them with Lua, and pdflatex cannot do either. fontspec needs luaotfload, which Debian ships in `texlive-luatex`, so install it alongside lualatex. The faces are vendored in the skill, as `.otf` files in `assets/fonts/` with their OFL licences.
 
@@ -37,13 +37,13 @@ It runs three lualatex passes in the document's own directory under the temp job
 - `\hsslug{<Course> <Doc>}` -- the running head's left side.
 - `\hssection{...}` -- its right side. The preamble sets it from each `\section` automatically; call it to override.
 - `\catbanner{A}{Title}` -- opens a Part on a new page: accent eyebrow `Part N . Category A`, then the page heading at 20/24 (the .sty's `\section`), no bold.
-- Section headings are unnumbered on the page, so cross-reference a section by name (`\nameref{sec:...}`), a Part as `Part~\ref{part:...}`, and an equation as `\eqref{eq:...}`, which prints (1).
+- Section headings are unnumbered on the page, so cross-reference a section by name (`\nameref{sec:...}`), a Part as `Part~\ref{part:...}`, and an equation as `\eqref{eq:...}`, which prints (1). `\hsnumbersections`, after the preamble, numbers sections and subsections (1, 1.1) on the page and in the contents for the rest of the document; `\section*` stays unnumbered.
 
 ## The twelve blocks, as macros
 
 | # | Block | Macro |
 |---|---|---|
-| 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}`. Over twelve pages, a dedicated title page with the four-column strip (built for / paper / type / scope): `assets/driver-template.tex` has one. |
+| 1 | Title block | `\hstitleblock{eyebrow}{title}{lead}` opens page one of a short document (`assets/short-template.tex`). Over twelve pages, a dedicated title page instead: `\thispagestyle{hstitlepage}` inside `titlepage` frames it with two ink rules, and `\hstitle[44pt]{...}` sets the title; `assets/driver-template.tex` and `assets/blank-template.tex` have one. `\hsdate{...}` sets the date it shows. |
 | 2 | Diagram | `\begin{hsfigure}{Figure 1 / label}{legend sentence}` around a `tikzpicture`. Neither argument is ever empty. Node row: `hsnode` (slate: input, output), `hswork` (sage: work), `hsgate` (accent: a deterministic check), edges `hsarrow` / `hsfail`, and every node's body is `\hsnodetext{eyebrow}{title}{detail}`, which gives it its eyebrow and holds the row to one height (`\hsnodesize{w}{h}` changes both). The fail path's caption goes under the picture in `\hsfailnote`. The lane and role-graph patterns, the four role colours and how a writer picks one are in `references/page-composition.md`. |
 | 3 | Stat row | `\begin{hsstatrow}[n] \hsstat{741}{caption} ... \end{hsstatrow}`, where `n` is 2, 3 or 4 and defaults to 4. Measured numbers only, and a fifth `\hsstat` is a `\PackageError` rather than a ragged second line. |
 | 4 | Comparison table | `tabular` or `tabularx` inside `hsblock`, with `\hstoprule` above and below the head, `\hshead{...}` for header cells and `\hsaccenthead{...}` for the one new column. No vertical rules. |
@@ -51,14 +51,14 @@ It runs three lualatex passes in the document's own directory under the temp job
 | 6 | Figure plate | `\hsplate{file}{name}{grey facts}{status}{caption}`: full measure, no border. |
 | 7 | Provenance footline | `\hsprovenance{command, commit, file, date}`, at the foot of any page with a figure or a statistic. |
 | 8 | Numbered sources | `\begin{hssources} \item ... \end{hssources}` on the last page; the environment sets the running head of the page it starts, so that page reads `Sources`. A URL in an entry goes in `\hsurl{...}`, which breaks anywhere and never hyphenates. No `\footnote`. |
-| 9 | Claim | `\hsclaim{the sentence}{mono line}`. Exactly one per document. |
+| 9 | Claim | `\hsclaim{the sentence}{small-caps line}`. Exactly one per document. |
 | 10 | Callout | `\begin{hscallout}{label} ... \end{hscallout}`: the objection a careful reader would raise. Never two in a row. |
 | 11 | Code block | `\hslisting{Listing 1 / label}` then `\begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}`. No syntax colour. |
 | 12 | Display equation | Plain `equation` / `align`, numbered at the right margin; every symbol named in the sentence after it. |
 
-Primitives for anything built on top: `\hslabel{...}` (mono uppercase, ink-55 at 7% tracking), `\hsaccentlabel{...}`, `\hslead{...}`, `\hsrule` (ink), `\hsthinrule` (grey), `\hsrolename{name}{detail}` for a role or lane box, `\hsfull` to reset the prose measure inside a box, and `hsblock` around anything that is a block rather than prose.
+Primitives for anything built on top: `\hslabel{...}` (small caps, ink-55 at 5% tracking, whatever case it is typed in; `Figure 2 / what it shows` splits at the first ` / ` into a small-caps number and an italic title), `\hsaccentlabel{...}`, `\hstitle[size]{...}`, `\hslead{...}`, `\hsrule` (ink), `\hsthinrule` (grey), `\hsrolename{name}{detail}` for a role or lane box, `\hsfull` to reset the prose measure inside a box, and `hsblock` around anything that is a block rather than prose.
 
-**`hsblock` is not optional around a table or a row of minipages.** Prose sits on a 34 em measure, which the class sets with a 48 pt `\rightskip`; a `tabular`, a metadata strip or a pair of side-by-side `minipage`s is a block and wants the whole 468 pt. Without `hsblock` the row is 48 pt too wide for the line it is on, so the last `minipage` wraps underneath the others and the table logs an overfull box that then hides the warning from a table that really is too wide. The blocks that carry their own full measure already are the rules, the callout, the plate, the stat row and the figure.
+**`hsblock` is not optional around a table or a row of minipages.** Prose sits on a 34 em measure, which the class sets with a 48 pt `\rightskip`; a `tabular` or a pair of side-by-side `minipage`s is a block and wants the whole 468 pt. Without `hsblock` the row is 48 pt too wide for the line it is on, so the last `minipage` wraps underneath the others and the table logs an overfull box that then hides the warning from a table that really is too wide. The blocks that carry their own full measure already are the rules, the callout, the plate, the stat row and the figure.
 
 ## Teaching affordances
 
@@ -72,8 +72,8 @@ The old coloured boxes are gone. Each teaching need maps onto one of the twelve 
 | Out of scope | A small grey tag after the mention, or first thing in an optional paragraph. No box. | `\opt` |
 | A cross-topic connection | A sentence with a `\ref` or `\nameref`. No box. | -- |
 | A mental image | Prose; a figure plate if it is a figure. No box. | -- |
-| Category and tool tags | Grey mono tags; the category is also the Part's eyebrow and running head. | `\cat{A}`, `\tool{5}`, `\tools{T4,T5}`, `\catbanner{A}{Title}` |
-| A worked problem's heading | One mono label line: source, method, category. | `\probhead{source}{method}{cat}` |
+| Category and tool tags | Grey small-caps tags; the category is also the Part's eyebrow and running head. | `\cat{A}`, `\tool{5}`, `\tools{T4,T5}`, `\catbanner{A}{Title}` |
+| A worked problem's heading | One small-caps label line: source, method, category. | `\probhead{source}{method}{cat}` |
 
 ## Math kit
 
@@ -127,7 +127,7 @@ The foot's left slot is empty by default, which is why the copyright line can ha
 
 `scripts/style-check.sh` is the gate. It fails on an em-dash, an emoji or any other character above ASCII; a `\lt` or `\gt`; a bare `$O()$` where `\Oh` belongs; a `\footnote`; a second `\hsclaim` in one document (a driver and every file it `\input`s or `\include`s); a colour outside the token set, inside a diagram as much as outside one (a hex literal, a `\definecolor` in a `.tex`, a colour name that is not a token, or any `!` tint at all, since the style allows no gradients and no tints); a `\pagecolor` in a document; a `\sffamily` or `\textsf`; and a pdflatex invocation.
 
-It also reads the composition defects the reference rendering exposed: an empty mandatory argument to `hsfigure`, `hstitleblock`, `hsclaim`, `hsprovenance`, `hslisting`, `hsnodetext`, `hsplate` or `hscallout`; an `hsnode` / `hswork` / `hsgate` whose body is not `\hsnodetext`; and a fifth `\hsstat` in one row. What no script can judge is the ten-point list at the end of `references/page-composition.md`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
+It also reads the composition defects the reference rendering exposed: an empty mandatory argument to `hsfigure`, `hstitleblock`, `hstitle`, `hsclaim`, `hsprovenance`, `hslisting`, `hsnodetext`, `hsplate` or `hscallout`; an `hsnode` / `hswork` / `hsgate` whose body is not `\hsnodetext`; and a fifth `\hsstat` in one row. What no script can judge is the ten-point list at the end of `references/page-composition.md`. Run it after every agent-authored write, not only at the end -- a batch of parallel writers can plant fifty `\lt`s in one round.
 
 ```bash
 scripts/style-check.sh                # this repo

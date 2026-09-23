@@ -1,7 +1,7 @@
 # House style for technical documents
 
-The visual spec behind `Documentation House Style.dc.html`. Every value here is
-what that template renders; the LaTeX class `housestyle.sty` implements it.
+The visual spec behind `house-style-template.html` (v5). Every value here is
+what `housestyle.sty` renders, in points, and the HTML reference matches it.
 
 ## Page
 
@@ -17,32 +17,51 @@ Portrait only. One geometry for every recipe; a landscape reference sheet is a
 separate class, not a variant of this one.
 
 Running head on every page but the first: document slug at the left, section name
-at the right, mono 10.5 pt uppercase, +14% tracking, ink 55%, with a 0.75 pt grey
+at the right, serif small caps 10.5 pt, +5% tracking, ink 55%, with a 0.75 pt grey
 rule under it. Page number at the foot, same style, outer edge.
 
 ## Type
 
-Two faces, both open-licensed and vendored in `assets/fonts/` for lualatex.
+One family in three optical sizes, and one mono for literal strings. All
+open-licensed (OFL) and vendored in `assets/fonts/` for lualatex.
 
-- **Source Serif 4** - all prose, headings, captions, tables, mathematics.
-- **IBM Plex Mono** - labels, running heads, figure numbers, statistics, code,
-  file paths, provenance lines.
+- **Source Serif 4** - everything a reader reads: prose, headings, captions,
+  tables, labels, statistics, the text of mathematics. The Text cut for body
+  and labels, Subhead for headings and the claim, Display for the title and
+  the statistics.
+- **IBM Plex Mono** - only what is literal: code listings, URLs, file paths
+  and commands set inline with `\texttt`.
 
-| Role | Face | Size / leading | Notes |
+Labels are the serif's own small caps (OpenType `smcp` and `c2sc`, so
+input case does not matter) at +5% tracking: running heads, eyebrows, figure,
+table and listing numbers, table heads, the claim attribution, callout labels.
+A label written `Figure 2 / what it shows` splits at the slash: the number in
+small caps, the title in the text italic at ink 70%. *v5, 23 September 2026:
+this replaces IBM Plex Mono capitals, which the owner found out of place and
+machine-made.*
+
+| Role | Face | Size / leading (pt) | Notes |
 |---|---|---|---|
-| Document title | serif 400 | 52 / 56, -1.5% | title page only |
-| Page heading | serif 400 | 28 / 34, -1% | one per page, at the top |
-| Lead line | serif 400 | 17 / 26 | ink 70%, two lines max |
-| Body | serif 400 | 16 / 26 | the default for prose |
-| Claim (pull quote) | serif 400 | 27 / 35 | one per document |
-| Caption, figure note | serif 400 | 13.5 / 20 | ink 70% |
-| Table body | serif 400 | 14 / 20 | numerals tabular, right-aligned |
-| Statistic | mono 500 | 38 / 38, -3% | four abreast, never five |
-| Label, provenance | mono 400 | 10.5, +14% tracking | uppercase, ink 55% |
-| Code | mono 400 | 12.5 / 21 | no syntax colour in print |
+| Document title | Display 400 | 36 / 40 | `\hstitle`, `\hstitleblock` |
+| Part and section heading | Subhead 400 | 20 / 24 | unnumbered; `\hsnumbersections` adds "2" in ink 55%, 14 pt before the title |
+| Subsection | Subhead 400 | 14 / 19 | numbered "2.1" when switched on |
+| Sub-subsection | Text italic | 11.5 / 18.5 | |
+| Lead line | Text 400 | 12.5 / 19 | ink 70%, two lines max |
+| Body | Text 400 | 11.5 / 18.5 | the default for prose |
+| Claim (pull quote) | Subhead 400 | 19 / 25 | one per document |
+| Legend, caption | Text 400 | 10 / 15 | ink 70% |
+| Callout body, sources | Text 400 | 10.5 / 16 | callout label hangs in a 96 pt column |
+| Statistic | Display 400 | 28 / 28 | lining tabular figures; four abreast, never five |
+| Stat caption | Text 400 | 9.5 / 14 | ink 70% |
+| Label | Text, all small caps | 10.5 / 14, +5% | ink 55%, or accent |
+| Node eyebrow | Semibold, all small caps | 8.5 / 9, +6% | the role colour |
+| Node title, node detail | Text 400 | 11 / 13, 8.5 / 11.5 | |
+| Fail note | Text italic | 9 / 12 | accent |
+| Provenance | Text 400 | 8.5 / 12 | ink 55%, as typed (TeX ligatures off) |
+| Code | Plex Mono 400 | 10 x 0.86 / 15 | no syntax colour in print |
 
-No bold in body text. Emphasis is italic. No small caps, no underline except on
-links.
+No bold in body text. Emphasis is italic. Small caps only through the label
+macros. No sans-serif anywhere. No underline except on links.
 
 ## Colour
 
@@ -50,9 +69,9 @@ links.
 |---|---|---|
 | ink | #15140F | text, structural rules |
 | ink-70 | #4A4740 | lead lines, captions, secondary table cells |
-| ink-55 | #8A857A | labels, running heads, provenance, dividing rules |
+| ink-55 | #77716A | labels, running heads, provenance, arrows (v5: was #8A857A) |
 | paper | #FAF8F3 | the sheet, painted on every page |
-| fill | #F0EADE | callout ground; #F2EEE3 for code ground |
+| fill | #F0EADE | a lane step's ground; #F2EEE3 for code ground |
 | accent | #9C4221 | deterministic checks, source numerals, one header cell |
 
 Outside a diagram there is one accent, and it is the only hue on the page;
@@ -73,13 +92,16 @@ head, under the title block), grey where they only divide.
 
 ## The twelve blocks
 
-1. **Title block** - eyebrow (mono, accent), title, one-line lead, then content.
-   Documents over twelve pages get a dedicated title page with a four-column
-   metadata strip at the foot: built for / paper / type / scope.
+1. **Title block** - eyebrow (small caps, accent), title, one-line lead, then content.
+   Documents over twelve pages get a dedicated title page, framed by two ink
+   rules: the slug and date above the top one, the copyright line under the
+   bottom one, no page number. Between them, the eyebrow, the title at 44 / 48
+   and the lead, a third of the way down, and white. Shorter documents open
+   with the title block at the top of page one and go straight into prose.
 2. **Diagram** - drawn for what it shows. *Owner's decision, 22 September 2026:
    "dont force diagrams into the format in the template". This replaces the
    earlier text of this block, which allowed three node kinds and no more.* The
-   node row is one pattern: horizontal nodes, mono arrow glyphs, a slate box
+   node row is one pattern: horizontal nodes joined by grey arrows, a slate box
    (input, output), a sage box (work an agent does), an accent box (a
    deterministic check). A lane diagram, and a role graph with annotated
    arrows, are equally house style. All three patterns draw a role in one of
@@ -95,9 +117,10 @@ head, under the title block), grey where they only divide.
    label, a legend sentence under it in caption size naming the kinds it uses,
    an eyebrow in every node, one height for every box in a row, and a fail path
    drawn as one accent line with its caption under the picture. The typography
-   is the house's -- mono labels, the text serif for prose in a node, the page's
+   is the house's -- small-caps labels and eyebrows, the text serif for prose in a node, the page's
    paper ground, and no sans-serif anywhere.
-3. **Stat row** - four measured figures, mono, with a caption under each. Rule
+3. **Stat row** - two to four measured figures in the Display cut, lining tabular, with a
+   caption under each. Rule
    above in ink, rule below in grey. Only for numbers that were measured.
 4. **Comparison table** - one row per dimension, two or three columns, the new
    column headed in accent. No vertical rules.
@@ -105,21 +128,23 @@ head, under the title block), grey where they only divide.
    ink rule above and below the head, grey rules between rows, `thead` repeated
    across pages.
 6. **Figure plate** - full measure, no border, no shadow, no rounded corner. A
-   mono spec line directly under it (name, then greyed facts, then status in
+   small-caps spec line directly under it (name, then greyed facts, then status in
    accent), then a caption naming what the plate is evidence of. Half-measure
    plates come in pairs sharing a baseline.
-7. **Provenance footline** - grey rule, then one or two mono lines at 10.5 pt
+7. **Provenance footline** - grey rule, then one or two serif lines at 8.5 pt, ink 55%,
    saying what the page's numbers were read from: the command, the commit, the
    file, the date. Mandatory on any page with a figure or a statistic.
 8. **Numbered sources** - one list on the last page, numbered in the order the
    superscripts appear, each with the date read. URLs in mono. No footnotes at the
    foot of the page.
 9. **Claim** - the one sentence the document exists for, at 27 pt between two ink
-   rules, with a mono line under it. Exactly one per document.
+   rules, with a small-caps line under it. Exactly one per document.
 10. **Callout** - the objection a careful reader would raise, stated before they
-    have to. Flat #F0EADE ground, accent mono label, no icon, no border, never two
-    in a row.
-11. **Code block** - #F2EEE3 ground, ink rule on top only, mono 12.5 pt, output
+    have to. A grey rule above and below, the accent small-caps label hanging in
+    a 96 pt column at the left, the body at 10.5 / 16 beside it. No fill, no
+    icon, never two in a row. *v5: this replaces the flat #F0EADE box, which
+    read as pasted onto the page.*
+11. **Code block** - #F2EEE3 ground, ink rule on top only, Plex Mono, output
     shown as it came back. A skipped check prints its reason.
 12. **Display equation** - centred, serif, italic variables and upright
     operators, number at the right margin as (1). Every symbol named in the

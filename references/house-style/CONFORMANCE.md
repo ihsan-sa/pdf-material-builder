@@ -17,7 +17,7 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
 |---|---|---|
 | Six statistics in one row, wrapped into a ragged grid with six-line captions | Four abreast, never five. Six measured figures are two rows or a data table. | `hsstatrow[n]` caps at four and raises a `\PackageError` on the fifth `\hsstat` |
 | Document slug printed in the running head *and* the foot of every page | The slug appears once. Head: slug left, section right. Foot: page number right. | `\fancyfoot[L]` is empty by default |
-| Every label set as separated capitals (`A U T O B O X`) | Labels are mono uppercase at 7% tracking, not 14% | `\labelfont` is `LetterSpace=7.0, WordSpace=1.25` |
+| Every label set as separated capitals (`A U T O B O X`) | Labels read as words (v5: serif small caps at 5%, no mono) | `\labelfont` is Source Serif 4 with `Letters={SmallCaps,UppercaseSmallCaps}, LetterSpace=5.0` |
 | The sources page carrying the previous page's section name | The sources page is headed "Sources" | the `hssources` environment sets `\hsgsection{Sources}`, globally, so the value survives the list's group and reaches the output routine |
 | A URL hyphenated mid-word across a line break | URLs break at any character and are never hyphenated | `xurl` loaded; `\hsurl{...}` for source entries |
 | No provenance footline on any page, the figure note set as body prose instead | Every page carrying a figure or a statistic ends in a provenance footline | manual: see item 3 below |
@@ -45,14 +45,17 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
    so a document never calls `\pagecolor` itself; a build that comes out on plain
    white has lost the tint, and a document that sets its own page colour has
    overridden it. Inside a `tikzpicture` see item 9.
-8. **Type.** Two faces. No bold in body text, no small caps, no underline except
-   links, no size outside the scale in `style-spec.md`.
+8. **Type.** Source Serif 4 for everything read; IBM Plex Mono only for code,
+   URLs and paths. No bold in body text, small caps only through the label
+   macros, no underline except links, no size outside the scale in
+   `style-spec.md`. A label that comes out in mono capitals means an old
+   `housestyle.sty` was loaded.
 9. **Diagrams.** A diagram is drawn for what it shows, not poured into the
    template's node row. *Owner's decision, 22 September 2026: "dont force
    diagrams into the format in the template", and the lane diagrams of the old
    pitch and deeper-look documents "stay". It overrides the earlier wording of
    this item, of `style-spec.md` block 2 and of the README's rule 3.* What still
-   binds every diagram is the typography and the ground: mono for labels and
+   binds every diagram is the typography and the ground: small caps for labels and
    eyebrows, the text serif for prose inside a node, the page's paper tint, no
    sans-serif anywhere. The three node kinds (`hsnode`, `hswork`, `hsgate`) are
    one pattern among several; a lane diagram with an annotated arrow between

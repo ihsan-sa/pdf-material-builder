@@ -15,6 +15,9 @@
 # Each pass writes to the temp jobname _tmp_<name> so a PDF open in a viewer
 # does not lock the build; the result is copied over <name>.pdf and the temp
 # files removed. Exits 1 if any pass logs a "!" error, printing the lines.
+# Exits 1 too if the last pass logs an Overfull \hbox: something prints past
+# the right margin. The PDF is still written, so the page can be looked at,
+# and the log's overfull lines are printed with the source lines they name.
 set -euo pipefail
 
 [ $# -eq 1 ] || { echo "usage: $0 <file.tex>" >&2; exit 2; }
@@ -36,5 +39,12 @@ for pass in 1 2 3; do
   fi
 done
 cp "_tmp_$name.pdf" "$name.pdf"
+over=$(grep -A1 '^Overfull \\hbox' "_tmp_$name.log" || true)
 rm -f _tmp_"$name".*
+if [ -n "$over" ]; then
+  echo "build.sh: $name.tex has overfull boxes; something is wider than the measure:" >&2
+  printf '%s\n' "$over" >&2
+  echo "build.sh: wrote $(pwd)/$name.pdf, but the build is not clean" >&2
+  exit 1
+fi
 echo "built $(pwd)/$name.pdf"

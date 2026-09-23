@@ -32,7 +32,7 @@
 #     (spec, Type; CONFORMANCE item 8)
 #   - an empty mandatory argument to a composition macro          (.tex)
 #     (\hsfigure's label or legend, \hsprovenance, \hslisting,
-#     \hsclaim, \hstitleblock, \hsnodetext, \hsplate's caption):
+#     \hsclaim, \hstitleblock, \hstitle, \hsnodetext, \hsplate's caption):
 #     the block is on the page with nothing in it
 #   - an hsnode / hswork / hsgate whose body is not \hsnodetext,  (.tex)
 #     which is what gives the node its eyebrow and holds every
@@ -86,14 +86,15 @@ CLAIM = re.compile(r'\\hsclaim(?![A-Za-z])')
 BEGIN_DOC = re.compile(r'\\begin\s*\{document\}')
 INPUT = re.compile(r'\\(input|include)\s*\{([^}]+)\}')
 PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
-# The eight kit tokens of style-spec.md, the code ground and the grey rule
+# The eight kit tokens of style-spec.md (ink-55 is 77716A since v5; the old
+# 8A857A is no longer a token), the code ground and the grey rule
 # the .sty defines, by hex and by the names housestyle.sty gives them: these
 # read anywhere -- prose, headings, tables, callouts and the page. The four
 # diagram role colours (slate, sage, ochre and the kit's own accent, which
 # doubles as the fourth) and each one's explicit ~12% tint are tokens too,
 # but exist only inside a tikzpicture; the .sty itself is exempt, since it is
 # what defines them.
-KIT_HEX = {'15140F', '4A4740', '8A857A', 'FAF8F3', 'F0EADE', 'F2EEE3',
+KIT_HEX = {'15140F', '4A4740', '77716A', 'FAF8F3', 'F0EADE', 'F2EEE3',
            '9C4221', 'DED8CA'}
 ROLE_HEX = {'4F6D8A', '5E7A5A', 'A07A2C',
             'EAEDF1', 'ECEFEB', 'F4EFE6', 'F3E8E4'}
@@ -281,7 +282,8 @@ def read_args(text, i, count):
 FILLED = {
     r'\begin{hsfigure}': (2, (0, 1), ('the figure label', 'the legend sentence')),
     r'\hstitleblock':    (3, (0, 1, 2), ('the eyebrow', 'the title', 'the lead')),
-    r'\hsclaim':         (2, (0, 1), ('the claim', 'the mono line under it')),
+    r'\hstitle':         (1, (0,), ('the title',)),
+    r'\hsclaim':         (2, (0, 1), ('the claim', 'the small-caps line under it')),
     r'\hsprovenance':    (1, (0,), ('the provenance line',)),
     r'\hslisting':       (1, (0,), ('the listing label',)),
     r'\hsnodetext':      (3, (0, 1), ('the node eyebrow', 'the node title')),
