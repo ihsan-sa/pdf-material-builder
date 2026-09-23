@@ -106,13 +106,17 @@ What does not bend, in any of the three patterns below:
   for prose inside a node, the page's paper as the ground. No sans-serif
   anywhere; the old documents these patterns come from were set in Helvetica and
   that part does not come with them.
-- **The palette is the house's too.** The owner settled this on 22 September
-  2026: the old diagrams' *form* comes across, their colours do not -- "they can
-  still be redrawn in the new pallette which is prob better but i mean the form
-  etc". So a diagram is drawn in ink, the neutrals, the two grounds and the one
-  accent, and no hue exists inside a picture that does not exist outside it.
-  Telling roles apart is then a matter of weight, and *How a writer picks a
-  treatment* below is how.
+- **A role reads apart by colour, and every box carries the same weight.** The
+  owner tried weight first (22 September 2026, "they can still be redrawn in
+  the new pallette which is prob better but i mean the form etc") and then
+  overruled it (23 September 2026): "I prefer the lightly shaded or outlined
+  boxes. preferably all consistent with shading but different colours.
+  basically just the black is too different." So every box in a diagram is a
+  thin outline with a fill at about 12% of the same colour, and the four
+  colours -- `hsslate`, `hssage`, `hsochre`, `hsaccentrole` -- exist only
+  inside a `tikzpicture`; nothing outside one takes a hue that is not one of
+  the eight kit tokens. No box is filled solid black. *How a writer picks a
+  colour* below is how.
 - **Every figure is labelled and legended.** `\begin{hsfigure}{Figure N / ...}`
   with a legend sentence naming the kinds the picture uses.
 - **Boxes in a row are one height**, which is what `\hsnodetext` is for.
@@ -126,7 +130,7 @@ figure, and it is the right answer when the thing genuinely is a line of steps.
 
 ```latex
 \begin{hsfigure}{Figure 1 / node-and-arrow flow}%
-{Filled boxes are inputs and outputs. Outlined boxes are work an agent does.
+{Slate boxes are inputs and outputs. Sage boxes are work an agent does.
 Rust boxes are deterministic checks that pass or fail.}
 \begin{tikzpicture}[node distance=14pt]
   \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
@@ -153,15 +157,15 @@ reads downwards.
 
 ```latex
 \begin{hsfigure}{Figure 2 / one request, end to end}%
-{Each column is one actor and time runs down the page. The filled lane is the
-seat that decides and the rust one is where work becomes public; a dashed arrow
-is a return, and the italic line on an arrow says what crosses.}
+{Each column is one actor and time runs down the page. The ochre lane decides
+and the rust one is where work becomes public; a dashed arrow is a return, and
+the italic line on an arrow says what crosses.}
 \begin{tikzpicture}[x=92pt,y=-15pt]
-  \node[hslane,hsoutlined] (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
-  \node[hslane,hsquiet]    (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
-  \node[hslane,hsfilled]   (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
-  \node[hslane,hsground]   (W) at (3,0) {\hsrolename{Worker}{one task}};
-  \node[hslane,hsmarked]   (L) at (4,0) {\hsrolename{Landing}{the queue, and GitHub}};
+  \node[hslane,hsslate]      (O) at (0,0) {\hsrolename{A person}{phone or laptop}};
+  \node[hslane,hsquiet]      (S) at (1,0) {\hsrolename{Slack}{the project's channel}};
+  \node[hslane,hsochre]      (P) at (2,0) {\hsrolename{Planning seat}{the project's session}};
+  \node[hslane,hssage]       (W) at (3,0) {\hsrolename{Worker}{one task}};
+  \node[hslane,hsaccentrole] (L) at (4,0) {\hsrolename{Landing}{the queue, and GitHub}};
   \foreach \c in {O,S,P,W,L} \draw[hslife] (\c.south) -- (\c.south |- 0,16);
   \draw[hsarrow] (0,1.6) -- node[hsann,above=0pt] {a message} (1,1.6);
   \draw[hsarrow] (1,3.2) -- node[hsann,above=0pt] {typed into the session's window} (2,3.2);
@@ -195,15 +199,15 @@ picture can breathe where it needs to.
 
 ```latex
 \begin{hsfigure}{Figure 3 / what runs with nobody there}%
-{Outlined boxes are doors into the box, the filled one is what every event goes
-through, the tinted one is where a model runs and the faint one is a record. An
+{Slate boxes are doors into the box, the rust one is what every event goes
+through, the sage one is where a model runs and the grey one is a record. An
 italic line on an arrow says what passes between two parts.}
 \begin{tikzpicture}[x=1pt,y=1pt]
-  \node[hsrole,hsoutlined] (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
-  \node[hsrole,hsoutlined] (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
-  \node[hsrole,hsfilled]   (b) at (176,36)  {\hsrolename{Broker}{every 60 s: the event door}};
-  \node[hsrole,hsground]   (s) at (352,72)  {\hsrolename{Sessions}{the tmux windows}};
-  \node[hsrole,hsquiet]    (r) at (176,-52) {\hsrolename{The board}{one row per task}};
+  \node[hsrole,hsslate]      (d) at (0,72)    {\hsrolename{Slack daemon}{the box's one connection}};
+  \node[hsrole,hsslate]      (m) at (0,0)     {\hsrolename{Mail receiver}{loopback, behind a tunnel}};
+  \node[hsrole,hsaccentrole] (b) at (176,36)  {\hsrolename{Broker}{every 60 s: the event door}};
+  \node[hsrole,hssage]       (s) at (352,72)  {\hsrolename{Sessions}{the tmux windows}};
+  \node[hsrole,hsquiet]      (r) at (176,-52) {\hsrolename{The board}{one row per task}};
   \draw[hsarrow] (d) -- node[hsann] {stored,\\then handed on} (b);
   \draw[hsarrow] (m) -- (b);
   \draw[hsarrow] (b) -- node[hsann] {one message,\\not six} (s);
@@ -212,26 +216,25 @@ italic line on an arrow says what passes between two parts.}
 \end{hsfigure}
 ```
 
-### How a writer picks a treatment
+### How a writer picks a colour
 
-There are five, and they differ by weight rather than by hue, so a reader tells
-them apart the way they tell a heading from a caption. In the order they ask to
-be noticed:
+There are four, and every one of them is drawn the same way -- a thin outline
+and a fill at about 12% of itself -- so a reader tells the roles apart by hue,
+not by how loud the box is. A fifth, `hsquiet`, carries no hue at all and is
+for anything that is not a role.
 
-| Treatment | What it looks like | Give it to |
+| Style | Colour | Give it to |
 | --- | --- | --- |
-| `hsfilled` | ink box, paper text | the one part the picture is about: where the work is decided, or the step everything passes through |
-| `hsmarked` | accent rule on the fill ground, accent eyebrow | the single role the mechanism turns on -- a gate, a landing, the thing that can refuse. One per picture |
-| `hsoutlined` | ink rule on paper | the ordinary parts, and usually the people |
-| `hsground` | fill ground, ink-70 rule | a part that does work but is not the subject |
-| `hsquiet` | grey rule on paper, ink-70 text | ambient things: a store, a record, a timer, anything the reader need not follow |
+| `hsslate` | `#4F6D8A` | a person, or the door a thing comes in through |
+| `hssage` | `#5E7A5A` | work getting done: an agent, a worker, wherever a model runs |
+| `hsochre` | `#A07A2C` | the part that decides |
+| `hsaccentrole` | `#9C4221`, the kit accent | the single role the mechanism turns on -- a gate, a landing, a broker every event passes through. One per picture |
+| `hsquiet` | none: grey rule on paper | ambient things with no part to play -- a store, a record, a timer |
 
-Rank the roles by how much the reader has to notice them, then assign from the
-top of the table down; use three or four treatments in one picture rather than
-all five, spend `hsmarked` exactly once, and name in the legend what each weight
-means in this picture, because the weights carry no fixed meaning across
-pictures the way a hue would. Each treatment names colours only, so it goes on a node beside
-`hsrole` or `hslane`, never alone.
+A colour carries no fixed meaning across pictures the way `hsmarked` once did
+by being spent once; name in the legend what each one stands for in *this*
+picture. Use three or four of the five in one picture, and each style names a
+colour only, so it goes on a node beside `hsrole` or `hslane`, never alone.
 
 ## Three traps the first composed build hit
 

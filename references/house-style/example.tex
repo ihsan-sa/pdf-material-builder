@@ -17,7 +17,7 @@ pages gets a title page.}
 The opening paragraph is the only place a document is allowed to be general.
 
 \begin{hsfigure}{Figure 1 / node-and-arrow flow}%
-{Filled boxes are inputs and outputs, outlined boxes are work an agent does,
+{Slate boxes are inputs and outputs, sage boxes are work an agent does,
 rust boxes are deterministic checks.}
 \begin{tikzpicture}[node distance=14pt]
   \node[hsnode] (a) {\hsnodetext{Input}{A brief}{goal, boundaries, done-criteria}};
@@ -44,9 +44,9 @@ rust boxes are deterministic checks.}
 \hstoprule
 \hshead{Kind} & \hshead{How it is drawn} & \hsaccenthead{Use it for} \\
 \hline
-\texttt{hsnode} & Filled ink, paper text & An input or an output \\
-\texttt{hswork} & Outlined ink on paper & Work an agent does \\
-\texttt{hsgate} & Accent rule on fill & A check that passes or fails \\
+\texttt{hsnode} & Slate rule, slate-tint fill & An input or an output \\
+\texttt{hswork} & Sage rule, sage-tint fill & Work an agent does \\
+\texttt{hsgate} & Accent rule, accent-tint fill & A check that passes or fails \\
 \hline
 \end{tabular}
 \end{hsblock}

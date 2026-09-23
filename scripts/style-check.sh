@@ -16,10 +16,15 @@
 #     followed recursively; any other .tex is counted on its own
 #   - a colour outside the tokens (spec, Colour): a hex value    (.tex .sty)
 #     not in the token set, a \definecolor in a document, or a
-#     colour name or `!` tint that is not a token name. A
-#     diagram is drawn in these same tokens: it tells its roles
-#     apart by weight, not by a hue of its own (CONFORMANCE
-#     item 9)
+#     colour name or `!` tint that is not a token name. The eight
+#     kit tokens plus the four diagram role colours (and their
+#     four explicit tints) are the whole set; a diagram names one
+#     of these rather than writing a hex or a tint of its own
+#     (CONFORMANCE item 9). The eight kit tokens read anywhere;
+#     the four role colours and their tints read only inside a
+#     tikzpicture -- prose, headings, tables, callouts and the
+#     page keep the eight kit tokens. housestyle.sty, which
+#     defines the role colours, is exempt from that restriction.
 #   - \pagecolor in a document: housestyle.sty paints the paper  (.tex)
 #     tint on every page and a document never repaints it
 #     (CONFORMANCE item 7)
@@ -81,17 +86,34 @@ CLAIM = re.compile(r'\\hsclaim(?![A-Za-z])')
 BEGIN_DOC = re.compile(r'\\begin\s*\{document\}')
 INPUT = re.compile(r'\\(input|include)\s*\{([^}]+)\}')
 PDFLATEX = re.compile(r'(?<![\w-])pdflatex\s+(?:-|[^\s]*\.tex\b)')
-# The six tokens of style-spec.md, the code ground and the grey rule the .sty
-# defines, by hex and by the names housestyle.sty gives them.
-TOKEN_HEX = {'15140F', '4A4740', '8A857A', 'FAF8F3', 'F0EADE', 'F2EEE3',
-             '9C4221', 'DED8CA'}
-TOKEN_NAMES = {'ink', 'inkseventy', 'inkfiftyfive', 'paper', 'fill',
-               'codefill', 'accent', 'rulegrey', 'none'}
+# The eight kit tokens of style-spec.md, the code ground and the grey rule
+# the .sty defines, by hex and by the names housestyle.sty gives them: these
+# read anywhere -- prose, headings, tables, callouts and the page. The four
+# diagram role colours (slate, sage, ochre and the kit's own accent, which
+# doubles as the fourth) and each one's explicit ~12% tint are tokens too,
+# but exist only inside a tikzpicture; the .sty itself is exempt, since it is
+# what defines them.
+KIT_HEX = {'15140F', '4A4740', '8A857A', 'FAF8F3', 'F0EADE', 'F2EEE3',
+           '9C4221', 'DED8CA'}
+ROLE_HEX = {'4F6D8A', '5E7A5A', 'A07A2C',
+            'EAEDF1', 'ECEFEB', 'F4EFE6', 'F3E8E4'}
+KIT_NAMES = {'ink', 'inkseventy', 'inkfiftyfive', 'paper', 'fill',
+             'codefill', 'accent', 'rulegrey', 'none'}
+ROLE_NAMES = {'slate', 'sage', 'ochre',
+              'slatetint', 'sagetint', 'ochretint', 'accenttint'}
+TOKEN_HEX = KIT_HEX | ROLE_HEX
+TOKEN_NAMES = KIT_NAMES | ROLE_NAMES
 HEX = re.compile(r'(?:#|\{HTML\}\{)([0-9A-Fa-f]{6})\b')
 DEFINECOLOR = re.compile(r'\\definecolor(?![A-Za-z])')
 COLOR_USE = re.compile(
     r'\\(?:textcolor|color|colorbox|pagecolor|arrayrulecolor)\s*(?:\[[^\]]*\])?\{([^}]*)\}'
     r'|(?<![A-Za-z])(?:draw|fill|text|colback|colframe|rulecolor|bgcolor)\s*=\s*([^,\]}\s]+)')
+# hsslate / hssage / hsochre / hsaccentrole (housestyle.sty's tikz style
+# names for the role treatments) are never matched by COLOR_USE: they show up
+# bare, as a node option, never as the value of draw=/fill=/textcolor{} and
+# so on, so they are never mistaken for a colour name here.
+TIKZ_BEGIN = re.compile(r'\\begin\s*\{tikzpicture\}')
+TIKZ_END = re.compile(r'\\end\s*\{tikzpicture\}')
 
 def line_events(line, n):
     """The claims and \\input/\\include targets on one comment-stripped line,
@@ -113,6 +135,7 @@ for path in files:
     is_tex = path.endswith('.tex')
     is_sty = path.endswith('.sty')
     events = tex_events[os.path.realpath(path)] = [] if is_tex else None
+    tikz_depth = 0
     for n, line in enumerate(text.splitlines(), 1):
         for ch in line:
             if ord(ch) > 0x7e:
@@ -130,27 +153,53 @@ for path in files:
         if not (is_tex or is_sty):
             continue
         line = TEX_COMMENT.sub('', line)
+        # A role colour reads only inside a tikzpicture; depth is counted
+        # before this line's own \begin, so a \begin{tikzpicture}[...] line
+        # that sets a role colour in its own options still reads as inside
+        # one, and an \end{tikzpicture} line still covers what came before
+        # the \end on that same line.
+        in_tikz = bool(is_sty or tikz_depth > 0 or TIKZ_BEGIN.search(line))
+        tikz_depth = max(0, tikz_depth + len(TIKZ_BEGIN.findall(line))
+                                       - len(TIKZ_END.findall(line)))
         for m in HEX.finditer(line):
-            if m.group(1).upper() not in TOKEN_HEX:
-                problems.append(f'{rel}:{n}: colour #{m.group(1)} is not one of '
-                                'the house-style tokens')
+            hexval = m.group(1).upper()
+            if hexval in KIT_HEX:
+                continue
+            if hexval in ROLE_HEX:
+                if not in_tikz:
+                    problems.append(f'{rel}:{n}: colour #{hexval} is a diagram '
+                                    'role colour; those read only inside a '
+                                    'tikzpicture')
+                continue
+            problems.append(f'{rel}:{n}: colour #{hexval} is not one of '
+                            'the house-style tokens')
         for m in COLOR_USE.finditer(line):
             name = (m.group(1) or m.group(2) or '').strip()
             # \color{#1} in a macro body, or text=\foo, is not a literal.
             if name.startswith(('#', '\\')) or not name:
                 continue
-            # The spec allows no tints: `accent!12` and `ink!20!paper` are
-            # as wrong as a hue that is no token at all ("No gradients, no
-            # tints of the accent, no second hue"), so the `!` is itself the
-            # violation and the whole name is reported.
+            # The spec allows no tints, in a diagram or out of one: `accent!12`
+            # and `ink!20!paper` are as wrong as a hue that is no token at all.
+            # Every diagram role colour already has its own explicit tint
+            # token (slatetint, and so on), so a document never has reason to
+            # write a `!` itself; the `!` is the violation and the whole name
+            # is reported.
             if '!' in name:
                 problems.append(f'{rel}:{n}: colour `{name}` is a tint; the '
                                 'style allows no gradients and no tints, only '
-                                'the eight tokens themselves')
+                                'the named tokens themselves')
+            elif name in ROLE_NAMES and not in_tikz:
+                problems.append(f'{rel}:{n}: colour `{name}` is a diagram role '
+                                'colour; prose, headings, tables, callouts and '
+                                'the page keep the eight kit tokens -- slate, '
+                                'sage, ochre and their tints read only inside '
+                                'a tikzpicture')
             elif name not in TOKEN_NAMES:
                 problems.append(f'{rel}:{n}: colour `{name}` is not a house-style '
                                 'token (ink, inkseventy, inkfiftyfive, paper, '
-                                'fill, codefill, accent, rulegrey)')
+                                'fill, codefill, accent, rulegrey, or a diagram '
+                                'role colour: slate, sage, ochre, slatetint, '
+                                'sagetint, ochretint, accenttint)')
         if SANS.search(line):
             problems.append(rf'{rel}:{n}: \sffamily or \textsf; the two faces are '
                             'Source Serif 4 and IBM Plex Mono, neither a sans')
