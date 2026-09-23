@@ -271,8 +271,8 @@ or a rule here.
   `\tikzset` for a box.** A node row is `hsnode` / `hswork` / `hsgate` with
   `\hsnodetext`. To give a node-row box another colour, add the treatment
   after the shape: `\node[hswork,hsochre]`. Anything else is `hsrole` or
-  `hslane` with a treatment. `samples/pitch.tex` now shows all three of its
-  figures drawn this way.
+  `hslane` with a treatment. `assets/blank-template.tex` shows the node row
+  and the role graph drawn this way.
 - **Stat captions ran to eight lines.** Four abreast, a caption has about
   100 pt of width. **Keep a stat caption to three lines, about fifteen words**:
   what was counted, over what, and when. The rest of the sentence belongs in

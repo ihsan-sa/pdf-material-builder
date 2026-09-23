@@ -126,7 +126,8 @@ I reviewed the six pages built on these templates. Fixed in the kit:
   first line of its body.
 - New `\hssourcespage`: a new page headed "Sources".
 
-Fixed in the sample: `samples/pitch.tex` no longer defines its own box styles.
+Fixed in the kit's sample (the pitch is not vendored here; its source lives in
+the box's own repository, and moving it onto these styles is done there): `samples/pitch.tex` no longer defines its own box styles.
 All three figures now use `hsnode`/`hswork`/`hsgate` with `\hsnodetext`
 and `hsrole` with treatments. That gives eyebrows, rows of one height and a
 real fail path, and nothing is filled black. Its sources page uses
