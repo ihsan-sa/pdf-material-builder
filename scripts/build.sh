@@ -59,10 +59,10 @@ if [ ${#specs[@]} -gt 0 ]; then
         printf '%s\n' "$out" >&2
         exit 1
       fi
-      rc=0; out=$("$dm/scripts/export.sh" "$fig.svg" pdf 2>&1) || rc=$?
+      rc=0; out=$("$dm/scripts/export.sh" "$spec" "$skill/assets/fonts" 2>&1) || rc=$?
       [ "$rc" -eq 0 ] && continue
       if [ "$rc" -ne 2 ]; then
-        echo "build.sh: exporting $fig.svg failed: $out" >&2
+        echo "build.sh: exporting $spec failed: $out" >&2
         exit 1
       fi
       note="export.sh found no converter"
