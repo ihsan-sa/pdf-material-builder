@@ -48,20 +48,21 @@ links.
 
 | Token | Hex | Use |
 |---|---|---|
-| ink | #15140F | text, structural rules, filled diagram nodes |
+| ink | #15140F | text, structural rules |
 | ink-70 | #4A4740 | lead lines, captions, secondary table cells |
 | ink-55 | #8A857A | labels, running heads, provenance, dividing rules |
 | paper | #FAF8F3 | the sheet, painted on every page |
 | fill | #F0EADE | callout ground; #F2EEE3 for code ground |
 | accent | #9C4221 | deterministic checks, source numerals, one header cell |
 
-One accent, and it is the only hue in the document. The warm paper tint is part
+Outside a diagram there is one accent, and it is the only hue on the page;
+inside a tikzpicture, block 2 adds the four diagram role colours. The warm paper tint is part
 of the style, not an artefact: the LaTeX class paints it on every page, and a
 build that comes out on plain white has lost it.
 
 Five values and one accent. The accent marks a check or a pointer, never
 decoration, and never more than three appearances on a page. No gradients, no
-tints of the accent, no second hue. The budget of three is the budget of a
+tints of the accent, and no second hue outside a diagram (block 2). The budget of three is the budget of a
 page's prose; inside a diagram, block 2 governs.
 
 ## Spacing

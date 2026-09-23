@@ -5,7 +5,9 @@ says how to put them on a page, because the first real build of this kit called
 every macro correctly and still did not look like the reference document.
 
 Read it before writing the first page of any document, and again with the
-rendered PDF open beside `references/house-style/house-style-template.html`.
+rendered PDF open beside `references/house-style/house-style-template.html`. That
+file's diagram predates the role colours and still shows filled-ink boxes; for
+diagrams, the patterns below and `style-spec.md` block 2 govern.
 
 ## What went wrong the first time
 

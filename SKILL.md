@@ -148,7 +148,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 
 **Style.** `scripts/style-check.sh` exits 0 over the build directory.
 
-**Look.** Render it and look at it: `pdftoppm -png -r 80 <name>.pdf /tmp/<name>`, then read the images page by page against `references/house-style/house-style-template.html`, and work the ten-point list at the end of `references/page-composition.md`. A document that passes the gate and lays out every page the same way has not passed this. Say in the hand-off which pages you compared.
+**Look.** Render it and look at it: `pdftoppm -png -r 80 <name>.pdf /tmp/<name>`, then read the images page by page against `references/house-style/house-style-template.html` (its diagram still shows the old filled-ink boxes; diagrams follow `style-spec.md` block 2 instead), and work the ten-point list at the end of `references/page-composition.md`. A document that passes the gate and lays out every page the same way has not passed this. Say in the hand-off which pages you compared.
 
 **Content.** Every banned-optional topic absent or `\opt`-tagged; every math-heavy section re-derived by the verification agent; the reviewers the recipe calls for have all run and every critical and major finding is resolved; weak areas visibly deeper.
 
