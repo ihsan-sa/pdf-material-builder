@@ -597,6 +597,25 @@ else
   done
 fi
 
+# --- 12. a label splits only at " / " -------------------------------------------
+if ! command -v lualatex >/dev/null; then
+  skip "label split" "no lualatex on this machine"
+elif ! command -v pdftotext >/dev/null; then
+  skip "label split" "no pdftotext on this machine"
+else
+  L="$TMPROOT/labelsplit"; mkdir -p "$L"
+  printf '%s\n' '\documentclass[11pt]{article}' '\usepackage{housestyle}' '\begin{document}' \
+    '\hslabel{Pass/fail}\par' '\hslabel{Figure 2 / what it shows}\par' '\end{document}' > "$L/l.tex"
+  if ! out=$("$REPO/scripts/build.sh" "$L/l.tex" 2>&1); then
+    fail "label split: scripts/build.sh failed"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  elif txt=$(pdftotext "$L/l.pdf" - 2>/dev/null) && printf '%s\n' "$txt" | grep -qi 'pass/fail' \
+       && printf '%s\n' "$txt" | grep -i 'figure 2' | grep -qv '/'; then
+    pass "label split: Pass/fail stays whole, Figure 2 / title splits"
+  else
+    fail "label split: a bare / split a label, or \" / \" did not"; printf '%s\n' "$txt" | sed 's/^/  /'
+  fi
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then echo 'check.sh: green'; else echo 'check.sh: RED'; fi
 exit "$FAILED"

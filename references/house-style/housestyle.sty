@@ -151,18 +151,20 @@
 % number, "Figure 2") stays in small caps, and the part after it (the title) is
 % set in the text italic in ink-70. So
 %   \hslabel{Figure 2 / what a change goes through before it merges}
-% reads as a book's figure label rather than a line of machine output.
+% reads as a book's figure label rather than a line of machine output. The
+% spaces matter: under \ExplSyntaxOn a bare "/" would also split "Pass/fail",
+% so the match is written "~/~", which is a real space, slash, space.
 \ExplSyntaxOn
 \cs_new_protected:Npn \hs_label:nn #1#2
   {
     \group_begin:
       \labelfont \fontsize{10.5pt}{14pt} \selectfont
-      \tl_if_in:nnTF {#2} { / }
+      \tl_if_in:nnTF {#2} { ~/~ }
         { \__hs_label_split:nw {#1} #2 \q_stop }
         { \color{#1} #2 }
     \group_end:
   }
-\cs_new_protected:Npn \__hs_label_split:nw #1#2 / #3 \q_stop
+\cs_new_protected:Npn \__hs_label_split:nw #1#2 ~/~ #3 \q_stop
   {
     { \color{#1} \tl_trim_spaces:n {#2} }
     \hspace{0.6em}
