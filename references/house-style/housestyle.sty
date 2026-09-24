@@ -261,6 +261,31 @@
 % ---- headings ---------------------------------------------------------------
 \titleformat{\section}{\hssubheadfont\fontsize{17pt}{21pt}\selectfont\color{ink}}{}{0pt}{}
 \titlespacing*{\section}{0pt}{32pt}{8pt}
+
+% ---- page breaks ------------------------------------------------------------
+% No paragraph leaves one line alone at the top or the bottom of a page, and no
+% display leaves one line alone after it. The page is ragged at the foot (the
+% article class's one-sided default, kept here on purpose): a short page ends
+% short rather than stretching its gaps, so these penalties never leave a page
+% with its paragraphs pulled apart.
+\widowpenalty=10000
+\clubpenalty=10000
+\@clubpenalty=10000
+\displaywidowpenalty=10000
+\raggedbottom
+% A heading keeps a few lines of what follows it on its own page: a section
+% needs room for its heading and three lines, a subsection for its heading and
+% two, or it starts the next page. Titlesec already glues a heading to the
+% first line after it; this stops it standing over one or two lines at a foot.
+% A heading set straight under another one skips the check: needspace leaves a
+% legal break behind it, which would strand the heading above at the foot.
+\RequirePackage{needspace}
+\RequirePackage{etoolbox}
+\newcommand{\hs@headroom}[1]{\if@nobreak\else\needspace{#1\baselineskip}\fi}
+\pretocmd{\section}{\hs@headroom{7}}{}%
+  {\PackageWarning{housestyle}{could not patch \string\section; its heading may sit at a page foot}}
+\pretocmd{\subsection}{\hs@headroom{5}}{}%
+  {\PackageWarning{housestyle}{could not patch \string\subsection; its heading may sit at a page foot}}
 \newcommand{\hslead}[1]{{\hsfull\fontsize{11.5pt}{17pt}\selectfont\color{inkseventy}#1\par}}
 
 % ---- contents ---------------------------------------------------------------
@@ -480,8 +505,45 @@
 \fvset{fontsize=\small,breaklines=true,breakanywhere=true,numbers=none,
   frame=topline,framerule=0.75pt,rulecolor=\color{ink},
   framesep=10pt,baselinestretch=1.25}
-\newcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}}
+% A listing's caption stays on the page with its code: \hslisting ends with
+% \@nobreaktrue, so the Verbatim after it adds no break of its own before its
+% first line. A listing of up to \hs@lstshort lines never breaks. A longer one
+% may break, but the club and widow penalties above keep at least two lines on
+% each side. The length is known from the last pass: each Verbatim after an
+% \hslisting writes its line count to the .aux, and build.sh runs three passes.
+\newcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}%
+  \nobreak\vspace{8pt}\nobreak\@nobreaktrue
+  \global\advance\hs@lstno\@ne\global\hs@lstnexttrue}
 % Use: \hslisting{Listing 1 / the gate} \begin{Verbatim}[bgcolor=codefill] ... \end{Verbatim}
+\newcount\hs@lstno
+\newif\ifhs@lstnext
+\def\hs@lstshort{15}
+\let\hs@lstcur\relax
+\newcommand{\hs@lstlen}[2]{\expandafter\gdef\csname hs@lstlen@#1\endcsname{#2}}
+\def\hs@lsthook{\ifhs@lstnext
+  \global\hs@lstnextfalse
+  \edef\hs@lstcur{\the\hs@lstno}%
+  \@ifundefined{hs@lstlen@\hs@lstcur}{}{%
+    % "make short listings (say under ~15 lines) unbreakable": no break
+    % anywhere unless the listing is longer than \hs@lstshort lines.
+    \ifnum\csname hs@lstlen@\hs@lstcur\endcsname>\hs@lstshort\relax\else
+      \interlinepenalty\@M\fi}%
+  \fi}
+\def\hs@lstwrite{\ifx\hs@lstcur\relax\else
+  \immediate\write\@auxout{\string\hs@lstlen{\hs@lstcur}{\the\c@FancyVerbLine}}\fi}
+\patchcmd{\FV@List}{\FV@InterLinePenalty}{\FV@InterLinePenalty\hs@lsthook}{}%
+  {\PackageWarning{housestyle}{could not patch \string\FV@List; short listings may break}}
+\pretocmd{\FV@EndList}{\hs@lstwrite}{}%
+  {\PackageWarning{housestyle}{could not patch \string\FV@EndList; short listings may break}}
+% fvextra follows each line of a bgcolor listing with a negative \vspace for
+% the colour overlap. Glue after a box is a legal break with no penalty, so a
+% listing could break after any line, the first included, whatever the
+% penalties above say. A \nobreak ahead of that glue leaves the line penalties
+% as the only breaks. The first line sets it from inside an \hbox, where it
+% moves out as a \vadjust, so the \nobreak goes in there too.
+\def\FV@bgcoloroverlap{\ifx\FV@backgroundcolorboxoverlap\relax\else
+  \ifvmode\nobreak\vspace{-\FV@backgroundcolorboxoverlap}%
+  \else\vadjust{\nobreak\vskip-\FV@backgroundcolorboxoverlap\relax}\fi\fi}
 
 % ---- 12. display equation ---------------------------------------------------
 \allowdisplaybreaks
