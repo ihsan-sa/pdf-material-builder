@@ -29,6 +29,11 @@
 # the machine), a figure whose PDF is already there keeps it, with a note; one
 # with no PDF fails the build and says to draw it with the TikZ kit instead.
 #
+# Page breaks: after a clean build, when pdftotext is on the machine, build.sh
+# runs scripts/page-break-check.sh on the PDF and prints what it finds (a
+# widow at a page top, a heading or listing caption at a page foot, a listing
+# split with one line on a side). It only warns: the build's exit is the same.
+#
 # The document register: a finished build is numbered and filed when the
 # environment carries DOC_PROJECT (a project name or number) and DOC_TITLE and
 # cc-docs is on PATH. Before compiling, build.sh asks `cc-docs number --tex`
@@ -121,6 +126,9 @@ if [ -n "$over" ]; then
   exit 1
 fi
 echo "built $(pwd)/$name.pdf"
+if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
+  "$skill/scripts/page-break-check.sh" --tex "$src" "$name.pdf" || true
+fi
 if [ ${#docargs[@]} -gt 0 ]; then
   [ "${DOC_NO_STAMP:-}" = 1 ] && docargs+=(--no-stamp)
   filed=$(cc-docs file "$(pwd)/$name.pdf" "${docargs[@]}") || { echo "build.sh: cc-docs did not file $name.pdf" >&2; exit 1; }

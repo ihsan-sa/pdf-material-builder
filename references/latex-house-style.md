@@ -34,7 +34,7 @@ It runs three lualatex passes in the document's own directory under the temp job
 
 ## The preamble
 
-`assets/preamble-template.tex` is the canonical preamble: `\documentclass[11pt]{article}`, then `\usepackage{housestyle}` (for A4, `\newcommand\hspaper{a4paper}` before it), then the affordances and math kit below. The `.sty` already loads geometry, fontspec, xcolor, fancyhdr, titlesec, booktabs, array, colortbl, graphicx, caption, enumitem, tikz, amsmath, microtype, fvextra and hyperref with `hidelinks`. Do not load tcolorbox, listings, parskip or a second geometry, and do not define a colour.
+`assets/preamble-template.tex` is the canonical preamble: `\documentclass[11pt]{article}`, then `\usepackage{housestyle}` (for A4, `\newcommand\hspaper{a4paper}` before it), then the affordances and math kit below. The `.sty` already loads geometry, fontspec, xcolor, fancyhdr, titlesec, booktabs, array, colortbl, graphicx, caption, enumitem, tikz, amsmath, microtype, fvextra, needspace, etoolbox and hyperref with `hidelinks`. It also sets the page breaks: no widow or orphan line (penalties 10000), a ragged foot, a heading kept with at least two or three lines after it, and a listing kept with its caption, whole up to 15 lines and with two lines on each side of a break when longer. `scripts/page-break-check.sh`, which `build.sh` runs, reports what still breaks badly. Do not load tcolorbox, listings, parskip or a second geometry, and do not define a colour.
 
 - `\hsslug{<Course> <Doc>}` -- the running head's left side.
 - `\hssection{...}` -- its right side. The preamble sets it from each `\section` automatically; call it to override.

@@ -69,7 +69,16 @@
 #      copyright line and page number included, is what the draft printed.
 #      DOC_NO_STAMP=1 prints no number and files with --no-stamp; DOC_PROJECT
 #      without DOC_TITLE exits 2 and calls nothing.
-#   6 to 13 and 15 are SKIPPED, with the reason printed, when lualatex is absent;
+#  16  Page breaks. A fixture builds with the style and with \pbcold, which puts
+#      back what the style did before (150 widow and club penalties, a caption
+#      the code could break from, fvextra's breakable overlap glue) and strands
+#      a heading at a page foot. The styled build has no widow, moves a
+#      five-line listing whole onto the next page with its caption, and
+#      page-break-check.sh --strict passes it. The old build still exits 0 but
+#      build.sh reports the widow on p.2, the one-line listing split on p.3 and
+#      the heading on p.5; the check exits 0 on it, 1 under --strict, and 2 on
+#      a missing PDF.
+#   6 to 13, 15 and 16 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -911,6 +920,86 @@ SHEOF
     fail "register: DOC_PROJECT without DOC_TITLE exited $rc, expected 2 with nothing called or built"
   else
     pass "register: DOC_PROJECT without DOC_TITLE exits 2 before anything runs"
+  fi
+fi
+
+# --- 16. page breaks: the style keeps them clean, the check catches bad ones ---
+if ! command -v lualatex >/dev/null || ! command -v pdftotext >/dev/null || ! command -v pdfinfo >/dev/null; then
+  skip "page breaks" "no lualatex, pdftotext or pdfinfo on this machine"
+else
+  P="$TMPROOT/breaks"; mkdir -p "$P"
+  cp "$REPO/assets/preamble-template.tex" "$P/"
+  python3 - "$P" <<'PYEOF'
+import sys
+d = sys.argv[1]
+lorem = ("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut "
+         "labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "
+         "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit "
+         "esse cillum dolore.")
+# \pbcold puts back what the style did before: LaTeX's 150 widow and club
+# penalties, a caption the code could break away from, fvextra's breakable
+# overlap glue, no short-listing rule; and it strands a heading at a foot.
+doc = r"""\input{preamble-template}
+\makeatletter\ifdefined\pbcold
+  \widowpenalty=150 \clubpenalty=150 \@clubpenalty=150 \def\hs@lstshort{0}
+  \renewcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}}
+  \def\FV@bgcoloroverlap{\vspace{-\FV@backgroundcolorboxoverlap}}
+\fi\makeatother
+\begin{document}
+\section{One}
+""" + "\n\n".join([lorem] * 8) + r"""
+
+\vspace*{20pt}
+Widow paragraph """ + "word " * 60 + r"""final words end here.
+
+Next paragraph.
+\newpage
+\section{Two}
+""" + "\n\n".join([lorem] * 7) + r"""
+
+\hslisting{Listing 1 / the gate}
+\begin{Verbatim}[bgcolor=codefill]
+alpha line one
+beta line two
+gamma line three
+delta line four
+epsilon line five
+\end{Verbatim}
+After text.
+\ifdefined\pbcold\newpage Filler.\section{A stranded heading}\newpage Text.\fi
+\end{document}
+"""
+open(f"{d}/breaks.tex", "w").write(doc)
+open(f"{d}/old.tex", "w").write("\\def\\pbcold{}\\input{breaks}\n")
+PYEOF
+  "$REPO/scripts/build.sh" "$P/old.tex" > "$P/old.out" 2>&1 & oldpid=$!
+  new=$("$REPO/scripts/build.sh" "$P/breaks.tex" 2>&1); newrc=$?
+  wait "$oldpid"; oldrc=$?; old=$(cat "$P/old.out")
+  chk="$REPO/scripts/page-break-check.sh"
+  bad=""
+  [ "$newrc" -eq 0 ] || bad="$bad; the fixed build exited $newrc"
+  printf '%s\n' "$new" | grep -q 'page-break-check' && bad="$bad; the fixed build reported a bad break"
+  "$chk" --strict "$P/breaks.pdf" >/dev/null || bad="$bad; --strict failed the fixed build"
+  pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -q 'alpha line one' \
+    && pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -qi 'listing 1' || bad="$bad; the short listing and its caption are not together on page 4"
+  if [ -n "$bad" ]; then
+    fail "page breaks: the style: ${bad#; }"; printf '%s\n' "$new" | head -8 | sed 's/^/  /'
+  else
+    pass "page breaks: no widow, a short listing moves whole with its caption, the check stays quiet"
+  fi
+  bad=""
+  [ "$oldrc" -eq 0 ] || bad="$bad; build.sh exited $oldrc on bad breaks, but they only warn"
+  for want in 'p.2: widow: voluptate velit' 'p.3: listing: Listing 1 / the gate: 1 line(s) on p.3, 4 on p.4' \
+              'p.5: heading: A stranded heading'; do
+    printf '%s\n' "$old" | grep -qF "page-break-check: $want" || bad="$bad; build.sh did not report \"$want\""
+  done
+  "$chk" "$P/old.pdf" >/dev/null || bad="$bad; the check without --strict exited non-zero"
+  "$chk" --strict "$P/old.pdf" >/dev/null && bad="$bad; --strict exited 0 on bad breaks"
+  "$chk" "$P/missing.pdf" >/dev/null 2>&1; [ $? -eq 2 ] || bad="$bad; a missing PDF did not exit 2"
+  if [ -n "$bad" ]; then
+    fail "page breaks: the check: ${bad#; }"; printf '%s\n' "$old" | head -8 | sed 's/^/  /'
+  else
+    pass "page breaks: the check names the widow, the one-line listing split and the stranded heading by page; --strict exits 1"
   fi
 fi
 
