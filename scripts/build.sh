@@ -28,6 +28,18 @@
 # fails the build. With no node, or when export.sh exits 2 (no converter on
 # the machine), a figure whose PDF is already there keeps it, with a note; one
 # with no PDF fails the build and says to draw it with the TikZ kit instead.
+#
+# The document register: a finished build is numbered and filed when the
+# environment carries DOC_PROJECT (a project name or number) and DOC_TITLE and
+# cc-docs is on PATH. Before compiling, build.sh asks `cc-docs number --tex`
+# for the number and defines it ahead of the document, so housestyle.sty
+# prints it in the foot of every page; after a clean build it runs `cc-docs
+# file` on the PDF and prints what the register did. DOC_KIND
+# (work|course|member) and DOC_MEMBER pass on as --kind and --member;
+# DOC_NO_STAMP=1 prints no number and files with --no-stamp. DOC_PROJECT
+# without DOC_TITLE exits 2 before compiling, and a filing cc-docs refuses
+# exits 1 with its reason. With DOC_PROJECT unset, or no cc-docs, nothing of
+# this runs: a draft builds exactly as before.
 set -euo pipefail
 
 [ $# -eq 1 ] || { echo "usage: $0 <file.tex>" >&2; exit 2; }
@@ -78,8 +90,21 @@ if [ ${#specs[@]} -gt 0 ]; then
   done
 fi
 
+docargs=()
+input="$name.tex"
+if [ -n "${DOC_PROJECT:-}" ] && command -v cc-docs >/dev/null; then
+  [ -n "${DOC_TITLE:-}" ] || { echo "build.sh: DOC_PROJECT is set but DOC_TITLE is not; a finished build needs both" >&2; exit 2; }
+  docargs=(--project "$DOC_PROJECT" --title "$DOC_TITLE" --source "$src")
+  [ -n "${DOC_KIND:-}" ] && docargs+=(--kind "$DOC_KIND")
+  [ -n "${DOC_MEMBER:-}" ] && docargs+=(--member "$DOC_MEMBER")
+  if [ "${DOC_NO_STAMP:-}" != 1 ]; then
+    defs=$(cc-docs number "${docargs[@]}" --tex) || { echo "build.sh: cc-docs could not number $name.tex" >&2; exit 1; }
+    input="$defs\\input{$name.tex}"
+  fi
+fi
+
 for pass in 1 2 3; do
-  lualatex -interaction=nonstopmode -halt-on-error -jobname="_tmp_$name" "$name.tex" >/dev/null 2>&1 || true
+  lualatex -interaction=nonstopmode -halt-on-error -jobname="_tmp_$name" "$input" >/dev/null 2>&1 || true
   if grep -q '^!' "_tmp_$name.log" 2>/dev/null || [ ! -s "_tmp_$name.pdf" ]; then
     echo "build.sh: pass $pass of $name.tex failed:" >&2
     grep -A3 '^!' "_tmp_$name.log" >&2 || echo "(no log written)" >&2
@@ -96,3 +121,8 @@ if [ -n "$over" ]; then
   exit 1
 fi
 echo "built $(pwd)/$name.pdf"
+if [ ${#docargs[@]} -gt 0 ]; then
+  [ "${DOC_NO_STAMP:-}" = 1 ] && docargs+=(--no-stamp)
+  filed=$(cc-docs file "$(pwd)/$name.pdf" "${docargs[@]}") || { echo "build.sh: cc-docs did not file $name.pdf" >&2; exit 1; }
+  echo "register: $filed"
+fi

@@ -36,6 +36,8 @@ A small build is four steps, and the orchestrator does the first three itself:
 
 Then build with `scripts/build.sh`, run `scripts/style-check.sh`, and hand over.
 
+**Numbering the finished build.** A document the reader keeps is numbered and filed in the document register, and a draft is not. For the finished build only, run `scripts/build.sh` with `DOC_PROJECT` (the project's name or number) and `DOC_TITLE` (the document's title) in its environment, plus `DOC_KIND` (`work`, `course` or `member`) the first time a project is filed and `DOC_MEMBER` for a member's project; `DOC_NO_STAMP=1` files a document that must not show a number, such as anything going outside. The build then takes the number from `cc-docs`, prints it small and grey under the left of the foot on every page, and files the PDF once the build is clean. Leave the variables unset while drafting, and on a machine without `cc-docs` they do nothing.
+
 ## Large builds
 
 `reference`, `formula-sheet`, `visual-intuition`, `worked-examples` and `course-notes` are large: their content is re-derived from source materials nobody has read yet.
@@ -173,7 +175,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 - `assets/word-template/` -- the Word half of the house style: two `.docx` starting documents and `WORD-STYLES.md`, the style names that are its interface. No `.docx` to PDF path exists yet: it needs LibreOffice, which is not installed.
 - `assets/fonts/` -- Source Serif 4 (Text, Subhead and Display cuts) and IBM Plex Mono, vendored with their OFL licences.
 - `diagram-maker/` -- the bundled diagram-maker skill, a git submodule on its `main`. The skill's figures come from this copy. `install.sh` and `scripts/sync-diagram-maker.sh` keep it at diagram-maker's latest main; it is another project's repo, so change it there, never here.
-- `scripts/build.sh` -- the build: renders `figures/*.json` through diagram-maker, then three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`.
+- `scripts/build.sh` -- the build: renders `figures/*.json` through diagram-maker, then three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`. With `DOC_PROJECT` and `DOC_TITLE` set it numbers the document and files it in the register (`cc-docs`).
 - `scripts/sync-diagram-maker.sh` -- brings `diagram-maker/` to its latest main; a quiet no-op offline or in a vendored copy. `build.sh` calls it.
 - `install.sh` -- fast-forwards the installed skill at `~/.claude/skills/pdf-material-builder` to main and updates its diagram-maker; the landing runs it after every merge.
 - `scripts/style-check.sh` -- the style gate.

@@ -99,6 +99,10 @@ Every shipped PDF carries the copyright line in the kit's foot treatment, on eve
 
 The foot's left slot is empty by default, which is why the copyright line can have it: the slug prints in the running head, and printing it in both was a defect of the first build. The page number stays at the foot's right. The first page has no running head, per the spec, but keeps the foot.
 
+## Document number
+
+A finished build prints its document number and the date it was given (`PPP-NNNN-R`, a middle dot, `24 Sep 2026`), at 7 pt in ink-55 one line under the foot's left slot on every page, the title page included. `housestyle.sty` prints it whenever `\docstamp` is defined, and `scripts/build.sh` defines it from the register when `DOC_PROJECT` and `DOC_TITLE` are set (SKILL.md, "Numbering the finished build"). It sits below the copyright line rather than in its place, so neither the copyright line nor the page number moves. Do not define `\docstamp` by hand: the register refuses a PDF that carries a number other than the one it files it under.
+
 ## LaTeX traps hit in real builds
 
 1. **KaTeX habit leaking.** Agents write `\lt` and `\gt` (KaTeX-only), undefined in LaTeX. After every agent write, grep for `\\lt` and `\\gt` and replace with literal `<` / `>`. Do NOT use `sed`; regex edge cases corrupt `\Delta` and friends. Use Python with a precise regex.
