@@ -245,6 +245,18 @@
   \renewcommand{\footrulewidth}{0.75pt}%
   \renewcommand{\footrule}{\textcolor{ink}{\rule{\headwidth}{0.75pt}}}}
 \AtBeginDocument{\thispagestyle{hsfirst}}
+% The document number. A finished build defines \docstamp (the number, a
+% middle dot and its date: "PPP-NNNN-R", "24 Sep 2026") before the document
+% starts: scripts/build.sh takes it from the register. Every page, title page
+% included, then prints it 7 pt in ink-55 at the foot's left edge, one line
+% under the foot's baseline, so a copyright line in the left slot and the page
+% number keep their places.
+% A draft leaves \docstamp undefined and nothing prints.
+\AddToHook{shipout/foreground}{\ifdefined\docstamp
+  \put(\dimexpr 1in+\hoffset+\oddsidemargin\relax,
+       -\dimexpr 1in+\voffset+\topmargin+\headheight+\headsep+\textheight
+         +\footskip+11pt\relax)
+    {\hs@figfont\fontsize{7pt}{8pt}\selectfont\color{inkfiftyfive}\docstamp}\fi}
 
 % ---- headings ---------------------------------------------------------------
 \titleformat{\section}{\hssubheadfont\fontsize{17pt}{21pt}\selectfont\color{ink}}{}{0pt}{}

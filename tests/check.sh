@@ -59,7 +59,17 @@
 #      nothing. scripts/sync-diagram-maker.sh moves the submodule to the new
 #      tip, is a silent exit 0 when the remote is unreachable, and does not
 #      touch the enclosing repo of a vendored copy.
-#   6 to 13 are SKIPPED, with the reason printed, when lualatex is absent;
+#  15  The document register, with a stub cc-docs that logs its calls. A
+#      two-page document with a title page and a copyright foot builds with
+#      no DOC_* variables and calls nothing; with DOC_PROJECT set but no
+#      cc-docs on PATH it builds the same. With DOC_PROJECT, DOC_TITLE,
+#      DOC_KIND and DOC_MEMBER it asks `number` before compiling and `file`
+#      after, passing each flag and the source path, and every page carries
+#      the number under the foot while the rest of each page's text, the
+#      copyright line and page number included, is what the draft printed.
+#      DOC_NO_STAMP=1 prints no number and files with --no-stamp; DOC_PROJECT
+#      without DOC_TITLE exits 2 and calls nothing.
+#   6 to 13 and 15 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -825,6 +835,84 @@ else
   fi
 fi
 unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1 GIT_CONFIG_KEY_2 GIT_CONFIG_VALUE_2
+
+# --- 15. the document register: number in the foot, filed after a clean build --
+if ! command -v lualatex >/dev/null || ! command -v pdftotext >/dev/null; then
+  skip "document register" "no lualatex or pdftotext on this machine"
+else
+  N="$TMPROOT/docreg"; mkdir -p "$N/bin"
+  cat > "$N/bin/cc-docs" <<'SHEOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOCLOG"
+case "$1" in
+  number) printf '\\def\\docnumber{123-0045-B}\\def\\docstamp{123-0045-B \xc2\xb7 24 Sep 2026}\n' ;;
+  file) printf '123-0045-B\t/filed.pdf\tfiled\n' ;;
+esac
+SHEOF
+  chmod +x "$N/bin/cc-docs"
+  # PATH with every real cc-docs taken out, so no case can reach a live register.
+  bare=""; IFS=: read -ra dirs <<< "$PATH"
+  for p in "${dirs[@]}"; do [ -x "$p/cc-docs" ] || bare="$bare${bare:+:}$p"; done
+  # mk <case>: a fresh two-page document, title page first, in its own directory.
+  mk() {
+    mkdir -p "$N/$1"
+    printf '%s\n' '\documentclass{article}' '\usepackage{housestyle}' \
+      '\fancyfoot[L]{\hsrunlabel{\textcopyright{} 2026 Copyright Holder}}' '\begin{document}' \
+      '\thispagestyle{hstitlepage}' 'Title page.' '\newpage' 'Body page.' '\end{document}' > "$N/$1/doc.tex"
+    : > "$N/$1.log"
+  }
+  # page <case> <n>: page n's text, blank lines dropped and spaces squeezed.
+  page() { pdftotext -layout -f "$2" -l "$2" "$N/$1/doc.pdf" - | tr -s ' ' | grep -v '^ *$'; }
+  run() { local c="$1" path="$2"; shift 2; env PATH="$path" DOCLOG="$N/$c.log" "$@" "$REPO/scripts/build.sh" "$N/$c/doc.tex" 2>&1; }
+
+  mk draft; out=$(run draft "$N/bin:$bare"); rc=$?
+  if [ "$rc" -ne 0 ] || [ -s "$N/draft.log" ] || pdftotext "$N/draft/doc.pdf" - | grep -q '123-0045'; then
+    fail "register: a build with no DOC_* variables called cc-docs or printed a number (exit $rc)"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "register: a draft build calls no cc-docs and prints no number"
+  fi
+
+  mk nodocs; out=$(run nodocs "$bare" DOC_PROJECT=P DOC_TITLE=T); rc=$?
+  if [ "$rc" -ne 0 ] || pdftotext "$N/nodocs/doc.pdf" - | grep -q '123-0045'; then
+    fail "register: DOC_PROJECT with no cc-docs on PATH did not build as a draft (exit $rc)"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "register: with no cc-docs on PATH the variables change nothing"
+  fi
+
+  mk final; out=$(run final "$N/bin:$bare" DOC_PROJECT=P DOC_TITLE="A title" DOC_KIND=work DOC_MEMBER=m); rc=$?
+  want_n="number --project P --title A title --source $N/final/doc.tex --kind work --member m --tex"
+  want_f="file $N/final/doc.pdf --project P --title A title --source $N/final/doc.tex --kind work --member m"
+  bad=""
+  [ "$rc" -eq 0 ] || bad="exit $rc"
+  [ "$(cat "$N/final.log")" = "$(printf '%s\n%s' "$want_n" "$want_f")" ] || bad="$bad; calls were: $(cat "$N/final.log")"
+  printf '%s\n' "$out" | grep -q 'register: 123-0045-B' || bad="$bad; the filing result was not printed"
+  mk plain; run plain "$bare" >/dev/null
+  for i in 1 2; do
+    page final "$i" | grep -qx ' *123-0045-B .* 24 Sep 2026' || bad="$bad; page $i has no number line"
+    [ "$(page final "$i" | grep -v '123-0045-B')" = "$(page plain "$i")" ] || bad="$bad; page $i's other text moved"
+  done
+  page final 1 | grep -q 'COPYRIGHT HOLDER' && page final 2 | grep -q 'COPYRIGHT HOLDER *2$' || bad="$bad; copyright or page number missing"
+  if [ -n "$bad" ]; then
+    fail "register: the finished build: ${bad#; }"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "register: a finished build is numbered first, stamped under the foot on every page, filed after"
+  fi
+
+  mk nostamp; out=$(run nostamp "$N/bin:$bare" DOC_PROJECT=P DOC_TITLE=T DOC_NO_STAMP=1); rc=$?
+  if [ "$rc" -ne 0 ] || [ "$(cat "$N/nostamp.log")" != "file $N/nostamp/doc.pdf --project P --title T --source $N/nostamp/doc.tex --no-stamp" ] \
+     || pdftotext "$N/nostamp/doc.pdf" - | grep -q '123-0045'; then
+    fail "register: DOC_NO_STAMP=1 (exit $rc), calls: $(cat "$N/nostamp.log")"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "register: DOC_NO_STAMP=1 prints no number and files with --no-stamp"
+  fi
+
+  mk notitle; out=$(run notitle "$N/bin:$bare" DOC_PROJECT=P); rc=$?
+  if [ "$rc" -ne 2 ] || [ -s "$N/notitle.log" ] || [ -e "$N/notitle/doc.pdf" ]; then
+    fail "register: DOC_PROJECT without DOC_TITLE exited $rc, expected 2 with nothing called or built"
+  else
+    pass "register: DOC_PROJECT without DOC_TITLE exits 2 before anything runs"
+  fi
+fi
 
 echo
 if [ "$FAILED" -eq 0 ]; then echo 'check.sh: green'; else echo 'check.sh: RED'; fi
