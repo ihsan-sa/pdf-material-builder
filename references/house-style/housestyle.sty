@@ -277,11 +277,14 @@
 % needs room for its heading and three lines, a subsection for its heading and
 % two, or it starts the next page. Titlesec already glues a heading to the
 % first line after it; this stops it standing over one or two lines at a foot.
+% A heading set straight under another one skips the check: needspace leaves a
+% legal break behind it, which would strand the heading above at the foot.
 \RequirePackage{needspace}
 \RequirePackage{etoolbox}
-\pretocmd{\section}{\needspace{7\baselineskip}}{}%
+\newcommand{\hs@headroom}[1]{\if@nobreak\else\needspace{#1\baselineskip}\fi}
+\pretocmd{\section}{\hs@headroom{7}}{}%
   {\PackageWarning{housestyle}{could not patch \string\section; its heading may sit at a page foot}}
-\pretocmd{\subsection}{\needspace{5\baselineskip}}{}%
+\pretocmd{\subsection}{\hs@headroom{5}}{}%
   {\PackageWarning{housestyle}{could not patch \string\subsection; its heading may sit at a page foot}}
 \newcommand{\hslead}[1]{{\hsfull\fontsize{11.5pt}{17pt}\selectfont\color{inkseventy}#1\par}}
 

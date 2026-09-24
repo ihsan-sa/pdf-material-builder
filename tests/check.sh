@@ -71,13 +71,16 @@
 #      without DOC_TITLE exits 2 and calls nothing.
 #  16  Page breaks. A fixture builds with the style and with \pbcold, which puts
 #      back what the style did before (150 widow and club penalties, a caption
-#      the code could break from, fvextra's breakable overlap glue) and strands
-#      a heading at a page foot. The styled build has no widow, moves a
-#      five-line listing whole onto the next page with its caption, and
-#      page-break-check.sh --strict passes it. The old build still exits 0 but
-#      build.sh reports the widow on p.2, the one-line listing split on p.3 and
-#      the heading on p.5; the check exits 0 on it, 1 under --strict, and 2 on
-#      a missing PDF.
+#      the code could break from, fvextra's breakable overlap glue) or might
+#      have done (a subsection's room check run straight under a section
+#      heading) and strands a heading at a page foot. The styled build has no
+#      widow, moves a five-line listing whole onto the next page with its
+#      caption, moves a section 420pt down a page onto p.6 with the subsection
+#      under it, and page-break-check.sh --strict passes it. The old build
+#      still exits 0 but build.sh reports the widow on p.2, the one-line listing
+#      split on p.3, the heading on p.5 and the section left alone at the foot
+#      of p.7; the check exits 0 on it, 1 under --strict, and 2 on a missing
+#      PDF.
 #   6 to 13, 15 and 16 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
@@ -938,12 +941,14 @@ lorem = ("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmo
          "esse cillum dolore.")
 # \pbcold puts back what the style did before: LaTeX's 150 widow and club
 # penalties, a caption the code could break away from, fvextra's breakable
-# overlap glue, no short-listing rule; and it strands a heading at a foot.
+# overlap glue, no short-listing rule, a subsection's room check that runs
+# straight under a section heading; and it strands a heading at a foot.
 doc = r"""\input{preamble-template}
 \makeatletter\ifdefined\pbcold
   \widowpenalty=150 \clubpenalty=150 \@clubpenalty=150 \def\hs@lstshort{0}
   \renewcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}}
   \def\FV@bgcoloroverlap{\vspace{-\FV@backgroundcolorboxoverlap}}
+  \pretocmd{\subsection}{\needspace{5\baselineskip}}{}{}
 \fi\makeatother
 \begin{document}
 \section{One}
@@ -967,6 +972,16 @@ epsilon line five
 \end{Verbatim}
 After text.
 \ifdefined\pbcold\newpage Filler.\section{A stranded heading}\newpage Text.\fi
+\newpage
+\section{Gap}
+Text.\par\vspace*{420pt}
+Filler line.
+
+\section{Results}
+\subsection{Setup}
+""" + lorem + r"""
+
+""" + lorem + r"""
 \end{document}
 """
 open(f"{d}/breaks.tex", "w").write(doc)
@@ -982,15 +997,17 @@ PYEOF
   "$chk" --strict "$P/breaks.pdf" >/dev/null || bad="$bad; --strict failed the fixed build"
   pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -q 'alpha line one' \
     && pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -qi 'listing 1' || bad="$bad; the short listing and its caption are not together on page 4"
+  pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grep -q '^Results' \
+    && pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grep -q '^Setup' || bad="$bad; the section and the subsection under it are not together on page 6"
   if [ -n "$bad" ]; then
     fail "page breaks: the style: ${bad#; }"; printf '%s\n' "$new" | head -8 | sed 's/^/  /'
   else
-    pass "page breaks: no widow, a short listing moves whole with its caption, the check stays quiet"
+    pass "page breaks: no widow, a short listing moves whole with its caption, a section moves with the subsection under it, the check stays quiet"
   fi
   bad=""
   [ "$oldrc" -eq 0 ] || bad="$bad; build.sh exited $oldrc on bad breaks, but they only warn"
   for want in 'p.2: widow: voluptate velit' 'p.3: listing: Listing 1 / the gate: 1 line(s) on p.3, 4 on p.4' \
-              'p.5: heading: A stranded heading'; do
+              'p.5: heading: A stranded heading' 'p.7: heading: Results'; do
     printf '%s\n' "$old" | grep -qF "page-break-check: $want" || bad="$bad; build.sh did not report \"$want\""
   done
   "$chk" "$P/old.pdf" >/dev/null || bad="$bad; the check without --strict exited non-zero"
