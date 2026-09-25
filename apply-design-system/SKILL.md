@@ -95,5 +95,5 @@ check` validates it) and maps the tokens onto its own styles, as `latex()` and
 it did before.
 
 `examples/salari-test/` is a placeholder system with a sample PDF and
-workbook built from it; `examples/salari-test/.cc/design-tokens.json` is what
-a workspace commits.
+workbook built from it; `examples/salari-test/design-tokens.json` is what
+a workspace commits as `.cc/design-tokens.json`.

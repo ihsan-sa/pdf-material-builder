@@ -1,0 +1,25 @@
+{
+  "name": "salari-test placeholder",
+  "color": {
+    "ink": "#1B1F24",
+    "ink-secondary": "#3D444D",
+    "ink-muted": "#5F6873",
+    "paper": "#FFFFFF",
+    "fill": "#F3F5F7",
+    "code-fill": "#EEF1F4",
+    "accent": "#2B5C8A",
+    "rule": "#D5DAE0"
+  },
+  "type": {
+    "body": ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+    "heading": ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+    "mono": ["Menlo", "monospace"],
+    "heading-case": "uppercase"
+  },
+  "table": {
+    "header-fill": "#1B1F24",
+    "header-text": "#FFFFFF",
+    "rule": "#1B1F24",
+    "stripe": "#F3F5F7"
+  }
+}

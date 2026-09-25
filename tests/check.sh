@@ -1035,7 +1035,7 @@ fi
 # --- 17. a workspace's own design system -------------------------------------
 DSPY="$REPO/apply-design-system/ds.py"
 DS="$TMPROOT/ds"; mkdir -p "$DS/repo/.git" "$DS/repo/.cc" "$DS/repo/sub" "$DS/outer/.cc" "$DS/outer/repo/.git"
-TOK="$REPO/apply-design-system/examples/salari-test/.cc/design-tokens.json"
+TOK="$REPO/apply-design-system/examples/salari-test/design-tokens.json"
 cp "$TOK" "$DS/repo/.cc/design-tokens.json"; cp "$TOK" "$DS/outer/.cc/design-tokens.json"
 bad=""
 got=$(env -u DESIGN_TOKENS python3 "$DSPY" find "$DS/repo/sub") || bad="$bad; find exited non-zero in a repo with a token file"
