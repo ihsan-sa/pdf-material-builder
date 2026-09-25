@@ -679,8 +679,9 @@ else
     '\hslabel{Pass/fail}\par' '\hslabel{Figure 2 / what it shows}\par' '\end{document}' > "$L/l.tex"
   if ! out=$("$REPO/scripts/build.sh" "$L/l.tex" 2>&1); then
     fail "label split: scripts/build.sh failed"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
-  elif txt=$(pdftotext "$L/l.pdf" - 2>/dev/null) && printf '%s\n' "$txt" | grep -qi 'pass/fail' \
-       && printf '%s\n' "$txt" | grep -i 'figure 2' | grep -qv '/'; then
+  # here-strings, not printf | grep -q: under pipefail an early grep exit can SIGPIPE the printf
+  elif txt=$(pdftotext "$L/l.pdf" - 2>/dev/null) && grep -qi 'pass/fail' <<<"$txt" \
+       && fig=$(grep -i 'figure 2' <<<"$txt") && ! grep -q '/' <<<"$fig"; then
     pass "label split: Pass/fail stays whole, Figure 2 / title splits"
   else
     fail "label split: a bare / split a label, or \" / \" did not"; printf '%s\n' "$txt" | sed 's/^/  /'
