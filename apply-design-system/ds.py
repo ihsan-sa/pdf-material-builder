@@ -82,14 +82,19 @@ def find(start):
             die(f'DESIGN_TOKENS names {env}, which is not a file', 2)
         return os.path.abspath(env)
     d = os.path.abspath(start)
+    candidate = None
     while True:
-        cand = os.path.join(d, TOKENS_REL)
-        if os.path.isfile(cand):
-            return cand
+        if candidate is None:
+            cand = os.path.join(d, TOKENS_REL)
+            if os.path.isfile(cand):
+                candidate = cand
         if os.path.exists(os.path.join(d, '.git')):
-            return None
+            return candidate
         parent = os.path.dirname(d)
         if parent == d:
+            # Reached the filesystem root with no .git anywhere above the
+            # candidate (if any) — never take a token file above a repo's
+            # .git, so there is no repo to take it for.
             return None
         d = parent
 
@@ -454,13 +459,12 @@ def write_xlsx(path, rows, tokens, title=None, sheet='Sheet1'):
     fonts.append(('Calibri', 11, '#000000', False))
     xf_of = {}
 
-    def xf(role, striped=False):
+    def xf(role, striped=False, numfmt=0):
         s = st[role]
         f = idx(fonts, (s['font'], s['size'], s['color'], s.get('bold', False)))
         fillc = s.get('fill') or (st['stripe'] if striped else None)
         fi = idx(fills, fillc) if fillc else 0
         b = idx(borders, (s['bottom-style'], s['bottom'])) if s.get('bottom') else 0
-        numfmt = 3 if role == 'number' else 0
         key = (f, fi, b, s.get('align'), numfmt)
         if key not in xf_of:
             xfs.append(key)
@@ -484,15 +488,16 @@ def write_xlsx(path, rows, tokens, title=None, sheet='Sheet1'):
         for i, v in enumerate(row):
             widths[i] = max(widths[i], len(v))
             num = _num(v)
+            # Built-in numFmtId: 3 = "#,##0" for an int, 4 = "#,##0.00" for a float.
+            numfmt = 3 if isinstance(num, int) else 4 if isinstance(num, float) else 0
             out.append((i, num if num is not None else v,
-                        xf('number' if num is not None else 'body', striped)))
+                        xf('number' if num is not None else 'body', striped, numfmt)))
         cells.append((r, out, None))
 
     def argb(h):
         return 'FF' + h[1:].upper()
     sx = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
           '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">',
-          '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.##"/></numFmts>',
           f'<fonts count="{len(fonts)}">']
     for name, size, color, bold in fonts:
         sx.append(f'<font>{"<b/>" if bold else ""}<sz val="{size}"/>'
@@ -514,7 +519,7 @@ def write_xlsx(path, rows, tokens, title=None, sheet='Sheet1'):
     sx.append('</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>'
               f'</cellStyleXfs><cellXfs count="{len(xfs)}">')
     for f, fi, b, align, numfmt in xfs:
-        nf = 164 if numfmt else 0
+        nf = numfmt or 0
         al = f'<alignment horizontal="{align}" vertical="center"/>' if align else '<alignment vertical="center"/>'
         sx.append(f'<xf numFmtId="{nf}" fontId="{f}" fillId="{fi}" borderId="{b}" xfId="0" '
                   f'applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"'

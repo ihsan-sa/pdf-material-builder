@@ -1045,6 +1045,29 @@ DESIGN_TOKENS=none python3 "$DSPY" find "$DS/repo" >/dev/null && bad="$bad; DESI
 DESIGN_TOKENS="$DS/nothing.json" python3 "$DSPY" find "$DS/repo" >/dev/null 2>&1; [ $? -eq 2 ] || bad="$bad; a DESIGN_TOKENS naming no file did not exit 2"
 [ -n "$bad" ] && fail "design system: find: ${bad#; }" || pass "design system: find takes the repo's token file, never one above .git, none with DESIGN_TOKENS=none"
 
+# a token file above a tree with no .git anywhere in it must not surface: with
+# no .git to bound the search, "never take a token file above the repo's
+# .git" means never take it. $TMPROOT itself may sit outside any repo, but a
+# .git could still exist above it, so check that first rather than assume it.
+gitabove=""; d="$TMPROOT"
+while :; do
+  [ -e "$d/.git" ] && { gitabove="$d"; break; }
+  p="$(dirname "$d")"; [ "$p" = "$d" ] && break
+  d="$p"
+done
+if [ -n "$gitabove" ]; then
+  skip "design system: find: a token above a repo-less tree" "$gitabove, above \$TMPROOT, holds .git, so no fixture under \$TMPROOT can prove the no-.git case"
+else
+  mkdir -p "$DS/nogit/.cc" "$DS/nogit/deep/sub"
+  cp "$TOK" "$DS/nogit/.cc/design-tokens.json"
+  got=$(env -u DESIGN_TOKENS python3 "$DSPY" find "$DS/nogit/deep/sub")
+  if [ -n "$got" ]; then
+    fail "design system: find: a token file above a tree with no .git was found ($got)"
+  else
+    pass "design system: find: a token file above a tree with no .git anywhere is never found"
+  fi
+fi
+
 # import: a fixture export shaped like Claude Design's
 EX="$DS/export"; mkdir -p "$EX/tokens" "$EX/assets/logo"
 cat > "$EX/tokens/colors.css" <<'CSSEOF'
@@ -1092,7 +1115,9 @@ for n in z.namelist():
         ET.fromstring(z.read(n))
 sheet, styles = z.read('xl/worksheets/sheet1.xml').decode(), z.read('xl/styles.xml').decode()
 ok = 'B &amp; C' in sheet and '<v>12</v>' in sheet and 'ROWS' in sheet
-ok = ok and 'FF1B1F24' in styles
+# the header fill, not the ink font colour, which is the same hex
+ok = ok and '<patternFill patternType="solid"><fgColor rgb="FF1B1F24"/>' in styles
+ok = ok and 'FFF3F5F7' in styles  # the stripe fill
 sys.exit(0 if ok else 1)
 PYEOF2
 mkdir -p "$DS/bare/.git"; cp "$DS/repo/sub/rows.csv" "$DS/bare/"
