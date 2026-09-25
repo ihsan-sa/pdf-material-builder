@@ -29,6 +29,10 @@ Update a vendored copy with `git subtree pull` on the same prefix. Do not edit i
 scripts/build.sh path/to/doc.tex
 ```
 
+## A workspace's own look
+
+A repo that commits `.cc/design-tokens.json` gets its own design system in every PDF built inside it, and in every workbook `apply-design-system/ds.py xlsx` writes there; a repo without one keeps the house look, byte for byte. `apply-design-system/SKILL.md` has the token file and how to import a Claude Design export into it.
+
 ## Recipes
 
 `references/recipes.md` has the structure and the build procedure for each.
