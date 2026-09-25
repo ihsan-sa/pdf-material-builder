@@ -114,6 +114,9 @@ trap 'rm -rf "$TMPROOT"' EXIT
 pass() { printf 'ok    %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1"; FAILED=1; }
 skip() { printf 'skip  %s -- %s\n' "$1" "$2"; }
+# grep -q stops reading at its first match, and under pipefail the writer it
+# leaves behind can die of SIGPIPE and fail a check that matched. grepq reads it all.
+grepq() { grep "$@" >/dev/null; }
 
 # --- 1. frontmatter ---------------------------------------------------------
 if python3 - "$REPO/SKILL.md" "$SKILL_NAME" <<'PYEOF'
@@ -296,7 +299,7 @@ T="$TMPROOT/sc-claim-tree"
 claim_tree "$T/dirty" '\hsclaim{Another claim.}{y}'
 claim_tree "$T/clean" 'No claim here.'
 out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/dirty" 2>&1); rc=$?
-if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grep -q '^notes/ch2.tex:2: a second \\hsclaim'; then
+if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grepq '^notes/ch2.tex:2: a second \\hsclaim'; then
   fail "selfcheck claim-tree: a claim in each of two input files was not flagged at notes/ch2.tex:2 (exit $rc)"
   printf '%s\n' "$out" | sed 's/^/  /'
 elif ! out=$(timeout 30 "$REPO/scripts/style-check.sh" "$T/clean" 2>&1); then
@@ -472,7 +475,7 @@ if command -v lualatex >/dev/null; then
     # reads back as capitals; without titlesec's newparttoc the line is a bare
     # "1" and there is no PART at all.
     toc=$(pdftotext -f 2 -l 2 "$D/blank-template.pdf" - 2>/dev/null)
-    if printf '%s\n' "$toc" | grep -qx 'PART 1'; then
+    if printf '%s\n' "$toc" | grepq -x 'PART 1'; then
       pass "contents page sets the Part as a small-caps 'Part 1' column"
     else
       fail "contents page: no 'PART 1' line on page 2"; printf '%s\n' "$toc" | head -12 | sed 's/^/  /'
@@ -481,14 +484,14 @@ if command -v lualatex >/dev/null; then
     # \hsprosegap plus 3em" with a skip register), it prints "plus 3em" on
     # the page instead of stretching the line.
     for job in short-template blank-template blank-justified; do
-      if pdftotext "$D/$job.pdf" - 2>/dev/null | grep -Eq 'plus [0-9.]*(em|fil|pt)'; then
+      if pdftotext "$D/$job.pdf" - 2>/dev/null | grepq -E 'plus [0-9.]*(em|fil|pt)'; then
         fail "$job: a glue spec ('plus ...') is printed on the page"
       else
         pass "$job: no glue spec leaks onto the page"
       fi
     done
     toc=$(pdftotext -f 2 -l 2 "$D/blank-numbered.pdf" - 2>/dev/null)
-    if printf '%s\n' "$toc" | grep -qx '1 First section'; then
+    if printf '%s\n' "$toc" | grepq -x '1 First section'; then
       pass "numbered contents page carries the section number"
     else
       fail "numbered contents page: no '1 First section' line on page 2"; printf '%s\n' "$toc" | head -12 | sed 's/^/  /'
@@ -502,7 +505,7 @@ if command -v lualatex >/dev/null; then
   if command -v pdffonts >/dev/null; then
     fonts=$(pdffonts "$D/blank-template.pdf" 2>&1)
     for face in SourceSerif4Subhead-Regular SourceSerif4Display-Regular SourceSerif4-Semibold; do
-      if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grep -q ' yes '; then
+      if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grepq ' yes '; then
         pass "blank-template embeds $face"
       else
         fail "blank-template: $face is not embedded"; printf '%s\n' "$fonts" | sed 's/^/  /'
@@ -566,7 +569,7 @@ else
     pass "house-style example builds in three lualatex passes with no ! errors"
     if ! command -v pdftotext >/dev/null; then
       skip "house-style example is the copy" "no pdftotext on this machine"
-    elif pdftotext "$E/example.pdf" - 2>/dev/null | grep -q 'HSCOPY-7c3e'; then
+    elif pdftotext "$E/example.pdf" - 2>/dev/null | grepq 'HSCOPY-7c3e'; then
       pass "house-style example builds the copy, not the repo's own example.tex"
     else
       fail "house-style example: the PDF lacks the copy's marker, so build.sh compiled another example.tex"
@@ -576,7 +579,7 @@ else
     else
       fonts=$(pdffonts "$E/example.pdf" 2>&1)
       for face in SourceSerif4-Regular IBMPlexMono; do
-        if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grep -q ' yes '; then
+        if printf '%s\n' "$fonts" | grep -E "\+$face[ -]" | grepq ' yes '; then
           pass "house-style example embeds $face"
         else
           fail "house-style example: $face is not embedded"; printf '%s\n' "$fonts" | sed 's/^/  /'
@@ -621,7 +624,7 @@ else
     elif ! command -v pdffonts >/dev/null; then
       pass "house-style example builds in place"
       skip "house-style example in place fonts" "no pdffonts on this machine"
-    elif pdffonts "$HS/example.pdf" 2>&1 | grep -E '\+SourceSerif4-Regular[ -]' | grep -q ' yes '; then
+    elif pdffonts "$HS/example.pdf" 2>&1 | grep -E '\+SourceSerif4-Regular[ -]' | grepq ' yes '; then
       pass "house-style example builds in place and embeds the vendored SourceSerif4-Regular"
     else
       fail "house-style example in place: vendored SourceSerif4-Regular is not embedded"
@@ -641,7 +644,7 @@ else
   printf '%s\n' '\documentclass{article}' '\begin{document}' '\noindent\hbox to 300pt{fits\hfil}' \
     '\end{document}' > "$O/fits.tex"
   out=$("$REPO/scripts/build.sh" "$O/wide.tex" 2>&1); rc=$?
-  if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grep -q 'Overfull \\hbox'; then
+  if [ "$rc" -ne 1 ] || ! printf '%s\n' "$out" | grepq 'Overfull \\hbox'; then
     fail "selfcheck build.sh overfull: a 700 pt box exited $rc without naming the overfull box"
     printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   elif ! out=$("$REPO/scripts/build.sh" "$O/fits.tex" 2>&1); then
@@ -666,7 +669,7 @@ else
   for job in own swapped; do
     if ! out=$("$REPO/scripts/build.sh" "$V/$job.tex" 2>&1); then
       fail "provenance ($job font): scripts/build.sh failed"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
-    elif txt=$(pdftotext "$V/$job.pdf" - 2>/dev/null) && printf '%s\n' "$txt" | grep -q -- 'list --state merged; a---b\.'; then
+    elif txt=$(pdftotext "$V/$job.pdf" - 2>/dev/null) && printf '%s\n' "$txt" | grepq -- 'list --state merged; a---b\.'; then
       pass "provenance ($job font) keeps --state and --- as typed"
     else
       fail "provenance ($job font): a typed -- came out as a dash"; printf '%s\n' "$txt" | sed 's/^/  /'
@@ -685,7 +688,6 @@ else
     '\hslabel{Pass/fail}\par' '\hslabel{Figure 2 / what it shows}\par' '\end{document}' > "$L/l.tex"
   if ! out=$("$REPO/scripts/build.sh" "$L/l.tex" 2>&1); then
     fail "label split: scripts/build.sh failed"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
-  # here-strings, not printf | grep -q: under pipefail an early grep exit can SIGPIPE the printf
   elif txt=$(pdftotext "$L/l.pdf" - 2>/dev/null) && grep -qi 'pass/fail' <<<"$txt" \
        && fig=$(grep -i 'figure 2' <<<"$txt") && ! grep -q '/' <<<"$fig"; then
     pass "label split: Pass/fail stays whole, Figure 2 / title splits"
@@ -723,13 +725,13 @@ PYEOF
     '\begin{hsfigure}{Figure 2 / scaled down}{Rendered at its default width.}' '\hsdiagram{figures/gate}' '\end{hsfigure}' \
     '\end{document}' > "$G/doc.tex"
   out=$(PMB_SYNC=0 "$REPO/scripts/build.sh" "$G/doc.tex" 2>&1); rc=$?
-  if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grep -q 'export.sh found no converter'; then
+  if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grepq 'export.sh found no converter'; then
     skip "hsdiagram" "diagram-maker's export.sh has no converter here (no rsvg-convert, no Chrome)"
   elif [ "$rc" -ne 0 ]; then
     fail "hsdiagram: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
   elif ! [ -s "$G/figures/flow.pdf" ] || ! [ -s "$G/figures/gate.pdf" ]; then
     fail "hsdiagram: build.sh exited 0 but did not export figures/flow.pdf and figures/gate.pdf"
-  elif command -v pdftotext >/dev/null && ! pdftotext "$G/doc.pdf" - 2>/dev/null | grep -q 'Planning agent'; then
+  elif command -v pdftotext >/dev/null && ! pdftotext "$G/doc.pdf" - 2>/dev/null | grepq 'Planning agent'; then
     fail "hsdiagram: the page does not carry the flow figure's text"
   else
     fw=$(pdfinfo "$G/figures/flow.pdf" 2>/dev/null | awk '/^Page size:/ { printf "%.0f", $3 }')
@@ -740,7 +742,7 @@ PYEOF
     '{"title": "One", "role": "io"}, {"title": "Two", "role": "work"}, {"title": "Three", "role": "io"}]}' \
     > "$G/figures/gate.json"
   out=$(PMB_SYNC=0 "$REPO/scripts/build.sh" "$G/doc.tex" 2>&1); rc=$?
-  if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -q 'could not render figures/gate.json'; then
+  if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grepq 'could not render figures/gate.json'; then
     pass "hsdiagram: a spec diagram-maker rejects fails the build and names it"
   else
     fail "hsdiagram: a rejected spec exited $rc without naming it"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
@@ -859,7 +861,7 @@ else
   echo three > "$I/dev/y" && q -C "$I/dev" add y && q -C "$I/dev" commit -q -m third && q -C "$I/dev" push -q origin main
   mine=$(git -C "$I/skill" rev-parse HEAD)
   out=$(inst "$I/skill"); rc=$?
-  if [ "$rc" -eq 1 ] && [ "$(git -C "$I/skill" rev-parse HEAD)" = "$mine" ] && printf '%s\n' "$out" | grep -q 'cannot fast-forward'; then
+  if [ "$rc" -eq 1 ] && [ "$(git -C "$I/skill" rev-parse HEAD)" = "$mine" ] && printf '%s\n' "$out" | grepq 'cannot fast-forward'; then
     pass "install.sh refuses, exit 1, when a local commit is in the way, and moves nothing"
   else
     fail "install.sh with a local commit: exit $rc, expected 1 with main left where it was"; printf '%s\n' "$out" | sed 's/^/  /'
@@ -897,14 +899,14 @@ SHEOF
   run() { local c="$1" path="$2"; shift 2; env PATH="$path" DOCLOG="$N/$c.log" "$@" "$REPO/scripts/build.sh" "$N/$c/doc.tex" 2>&1; }
 
   mk draft; out=$(run draft "$N/bin:$bare"); rc=$?
-  if [ "$rc" -ne 0 ] || [ -s "$N/draft.log" ] || pdftotext "$N/draft/doc.pdf" - | grep -q '123-0045'; then
+  if [ "$rc" -ne 0 ] || [ -s "$N/draft.log" ] || pdftotext "$N/draft/doc.pdf" - | grepq '123-0045'; then
     fail "register: a build with no DOC_* variables called cc-docs or printed a number (exit $rc)"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   else
     pass "register: a draft build calls no cc-docs and prints no number"
   fi
 
   mk nodocs; out=$(run nodocs "$bare" DOC_PROJECT=P DOC_TITLE=T); rc=$?
-  if [ "$rc" -ne 0 ] || pdftotext "$N/nodocs/doc.pdf" - | grep -q '123-0045'; then
+  if [ "$rc" -ne 0 ] || pdftotext "$N/nodocs/doc.pdf" - | grepq '123-0045'; then
     fail "register: DOC_PROJECT with no cc-docs on PATH did not build as a draft (exit $rc)"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   else
     pass "register: with no cc-docs on PATH the variables change nothing"
@@ -916,13 +918,13 @@ SHEOF
   bad=""
   [ "$rc" -eq 0 ] || bad="exit $rc"
   [ "$(cat "$N/final.log")" = "$(printf '%s\n%s' "$want_n" "$want_f")" ] || bad="$bad; calls were: $(cat "$N/final.log")"
-  printf '%s\n' "$out" | grep -q 'register: 123-0045-B' || bad="$bad; the filing result was not printed"
+  printf '%s\n' "$out" | grepq 'register: 123-0045-B' || bad="$bad; the filing result was not printed"
   mk plain; run plain "$bare" >/dev/null
   for i in 1 2; do
-    page final "$i" | grep -qx ' *123-0045-B .* 24 Sep 2026' || bad="$bad; page $i has no number line"
+    page final "$i" | grepq -x ' *123-0045-B .* 24 Sep 2026' || bad="$bad; page $i has no number line"
     [ "$(page final "$i" | grep -v '123-0045-B')" = "$(page plain "$i")" ] || bad="$bad; page $i's other text moved"
   done
-  page final 1 | grep -q 'COPYRIGHT HOLDER' && page final 2 | grep -q 'COPYRIGHT HOLDER *2$' || bad="$bad; copyright or page number missing"
+  page final 1 | grepq 'COPYRIGHT HOLDER' && page final 2 | grepq 'COPYRIGHT HOLDER *2$' || bad="$bad; copyright or page number missing"
   if [ -n "$bad" ]; then
     fail "register: the finished build: ${bad#; }"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   else
@@ -931,7 +933,7 @@ SHEOF
 
   mk nostamp; out=$(run nostamp "$N/bin:$bare" DOC_PROJECT=P DOC_TITLE=T DOC_NO_STAMP=1); rc=$?
   if [ "$rc" -ne 0 ] || [ "$(cat "$N/nostamp.log")" != "file $N/nostamp/doc.pdf --project P --title T --source $N/nostamp/doc.tex --no-stamp" ] \
-     || pdftotext "$N/nostamp/doc.pdf" - | grep -q '123-0045'; then
+     || pdftotext "$N/nostamp/doc.pdf" - | grepq '123-0045'; then
     fail "register: DOC_NO_STAMP=1 (exit $rc), calls: $(cat "$N/nostamp.log")"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   else
     pass "register: DOC_NO_STAMP=1 prints no number and files with --no-stamp"
@@ -1012,12 +1014,12 @@ PYEOF
   chk="$REPO/scripts/page-break-check.sh"
   bad=""
   [ "$newrc" -eq 0 ] || bad="$bad; the fixed build exited $newrc"
-  printf '%s\n' "$new" | grep -q 'page-break-check' && bad="$bad; the fixed build reported a bad break"
+  printf '%s\n' "$new" | grepq 'page-break-check' && bad="$bad; the fixed build reported a bad break"
   "$chk" --strict "$P/breaks.pdf" >/dev/null || bad="$bad; --strict failed the fixed build"
-  pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -q 'alpha line one' \
-    && pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grep -qi 'listing 1' || bad="$bad; the short listing and its caption are not together on page 4"
-  pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grep -q '^Results' \
-    && pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grep -q '^Setup' || bad="$bad; the section and the subsection under it are not together on page 6"
+  pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grepq 'alpha line one' \
+    && pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grepq -i 'listing 1' || bad="$bad; the short listing and its caption are not together on page 4"
+  pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grepq '^Results' \
+    && pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grepq '^Setup' || bad="$bad; the section and the subsection under it are not together on page 6"
   if [ -n "$bad" ]; then
     fail "page breaks: the style: ${bad#; }"; printf '%s\n' "$new" | head -8 | sed 's/^/  /'
   else
@@ -1027,7 +1029,7 @@ PYEOF
   [ "$oldrc" -eq 0 ] || bad="$bad; build.sh exited $oldrc on bad breaks, but they only warn"
   for want in 'p.2: widow: voluptate velit' 'p.3: listing: Listing 1 / the gate: 1 line(s) on p.3, 4 on p.4' \
               'p.5: heading: A stranded heading' 'p.7: heading: Results'; do
-    printf '%s\n' "$old" | grep -qF "page-break-check: $want" || bad="$bad; build.sh did not report \"$want\""
+    printf '%s\n' "$old" | grepq -F "page-break-check: $want" || bad="$bad; build.sh did not report \"$want\""
   done
   "$chk" "$P/old.pdf" >/dev/null || bad="$bad; the check without --strict exited non-zero"
   "$chk" --strict "$P/old.pdf" >/dev/null && bad="$bad; --strict exited 0 on bad breaks"
@@ -1151,12 +1153,12 @@ else
   themedout=$(env -u DESIGN_TOKENS "$REPO/scripts/build.sh" "$DS/themed/short-template.tex" 2>&1) || bad="$bad; the themed build failed: $themedout"
   unset SOURCE_DATE_EPOCH FORCE_SOURCE_DATE
   cmp -s "$DS/plain/via-build.pdf" "$DS/plain/bare.pdf" || bad="$bad; with no design system the PDF is not byte-identical to the bare build"
-  printf '%s\n' "$plainout" | grep -q '^design system:' && bad="$bad; the plain build named a design system"
-  printf '%s\n' "$themedout" | grep -qF "design system: $DS/themed/.cc/design-tokens.json" || bad="$bad; the themed build did not name its token file"
+  printf '%s\n' "$plainout" | grepq '^design system:' && bad="$bad; the plain build named a design system"
+  printf '%s\n' "$themedout" | grepq -F "design system: $DS/themed/.cc/design-tokens.json" || bad="$bad; the themed build did not name its token file"
   cmp -s "$DS/plain/via-build.pdf" "$DS/themed/short-template.pdf" && bad="$bad; the themed PDF is the same as the plain one"
   if command -v pdftotext >/dev/null; then
-    pdftotext -l 1 "$DS/plain/via-build.pdf" - | grep -qF '<Document title>' || bad="$bad; the plain title is not as written"
-    pdftotext -l 1 "$DS/themed/short-template.pdf" - | grep -qF '<DOCUMENT TITLE>' || bad="$bad; the themed title is not in capitals"
+    pdftotext -l 1 "$DS/plain/via-build.pdf" - | grepq -F '<Document title>' || bad="$bad; the plain title is not as written"
+    pdftotext -l 1 "$DS/themed/short-template.pdf" - | grepq -F '<DOCUMENT TITLE>' || bad="$bad; the themed title is not in capitals"
   fi
   [ -n "$bad" ] && fail "design system: builds: ${bad#; }" || pass "design system: no token file builds byte-identical to bare lualatex; a token file restyles the same source"
 fi
