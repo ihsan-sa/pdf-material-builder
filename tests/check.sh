@@ -81,7 +81,19 @@
 #      split on p.3, the heading on p.5 and the section left alone at the foot
 #      of p.7; the check exits 0 on it, 1 under --strict, and 2 on a missing
 #      PDF.
-#   6 to 13, 15 and 16 are SKIPPED, with the reason printed, when lualatex is absent;
+#  17  A workspace's own design system (apply-design-system/). The default
+#      build is unchanged: with no token file, build.sh's PDF of the short
+#      template is byte-for-byte the PDF of three bare lualatex passes, under a
+#      fixed SOURCE_DATE_EPOCH, and names no design system. The same source in
+#      a repo with .cc/design-tokens.json (the placeholder salari-test system)
+#      names it, differs, and prints its title in capitals. `find` takes the
+#      token file at the repo root, not one above the repo's .git, and none
+#      with DESIGN_TOKENS=none; a DESIGN_TOKENS that names no file exits 2.
+#      `import` reads a fixture Claude Design export (var() chains, an oklch
+#      colour, a [data-brand] block it must ignore, one logo) into a valid
+#      token file. `xlsx` writes the same bytes twice, carries the header fill
+#      and the rows, and exits 1 where no design system applies.
+#   6 to 13, 15, 16 and 17's builds are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -1018,6 +1030,103 @@ PYEOF
   else
     pass "page breaks: the check names the widow, the one-line listing split and the stranded heading by page; --strict exits 1"
   fi
+fi
+
+# --- 17. a workspace's own design system -------------------------------------
+DSPY="$REPO/apply-design-system/ds.py"
+DS="$TMPROOT/ds"; mkdir -p "$DS/repo/.git" "$DS/repo/.cc" "$DS/repo/sub" "$DS/outer/.cc" "$DS/outer/repo/.git"
+TOK="$REPO/apply-design-system/examples/salari-test/.cc/design-tokens.json"
+cp "$TOK" "$DS/repo/.cc/design-tokens.json"; cp "$TOK" "$DS/outer/.cc/design-tokens.json"
+bad=""
+got=$(env -u DESIGN_TOKENS python3 "$DSPY" find "$DS/repo/sub") || bad="$bad; find exited non-zero in a repo with a token file"
+[ "$got" = "$DS/repo/.cc/design-tokens.json" ] || bad="$bad; find printed '$got', not the repo's token file"
+env -u DESIGN_TOKENS python3 "$DSPY" find "$DS/outer/repo" >/dev/null && bad="$bad; find read a token file above the repo's .git"
+DESIGN_TOKENS=none python3 "$DSPY" find "$DS/repo" >/dev/null && bad="$bad; DESIGN_TOKENS=none still found one"
+DESIGN_TOKENS="$DS/nothing.json" python3 "$DSPY" find "$DS/repo" >/dev/null 2>&1; [ $? -eq 2 ] || bad="$bad; a DESIGN_TOKENS naming no file did not exit 2"
+[ -n "$bad" ] && fail "design system: find: ${bad#; }" || pass "design system: find takes the repo's token file, never one above .git, none with DESIGN_TOKENS=none"
+
+# import: a fixture export shaped like Claude Design's
+EX="$DS/export"; mkdir -p "$EX/tokens" "$EX/assets/logo"
+cat > "$EX/tokens/colors.css" <<'CSSEOF'
+:root {
+  /* comment */
+  --ink-900: #1a1a1a;
+  --paper-0: #fff;
+  --text-primary: var(--ink-900);
+  --surface-page: var(--paper-0);
+  --brand-accent: oklch(0.42 0.08 250);
+  --border-default: var(--missing, #e2e0db);
+}
+[data-brand="other"] { --brand-accent: #ff0000; }
+CSSEOF
+printf ':root {\n  --font-sans: "Overpass", Helvetica, sans-serif;\n  --type-heading-case: uppercase;\n}\n' > "$EX/tokens/typography.css"
+printf 'PNG' > "$EX/assets/logo/brand-black.png"
+bad=""
+python3 "$DSPY" import "$EX" -o "$DS/imp/.cc/design-tokens.json" >/dev/null 2>&1 || bad="$bad; import exited non-zero"
+python3 "$DSPY" check "$DS/imp/.cc/design-tokens.json" >/dev/null 2>&1 || bad="$bad; the imported file does not pass check"
+[ -f "$DS/imp/.cc/design-logo.png" ] || bad="$bad; the one logo was not copied beside the token file"
+python3 - "$DS/imp/.cc/design-tokens.json" <<'PYEOF2' || bad="$bad; the imported values are wrong"
+import json, sys
+t = json.load(open(sys.argv[1]))
+want = {('color', 'ink'): '#1A1A1A', ('color', 'paper'): '#FFFFFF',
+        ('color', 'accent'): '#285077', ('color', 'rule'): '#E2E0DB'}
+ok = all(t[g][k] == v for (g, k), v in want.items())
+ok = ok and t['type']['body'] == ['Overpass', 'Helvetica', 'sans-serif']
+ok = ok and t['type']['heading-case'] == 'uppercase' and t['logo'] == 'design-logo.png'
+if not ok:
+    print('  imported:', json.dumps(t)); sys.exit(1)
+PYEOF2
+[ -n "$bad" ] && fail "design system: import: ${bad#; }" || pass "design system: import reads a Claude Design export's :root tokens, resolves var() and oklch, ignores a [data-brand] block"
+
+# xlsx
+printf 'Item,Count,Price\nA,3,4.50\nB & C,12,10\n' > "$DS/repo/sub/rows.csv"
+bad=""
+( cd "$DS/repo/sub" && env -u DESIGN_TOKENS python3 "$DSPY" xlsx rows.csv -o a.xlsx --title "Rows" >/dev/null && env -u DESIGN_TOKENS python3 "$DSPY" xlsx rows.csv -o b.xlsx --title "Rows" >/dev/null ) || bad="$bad; xlsx exited non-zero"
+cmp -s "$DS/repo/sub/a.xlsx" "$DS/repo/sub/b.xlsx" || bad="$bad; the same rows made different bytes"
+python3 - "$DS/repo/sub/a.xlsx" <<'PYEOF2' || bad="$bad; the workbook does not carry the rows and the header fill"
+import sys, zipfile
+import xml.etree.ElementTree as ET
+z = zipfile.ZipFile(sys.argv[1])
+for n in z.namelist():
+    if n.endswith('.xml') or n.endswith('.rels'):
+        ET.fromstring(z.read(n))
+sheet, styles = z.read('xl/worksheets/sheet1.xml').decode(), z.read('xl/styles.xml').decode()
+ok = 'B &amp; C' in sheet and '<v>12</v>' in sheet and 'ROWS' in sheet
+ok = ok and 'FF1B1F24' in styles
+sys.exit(0 if ok else 1)
+PYEOF2
+mkdir -p "$DS/bare/.git"; cp "$DS/repo/sub/rows.csv" "$DS/bare/"
+env -u DESIGN_TOKENS python3 "$DSPY" xlsx "$DS/bare/rows.csv" -o "$DS/bare/x.xlsx" >/dev/null 2>&1; [ $? -eq 1 ] || bad="$bad; xlsx without a design system did not exit 1"
+[ -n "$bad" ] && fail "design system: xlsx: ${bad#; }" || pass "design system: xlsx writes a styled workbook, the same bytes twice, and refuses where no system applies"
+
+if ! command -v lualatex >/dev/null; then
+  skip "design system: builds" "no lualatex on this machine"
+else
+  bad=""
+  for d in plain themed; do
+    mkdir -p "$DS/$d/.git"
+    cp "$REPO/assets/short-template.tex" "$REPO/assets/preamble-template.tex" "$DS/$d/"
+  done
+  mkdir -p "$DS/themed/.cc"; cp "$TOK" "$DS/themed/.cc/design-tokens.json"
+  export SOURCE_DATE_EPOCH=1790000000 FORCE_SOURCE_DATE=1
+  plainout=$(env -u DESIGN_TOKENS "$REPO/scripts/build.sh" "$DS/plain/short-template.tex" 2>&1) || bad="$bad; the plain build failed"
+  mv "$DS/plain/short-template.pdf" "$DS/plain/via-build.pdf"
+  # What build.sh ran before design systems existed: three bare passes, in the
+  # same directory, because the PDF's /ID is made from the path it is built at.
+  ( cd "$DS/plain" && export TEXINPUTS=".:$REPO/references/house-style//:${TEXINPUTS:-}" \
+    && for pass in 1 2 3; do lualatex -interaction=nonstopmode -halt-on-error -jobname=_tmp_short-template short-template.tex >/dev/null 2>&1; done \
+    && cp _tmp_short-template.pdf bare.pdf && rm -f _tmp_short-template.* ) || bad="$bad; the bare lualatex build failed"
+  themedout=$(env -u DESIGN_TOKENS "$REPO/scripts/build.sh" "$DS/themed/short-template.tex" 2>&1) || bad="$bad; the themed build failed: $themedout"
+  unset SOURCE_DATE_EPOCH FORCE_SOURCE_DATE
+  cmp -s "$DS/plain/via-build.pdf" "$DS/plain/bare.pdf" || bad="$bad; with no design system the PDF is not byte-identical to the bare build"
+  printf '%s\n' "$plainout" | grep -q '^design system:' && bad="$bad; the plain build named a design system"
+  printf '%s\n' "$themedout" | grep -qF "design system: $DS/themed/.cc/design-tokens.json" || bad="$bad; the themed build did not name its token file"
+  cmp -s "$DS/plain/via-build.pdf" "$DS/themed/short-template.pdf" && bad="$bad; the themed PDF is the same as the plain one"
+  if command -v pdftotext >/dev/null; then
+    pdftotext -l 1 "$DS/plain/via-build.pdf" - | grep -qF '<Document title>' || bad="$bad; the plain title is not as written"
+    pdftotext -l 1 "$DS/themed/short-template.pdf" - | grep -qF '<DOCUMENT TITLE>' || bad="$bad; the themed title is not in capitals"
+  fi
+  [ -n "$bad" ] && fail "design system: builds: ${bad#; }" || pass "design system: no token file builds byte-identical to bare lualatex; a token file restyles the same source"
 fi
 
 echo

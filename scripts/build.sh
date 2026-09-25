@@ -29,6 +29,14 @@
 # the machine), a figure whose PDF is already there keeps it, with a note; one
 # with no PDF fails the build and says to draw it with the TikZ kit instead.
 #
+# A workspace's own design system (apply-design-system/SKILL.md): when
+# `apply-design-system/ds.py find` names a token file for the document's
+# directory (.cc/design-tokens.json at the repo root, or $DESIGN_TOKENS),
+# build.sh writes its LaTeX theme to _tmp_<name>.theme.tex and has lualatex
+# load it right after housestyle.sty, and prints "design system: <file>".
+# With no token file, or no python3, the lualatex command is exactly what it
+# was before design systems existed, so the PDF is too.
+#
 # Page breaks: after a clean build, when pdftotext is on the machine, build.sh
 # runs scripts/page-break-check.sh on the PDF and prints what it finds (a
 # widow at a page top, a heading or listing caption at a page foot, a listing
@@ -105,6 +113,19 @@ if [ -n "${DOC_PROJECT:-}" ] && command -v cc-docs >/dev/null; then
   if [ "${DOC_NO_STAMP:-}" != 1 ]; then
     defs=$(cc-docs number "${docargs[@]}" --tex) || { echo "build.sh: cc-docs could not number $name.tex" >&2; exit 1; }
     input="$defs\\input{$name.tex}"
+  fi
+fi
+
+ds="$skill/apply-design-system/ds.py"
+if command -v python3 >/dev/null; then
+  rc=0; tokens=$(python3 "$ds" find .) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    python3 "$ds" latex "$tokens" > "_tmp_$name.theme.tex" || { echo "build.sh: the design system at $tokens could not be applied" >&2; exit 1; }
+    [ "$input" = "$name.tex" ] && input="\\input{$name.tex}"
+    input="\\AddToHook{package/housestyle/after}{\\input{_tmp_$name.theme.tex}}$input"
+    echo "design system: $tokens"
+  elif [ "$rc" -ne 1 ]; then
+    exit 1
   fi
 fi
 

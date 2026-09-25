@@ -1,0 +1,52 @@
+% A sample document in the salari-test placeholder design system. It is the
+% house short template with nothing of the house look written into it: the
+% look comes from .cc/design-tokens.json beside it, which scripts/build.sh
+% finds and applies. Build: scripts/build.sh sample.tex
+\documentclass[11pt]{article}
+\usepackage{housestyle}
+\usepackage{tabularx}
+\hsslug{Sample stock note}
+\fancyfoot[L]{\hsrunlabel{Placeholder design system}}
+\begin{document}
+
+\hstitleblock{Stock note \textperiodcentered\ September 2026}{What is on the floor this week}%
+{A short sample that shows a workspace's own design system carried into a PDF.}
+
+Every colour, face and heading case on this page comes from the workspace's
+token file. The document source is the house template, unchanged: a workspace
+without a token file builds the same source in the house look.
+
+\begin{hsfigure}{Figure 1 / how a sample request moves}%
+{Slate boxes are inputs and outputs. Sage boxes are work. Rust boxes are checks.}
+\begin{tikzpicture}[node distance=14pt]
+  \node[hsnode] (a) {\hsnodetext{Input}{A request}{piece, size, address}};
+  \node[hswork,right=of a] (b) {\hsnodetext{Work}{Pull}{from the floor or the store}};
+  \node[hsgate,right=of b] (c) {\hsnodetext{Check}{Condition}{pass, or back to pull}};
+  \node[hsnode,right=of c] (d) {\hsnodetext{Output}{Shipped}{with its label}};
+  \draw[hsarrow] (a) -- (b); \draw[hsarrow] (b) -- (c); \draw[hsarrow] (c) -- (d);
+  \draw[hsfail] (c.south) -- ++(0,-12pt) -| (b.south);
+\end{tikzpicture}
+\end{hsfigure}
+
+\section{This week in numbers}
+\begin{hsstatrow}[3]
+\hsstat{214}{Pieces on the floor.}
+\hsstat{18}{Pieces held for a client.}
+\hsstat{6}{Pieces on order.}
+\end{hsstatrow}
+
+\section{Stock by collection}
+\begin{hsblock}\begin{tabularx}{\linewidth}{Xrrr}\hstoprule
+\hshead{Collection} & \hshead{In stock} & \hshead{Held} & \hshead{On order} \\ \hstoprule
+Placeholder A & 64 & 5 & 2 \\ \hline
+Placeholder B & 81 & 9 & 0 \\ \hline
+Placeholder C & 69 & 4 & 4 \\ \hstoprule
+\end{tabularx}\end{hsblock}
+
+\begin{hscallout}{What this is not}
+The numbers are made up. The placeholder system stands in until the
+workspace imports its own export from Claude Design.
+\end{hscallout}
+
+\hsprovenance{Figures invented for the sample, 24 September 2026.}
+\end{document}
