@@ -93,7 +93,13 @@
 #      colour, a [data-brand] block it must ignore, one logo) into a valid
 #      token file. `xlsx` writes the same bytes twice, carries the header fill
 #      and the rows, and exits 1 where no design system applies.
-#   6 to 13, 15, 16 and 17's builds are SKIPPED, with the reason printed, when lualatex is absent;
+#  18  Contents entries are whole-line hidden links. A part, two sections and a
+#      subsection build with PDF compression off, so /Link /Rect values read
+#      straight out of the PDF. Every entry carries exactly one GoTo link, in
+#      order, to its own anchor (part.1, section.1, subsection.1.1, section.2),
+#      and each link's rect is at least 80% of the 432 pt Letter text width --
+#      not just the title words, which is what housestyle.sty did before.
+#   6 to 13, 15, 16, 17's builds and 18 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -1153,6 +1159,59 @@ else
     pdftotext -l 1 "$DS/themed/short-template.pdf" - | grep -qF '<DOCUMENT TITLE>' || bad="$bad; the themed title is not in capitals"
   fi
   [ -n "$bad" ] && fail "design system: builds: ${bad#; }" || pass "design system: no token file builds byte-identical to bare lualatex; a token file restyles the same source"
+fi
+
+# --- 18. contents entries are whole-line hidden links --------------------------
+# housestyle.sty sets hyperref's linktoc=none and wraps each titlecontents
+# entry itself with \Hy@toclinkstart/\Hy@toclinkend, from before the label
+# column to after the page number, so the whole line is one link, not just the
+# title words. A part, two sections and a subsection under one of them build
+# with PDF stream compression off, so /Link /Rect values read straight out of
+# the PDF.
+if ! command -v lualatex >/dev/null; then
+  skip "contents links" "no lualatex on this machine"
+else
+  K="$TMPROOT/toclinks"; mkdir -p "$K"
+  printf '%s\n' '\pdfvariable compresslevel=0 \pdfvariable objcompresslevel=0' \
+    '\documentclass[11pt]{article}' '\usepackage{housestyle}' '\begin{document}' \
+    '\tableofcontents' '\part{Foundations}' \
+    '\newpage\section{Alpha}x\subsection{Beta}y' '\newpage\section{Gamma}z' \
+    '\end{document}' > "$K/toc.tex"
+  if ! out=$("$REPO/scripts/build.sh" "$K/toc.tex" 2>&1); then
+    fail "contents links: scripts/build.sh failed"; printf '%s\n' "$out" | head -8 | sed 's/^/  /'
+  else
+    out=$(python3 - "$K/toc.pdf" <<'PYEOF'
+import re, sys
+data = open(sys.argv[1], 'rb').read()
+objs = re.findall(rb'\d+ 0 obj(.*?)endobj', data, re.S)
+want = ['part.1', 'section.1', 'subsection.1.1', 'section.2']
+links = []
+for body in objs:
+    if b'/Subtype' in body and b'/Link' in body:
+        rect = re.search(rb'/Rect\s*\[([^\]]+)\]', body)
+        dest = re.search(rb'/S\s*/GoTo.*?/D\s*\(([^)]*)\)', body, re.S)
+        if rect and dest:
+            links.append((dest.group(1).decode(), [float(x) for x in rect.group(1).split()]))
+problems = []
+got = [d for d, _ in links]
+if got != want:
+    problems.append(f'GoTo destinations were {got}, expected {want}')
+textwidth = 432.0  # 612 - 90 - 90: housestyle.sty's Letter measure
+for dest, (x0, _y0, x1, _y1) in links:
+    w = x1 - x0
+    if w < 0.8 * textwidth:
+        problems.append(f'{dest}: rect width {w:.1f}pt is under 80% of the {textwidth:.0f}pt text width')
+for p in problems:
+    print('  ' + p)
+sys.exit(1 if problems else 0)
+PYEOF
+    ); rc=$?
+    if [ "$rc" -ne 0 ]; then
+      fail "contents links"; printf '%s\n' "$out" | sed 's/^/  /'
+    else
+      pass "contents links: part, section and subsection entries are each one GoTo link spanning the line"
+    fi
+  fi
 fi
 
 echo

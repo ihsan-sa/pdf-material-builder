@@ -42,7 +42,11 @@
 \RequirePackage{tikz}
 \RequirePackage{amsmath}
 \RequirePackage{microtype}
-\RequirePackage[hidelinks]{hyperref}
+% linktoc=none: hyperref's own per-entry link (title words only) is turned
+% off here so the contents block below can wrap the whole line -- label,
+% title and page number -- in one link instead (\Hy@tocdestname holds the
+% anchor \contentsline's 4th argument carries either way).
+\RequirePackage[hidelinks,linktoc=none]{hyperref}
 \RequirePackage{xurl} % URLs break at any character, never hyphenate mid-word
 \usetikzlibrary{positioning,arrows.meta,calc}
 
@@ -297,12 +301,29 @@
 % No right margin reserved: the page numbers sit on the margin itself.
 \contentsmargin{0pt}
 \newcommand{\hs@tocpage}{\textcolor{inkfiftyfive}{{\hs@figfont\thecontentspage}}}
+% The whole line -- label, title and page number -- is one hidden link to the
+% section: \hs@toclinkstart opens it (hyperref already set \Hy@tocdestname to
+% the section's anchor before calling this entry's \l@<level>) at the start of
+% the label column, and \hs@toclinkend closes it after the page number, so the
+% title in between (placed by titletoc itself, outside our control) and the
+% \hfill gap both fall inside the same link. \Hy@toclinkstart/\Hy@toclinkend
+% themselves pair a \begingroup/\endgroup around the link colour
+% (\Hy@colorlink/\Hy@endcolorlink); that is fine wrapped around one argument
+% (hyperref's own linktoc=all), but split across two titlecontents arguments
+% the way it is here, the label format's own closing brace ends with that
+% group still open -- an unbalanced brace to TeX. hidelinks means there is no
+% link colour to set, so the two halves below gobble that step, each keeping
+% its own \begingroup/\endgroup self-contained; linktoc=none (set on hyperref
+% above) stops hyperref wrapping the title a second time on its own.
+\newcommand{\hs@toclinkstart}{\begingroup\let\Hy@colorlink\@gobble\Hy@toclinkstart\endgroup}
+\newcommand{\hs@toclinkend}{\begingroup\let\Hy@endcolorlink\relax\Hy@toclinkend\endgroup}
 \titlecontents{part}[0pt]{\addvspace{16pt}}%
-  {\makebox[64pt][l]{\hslabel{Part \thecontentslabel}}}{\makebox[64pt][l]{}}%
-  {\hfill\hs@tocpage}[\addvspace{2pt}]
-\titlecontents{section}[64pt]{\addvspace{1pt}}{}{}{\hfill\hs@tocpage}
+  {\hs@toclinkstart\makebox[64pt][l]{\hslabel{Part \thecontentslabel}}}%
+  {\hs@toclinkstart\makebox[64pt][l]{}}%
+  {\hfill\hs@tocpage\hs@toclinkend}[\addvspace{2pt}]
+\titlecontents{section}[64pt]{\addvspace{1pt}}{\hs@toclinkstart}{\hs@toclinkstart}{\hfill\hs@tocpage\hs@toclinkend}
 \titlecontents{subsection}[80pt]{\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}}%
-  {}{}{\hfill\hs@tocpage}
+  {\hs@toclinkstart}{\hs@toclinkstart}{\hfill\hs@tocpage\hs@toclinkend}
 \let\hs@tableofcontents\tableofcontents
 \renewcommand{\tableofcontents}{\begingroup\hsfull\hs@tableofcontents\endgroup}
 
@@ -321,9 +342,9 @@
   \titleformat{\subsection}{\hssubheadfont\fontsize{13pt}{17pt}\selectfont\color{ink}}%
     {\textcolor{inkfiftyfive}{\thesubsection}}{8pt}{}%
   \titlecontents{section}[64pt]{\addvspace{1pt}}%
-    {\hs@tocnum{\thecontentslabel}}{}{\hfill\hs@tocpage}%
+    {\hs@toclinkstart\hs@tocnum{\thecontentslabel}}{\hs@toclinkstart}{\hfill\hs@tocpage\hs@toclinkend}%
   \titlecontents{subsection}[80pt]{\fontsize{9.5pt}{14pt}\selectfont\color{inkseventy}}%
-    {\hs@tocnum{\thecontentslabel}}{}{\hfill\hs@tocpage}}
+    {\hs@toclinkstart\hs@tocnum{\thecontentslabel}}{\hs@toclinkstart}{\hfill\hs@tocpage\hs@toclinkend}}
 
 % ---- lists ------------------------------------------------------------------
 \setlist[itemize,1]{label=\textcolor{inkfiftyfive}{\textbullet}}
