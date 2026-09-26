@@ -1,0 +1,58 @@
+# Runs tests/check.sh, the repo gate, on every PR and every push to main.
+# check.sh prints one line per case: "ok", "FAIL" or "skip -- <reason>".
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # This repo and lesson-builder sit side by side, so voice-drift.sh
+      # finds ../lesson-builder the way it does on a dev machine.
+      - uses: actions/checkout@v4
+        with:
+          path: pdf-material-builder
+      - uses: actions/checkout@v4
+        with:
+          repository: ihsan-sa/lesson-builder
+          path: lesson-builder
+
+      # diagram-maker is a private repo and the workflow carries no secret to
+      # read it, so this fetch fails today and check 13 (hsdiagram) skips.
+      # It starts running on its own once the submodule can be read.
+      - name: Fetch the diagram-maker submodule
+        working-directory: pdf-material-builder
+        run: |
+          if git -c credential.helper= -c core.askPass=true submodule update --init diagram-maker; then
+            echo "diagram-maker checked out"
+          else
+            echo "::notice::diagram-maker could not be fetched, so the hsdiagram check will skip"
+          fi
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: apt-${{ runner.os }}-${{ hashFiles('pdf-material-builder/.github/workflows/check.yml') }}
+
+      - name: Install TeX, poppler and rsvg-convert
+        run: |
+          mkdir -p ~/apt-cache/partial
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            -o Dir::Cache::Archives="$HOME/apt-cache" \
+            texlive-luatex texlive-latex-recommended texlive-latex-extra \
+            texlive-pictures lmodern poppler-utils librsvg2-bin fontconfig
+          sudo chown -R "$USER" ~/apt-cache
+
+      - name: Run tests/check.sh
+        working-directory: pdf-material-builder
+        run: tests/check.sh
