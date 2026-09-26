@@ -66,4 +66,6 @@ tests/check.sh
 
 Hermetic, no network, a few minutes. Frontmatter, every path the docs mention, the style gate and its selfcheck, voice drift, a real lualatex build of the templates, a diagram-maker figure placed with `\hsdiagram`, and `install.sh` and the diagram-maker sync against scratch clones. Drift and compile cases skip with a printed reason when lesson-builder or lualatex is absent.
 
+GitHub Actions runs the same script on every PR and every push to main (`.github/workflows/check.yml`). To read a run, open the "Run tests/check.sh" step: each case is one `ok`, `FAIL` or `skip -- <reason>` line, and the job goes red only on a `FAIL`. The `\hsdiagram` case skips there, because the runner can't fetch the private diagram-maker submodule.
+
 `docs/integration.md` lists what the lesson-builder and lessons repos must change before companions can be published.
