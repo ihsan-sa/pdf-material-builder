@@ -12,9 +12,34 @@ permissions:
 
 jobs:
   check:
+    # Ubuntu 24.04, the newest hosted runner, ships TeX Live 2023, whose
+    # fvextra has no bgcolor key, so every listing in the house style fails
+    # to compile there. The job runs in Ubuntu 26.04, which carries TeX Live
+    # 2025 like the machines the documents are built on.
     runs-on: ubuntu-latest
+    container: ubuntu:26.04
     timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-ubuntu-26.04-v1
+
+      # git goes in before the checkouts so they are real clones, which the
+      # submodule fetch below needs.
+      - name: Install git, TeX, poppler and rsvg-convert
+        run: |
+          rm -f /etc/apt/apt.conf.d/docker-clean
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            git ca-certificates python3 zip \
+            texlive-luatex texlive-latex-recommended texlive-latex-extra \
+            texlive-pictures lmodern poppler-utils librsvg2-bin fontconfig
+          git config --global --add safe.directory '*'
+
       # This repo and lesson-builder sit side by side, so voice-drift.sh
       # finds ../lesson-builder the way it does on a dev machine.
       - uses: actions/checkout@v4
@@ -36,22 +61,6 @@ jobs:
           else
             echo "::notice::diagram-maker could not be fetched, so the hsdiagram check will skip"
           fi
-
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: ~/apt-cache
-          key: apt-${{ runner.os }}-${{ hashFiles('pdf-material-builder/.github/workflows/check.yml') }}
-
-      - name: Install TeX, poppler and rsvg-convert
-        run: |
-          mkdir -p ~/apt-cache/partial
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends \
-            -o Dir::Cache::Archives="$HOME/apt-cache" \
-            texlive-luatex texlive-latex-recommended texlive-latex-extra \
-            texlive-pictures lmodern poppler-utils librsvg2-bin fontconfig
-          sudo chown -R "$USER" ~/apt-cache
 
       - name: Run tests/check.sh
         working-directory: pdf-material-builder

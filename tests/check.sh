@@ -222,8 +222,11 @@ selfcheck() {
   pass "selfcheck $name: flags the violation, passes the clean case"
 }
 
-selfcheck em-dash    a.md  'A sentence \u2014 broken.\n'        b.md  'A sentence -- fine.\n'
-selfcheck emoji      a.tex 'Ship it \U0001F680\n'              b.tex 'Ship it.\n'
+# The em-dash (U+2014) and the rocket (U+1F680) are written as their UTF-8
+# bytes, because printf's \u escapes depend on the locale, and in CI's
+# minimal container they came out as something the check did not flag.
+selfcheck em-dash    a.md  'A sentence \0342\0200\0224 broken.\n'  b.md  'A sentence -- fine.\n'
+selfcheck emoji      a.tex 'Ship it \0360\0237\0232\0200\n'        b.tex 'Ship it.\n'
 selfcheck lt-gt      a.tex '$a \\lt b$\n'                      b.tex '$a < b$ % \\lt in a comment is inert\n'
 selfcheck bare-big-o a.tex 'Runs in $O(n \\log n)$ time.\n'    b.tex 'Runs in $\\Ohof{n \\log n}$ time.\n'
 selfcheck picture-box a.tex '\\newtcolorbox{picture}{colback=paper}\n' \
