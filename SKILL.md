@@ -160,7 +160,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 
 **Content.** Every banned-optional topic absent or `\opt`-tagged; every math-heavy section re-derived by the verification agent; the reviewers the recipe calls for have all run and every critical and major finding is resolved; weak areas visibly deeper.
 
-**Hand-off.** No `_tmp_*` files, no helper scripts left behind, filenames canonical rather than temp jobnames, copyright line on every page in the kit's foot treatment (`\fancyfoot[L]{\hslabel{\textcopyright{} YYYY <Name>. All rights reserved.}}`), and the user told the page counts, the emphases and the follow-ups.
+**Hand-off.** No `_tmp_*` files, no helper scripts left behind, filenames canonical rather than temp jobnames, the copyright line on every page (`housestyle.sty` prints it; a document someone else owns, a member's included, names them with `\hscopyrightholder{<Name>}`, references/latex-house-style.md, "Copyright foot"), and the user told the page counts, the emphases and the follow-ups.
 
 ## Files
 

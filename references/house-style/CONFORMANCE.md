@@ -16,7 +16,7 @@ From `pitch.pdf`, built 22 September 2026 (LuaTeX 1.22, 5pp):
 | Seen | Rule | Now enforced by |
 |---|---|---|
 | Six statistics in one row, wrapped into a ragged grid with six-line captions | Four abreast, never five. Six measured figures are two rows or a data table. | `hsstatrow[n]` caps at four and raises a `\PackageError` on the fifth `\hsstat` |
-| Document slug printed in the running head *and* the foot of every page | The slug appears once. Head: slug left, section right. Foot: page number right. | `\fancyfoot[L]` is empty by default |
+| Document slug printed in the running head *and* the foot of every page | The slug appears once. Head: slug left, section right. Foot: copyright line left, page number right. | `\fancyfoot[L]` holds the copyright line, never the slug |
 | Every label set as separated capitals (`A U T O B O X`) | Labels read as words (v5: serif small caps at 5%, no mono) | `\labelfont` is Source Serif 4 with `Letters={SmallCaps,UppercaseSmallCaps}, LetterSpace=5.0` |
 | The sources page carrying the previous page's section name | The sources page is headed "Sources" | the `hssources` environment sets `\hsgsection{Sources}`, globally, so the value survives the list's group and reaches the output routine |
 | A URL hyphenated mid-word across a line break | URLs break at any character and are never hyphenated | `xurl` loaded; `\hsurl{...}` for source entries |

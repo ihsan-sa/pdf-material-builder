@@ -40,7 +40,8 @@ The tokens file (SKILL.md beside this script has the full list):
      "type":  {"body": [families], "heading": [families], "mono": [families],
                "heading-case": "none" | "uppercase"},
      "table": {"header-fill", "header-text", "rule", "stripe"},
-     "logo":  "logo.png"}                  relative to the tokens file
+     "logo":  "logo.png",                  relative to the tokens file
+     "copyright": {"holder": "..."}}       who the PDFs' copyright line names
 Every key is optional: one left out keeps the house value.
 
 Exit codes: 0 done, 1 nothing found / invalid tokens / no tokens for xlsx,
@@ -61,7 +62,7 @@ COLOR_KEYS = ('ink', 'ink-secondary', 'ink-muted', 'paper', 'fill',
               'code-fill', 'accent', 'rule')
 TABLE_KEYS = ('header-fill', 'header-text', 'rule', 'stripe')
 TYPE_LISTS = ('body', 'heading', 'mono')
-TOP_KEYS = ('name', 'color', 'type', 'table', 'logo')
+TOP_KEYS = ('name', 'color', 'type', 'table', 'logo', 'copyright')
 HEX = re.compile(r'^#[0-9A-Fa-f]{6}$')
 # A family name or logo path goes into LaTeX source as typed.
 TEX_UNSAFE = re.compile(r'[\\{}%#$&^~\n]')
@@ -136,6 +137,17 @@ def check(tokens):
     logo = tokens.get('logo')
     if logo is not None and not (isinstance(logo, str) and logo):
         probs.append('logo is not a file name')
+    c = tokens.get('copyright', {})
+    if not isinstance(c, dict):
+        probs.append('copyright is not an object')
+        c = {}
+    for k, v in c.items():
+        if k != 'holder':
+            probs.append(f'unknown copyright key {k!r}')
+        elif not (isinstance(v, str) and v.strip()):
+            probs.append('copyright.holder is not a name')
+        elif TEX_UNSAFE.search(v):
+            probs.append('copyright.holder has a TeX special character')
     return probs
 
 
@@ -400,6 +412,11 @@ def latex(tokens):
         # style leaves the head empty.
         o += ['\\fancypagestyle{hsfirst}{\\fancyhead{}\\renewcommand{\\headrule}{}%',
               f'  \\fancyhead[R]{{\\includegraphics[height=14pt]{{{tokens["logo"]}}}}}}}']
+    holder = tokens.get('copyright', {}).get('holder')
+    if holder:
+        # The foot's copyright line names the workspace's holder; a document's
+        # own \hscopyrightholder, set later in its preamble, still wins.
+        o.append(f'\\hscopyrightholder{{{holder.strip()}}}')
     o.append('\\makeatother')
     return '\n'.join(o) + '\n'
 
