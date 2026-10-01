@@ -91,13 +91,18 @@ Math, not look, so it is the same as it always was. All of it is in `assets/prea
 
 ## Copyright foot
 
-Every shipped PDF carries the copyright line in the kit's foot treatment, on every page:
+Every house-style PDF carries the copyright line at the left of the foot on every page, the first page and the title page included, because `housestyle.sty` prints it by default: `\textcopyright{} <year> Ihsan Salari. All rights reserved.`, in the running head's face, with the year the build's own. A document someone else owns names them in its preamble, and the year too when it should not be the build's:
 
 ```latex
-\fancyfoot[L]{\hslabel{\textcopyright{} 2026 <Name>. All rights reserved.}}
+\hscopyrightholder{<Name>}
+\hscopyrightyear{2025}
 ```
 
-The foot's left slot is empty by default, which is why the copyright line can have it: the slug prints in the running head, and printing it in both was a defect of the first build. The page number stays at the foot's right. The first page has no running head, per the spec, but keeps the foot.
+A workspace's design system can name the holder for every document built there (`"copyright": {"holder": "<Name>"}` in its token file, apply-design-system/SKILL.md); a document's own `\hscopyrightholder` still wins. A document that sets `\fancyfoot[L]{...}` itself replaces the line, so the line never prints twice.
+
+A member's document never takes the default holder. When `scripts/build.sh` can tell the build is a member's (`CC_MEMBER_SANDBOX=1`, `DOC_MEMBER` or `DOC_KIND=member` set, or `.cc/member-workspace` in the document's repo), the line prints only for a holder the design system or the document names; with none, the foot leaves it out and the build says so. It never takes a holder from a surname or anything else it guesses.
+
+The slug prints in the running head, never in the foot: printing it in both was a defect of the first build. The page number stays at the foot's right. The first page has no running head, per the spec, but keeps the foot.
 
 ## Document number
 

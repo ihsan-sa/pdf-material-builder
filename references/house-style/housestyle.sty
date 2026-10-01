@@ -227,9 +227,38 @@
 \renewcommand{\headrule}{\vskip 4pt\textcolor{rulegrey}{\rule{\headwidth}{0.5pt}}}
 \fancyhead[L]{\hsrunlabel{\@hsslug}}
 \fancyhead[R]{\hsrunlabel{\@hssection}}
-% The slug prints in the running head already. This slot stays empty unless a
-% document puts its copyright line here.
-\fancyfoot[L]{}
+% The foot's left slot carries the copyright line on every page, the first and
+% title page included: "(c) <year> <holder>. All rights reserved." (The slug
+% prints in the running head already, so it never goes here.) The holder is
+% Ihsan Salari and the year the build's own unless the preamble says otherwise:
+%   \hscopyrightholder{A Member}   names whoever owns this document
+%   \hscopyrightyear{2025}         a year other than the build's
+% A workspace's design system can name the holder too (apply-design-system,
+% "copyright": {"holder": ...}); a document's own \hscopyrightholder comes
+% after it and wins. A document that sets \fancyfoot[L]{...} itself replaces
+% the line, so it never prints twice.
+% A member's document never takes the default holder. scripts/build.sh
+% defines \hsmemberbuild ahead of the document when the build is a member's;
+% then, unless the theme or the document names a holder, the slot stays empty
+% and the log says so once ("names no copyright holder"), which build.sh
+% prints. It never guesses a holder.
+\newcommand{\hs@copyrightholder}{Ihsan Salari}
+\newcommand{\hs@copyrightyear}{\number\year}
+\newif\ifhs@holdernamed
+\newif\ifhs@noholder
+\newcommand{\hscopyrightholder}[1]{\def\hs@copyrightholder{#1}\hs@holdernamedtrue}
+\newcommand{\hscopyrightyear}[1]{\def\hs@copyrightyear{#1}}
+\newcommand{\hscopyright}{%
+  \ifdefined\hsmemberbuild\ifhs@holdernamed\else\hs@nocopyright\fi\fi
+  \ifhs@noholder\else\hsrunlabel{\textcopyright{} \hs@copyrightyear\
+    \hs@copyrightholder. All rights reserved.}\fi}
+\newcommand{\hs@nocopyright}{\ifhs@noholder\else
+  \global\hs@noholdertrue
+  \PackageWarningNoLine{housestyle}{A member's build names no copyright
+    holder,\MessageBreak so the foot prints no copyright line. Name one
+    with\MessageBreak \string\hscopyrightholder{...} or the design system's
+    "copyright"}\fi}
+\fancyfoot[L]{\hscopyright}
 \fancyfoot[R]{\hsrunlabel{\thepage}}
 % Spec: running head on every page but the first. The first page keeps the foot.
 \fancypagestyle{hsfirst}{\fancyhead{}\renewcommand{\headrule}{}}

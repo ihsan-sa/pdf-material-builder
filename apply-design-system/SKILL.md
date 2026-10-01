@@ -65,7 +65,8 @@ where fontconfig finds them; the token file does not change.
            "mono": ["Menlo", "monospace"], "heading-case": "uppercase"},
  "table": {"header-fill": "#1B1F24", "header-text": "#FFFFFF",
            "rule": "#1B1F24", "stripe": "#F3F5F7"},
- "logo": "design-logo.png"}
+ "logo": "design-logo.png",
+ "copyright": {"holder": "A Member"}}
 ```
 
 Every key is optional, and a key left out keeps the house value.
@@ -81,6 +82,7 @@ Every key is optional, and a key left out keeps the house value.
 | `type.heading-case: uppercase` | headings, title, labels, running head in capitals | title and header row in capitals |
 | `table.*` | | the header row, its rule, alternate-row stripe |
 | `logo` | right of the first page's head | |
+| `copyright.holder` | the holder the foot's copyright line names; a document's own `\hscopyrightholder` wins. A member's workspace sets it: a member's build prints no copyright line until something names the holder | |
 
 The page geometry, sizes and spacing stay the house style's in a PDF, so the
 measure, the page-break rules and every figure still fit. The TikZ kit's node

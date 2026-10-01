@@ -53,6 +53,13 @@
 # without DOC_TITLE exits 2 before compiling, and a filing cc-docs refuses
 # exits 1 with its reason. With DOC_PROJECT unset, or no cc-docs, nothing of
 # this runs: a draft builds exactly as before.
+#
+# A member's document: when CC_MEMBER_SANDBOX=1, DOC_MEMBER is set,
+# DOC_KIND=member, or the document's repo carries .cc/member-workspace,
+# build.sh defines \hsmemberbuild ahead of the document. The copyright line in
+# the foot then prints only for a holder the design system or the document
+# names (\hscopyrightholder); with none, the foot leaves it out and build.sh
+# says so on stderr. The exit is the same.
 set -euo pipefail
 
 [ $# -eq 1 ] || { echo "usage: $0 <file.tex>" >&2; exit 2; }
@@ -129,6 +136,26 @@ if command -v python3 >/dev/null; then
   fi
 fi
 
+# A member's build: inside a member's sandbox, filed as a member's, or in a
+# repo marked .cc/member-workspace (the marker sits in the main checkout, so a
+# worktree looks there too). housestyle.sty then prints the copyright line only
+# for a holder the theme or the document names.
+member_ws() {
+  local d="$PWD" common
+  while :; do
+    [ -f "$d/.cc/member-workspace" ] && return 0
+    [ -e "$d/.git" ] && break
+    [ "$d" = / ] && return 1
+    d="$(dirname "$d")"
+  done
+  common=$(git -C "$d" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
+  [ -f "$(dirname "$common")/.cc/member-workspace" ]
+}
+if [ "${CC_MEMBER_SANDBOX:-}" = 1 ] || [ -n "${DOC_MEMBER:-}" ] || [ "${DOC_KIND:-}" = member ] || member_ws; then
+  [ "$input" = "$name.tex" ] && input="\\input{$name.tex}"
+  input="\\def\\hsmemberbuild{}$input"
+fi
+
 for pass in 1 2 3; do
   lualatex -interaction=nonstopmode -halt-on-error -jobname="_tmp_$name" "$input" >/dev/null 2>&1 || true
   if grep -q '^!' "_tmp_$name.log" 2>/dev/null || [ ! -s "_tmp_$name.pdf" ]; then
@@ -139,7 +166,9 @@ for pass in 1 2 3; do
 done
 cp "_tmp_$name.pdf" "$name.pdf"
 over=$(grep -A1 '^Overfull \\hbox' "_tmp_$name.log" || true)
+noholder=$(grep -c "names no copyright" "_tmp_$name.log" || true)
 rm -f _tmp_"$name".*
+[ "$noholder" = 0 ] || echo "build.sh: $name.tex is a member's and names no copyright holder, so its foot has no copyright line; add \\hscopyrightholder{<the member's name>} to its preamble" >&2
 if [ -n "$over" ]; then
   echo "build.sh: $name.tex has overfull boxes; something is wider than the measure:" >&2
   printf '%s\n' "$over" >&2

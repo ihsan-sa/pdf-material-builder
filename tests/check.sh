@@ -106,7 +106,16 @@
 #      --min-fill 60 passes both. With \rbold, needspace's own \needspace and
 #      LaTeX's -300 and -51 preferred breaks, p.2 ends a third full and the
 #      check flags it sparse; a --min-fill outside 1 to 100 exits 2.
-#   6 to 13, 15, 16, 17's builds, 18 and 19 are SKIPPED, with the reason printed, when lualatex is absent;
+#  20  The copyright line. The preamble template with a title page, a Part
+#      page and a body page prints "(c) <this year> Ihsan Salari. All rights
+#      reserved." once on each; \hscopyrightholder and \hscopyrightyear name
+#      another; a document's own \fancyfoot[L] prints only its own line. A
+#      member's build (DOC_KIND=member, or a worktree of a repo whose main
+#      checkout holds .cc/member-workspace) with no holder prints no line and
+#      warns; in a member's sandbox the design system's "copyright.holder"
+#      prints, and a document's own holder wins over it. ds.py check refuses a
+#      holder with a TeX special and an unknown copyright key.
+#   6 to 13, 15, 16, 17's builds, 18, 19 and 20 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -1298,6 +1307,79 @@ PYEOF
     fail "sparse pages: ${bad#; }"; head -8 "$R/rb.out" | sed 's/^/  /'
   else
     pass "sparse pages: no page ends nearly empty before a section, ragged or flush; the old needspace's empty p.2 is flagged"
+  fi
+fi
+
+# --- 20. every house-style foot carries the copyright line ---------------------
+# Each fixture is the preamble template, a title page, a Part page and a body
+# page, so the line is checked on all three page styles.
+if ! command -v lualatex >/dev/null || ! command -v pdftotext >/dev/null || ! command -v git >/dev/null; then
+  skip "copyright foot" "no lualatex, pdftotext or git on this machine"
+else
+  C="$TMPROOT/copyright"; mkdir -p "$C"
+  # cmk <dir> <preamble line>: a fresh fixture in <dir>.
+  cmk() {
+    mkdir -p "$1"; cp "$REPO/assets/preamble-template.tex" "$1/"
+    printf '%s\n' '\input{preamble-template}' "$2" '\begin{document}' \
+      '\begin{titlepage}\thispagestyle{hstitlepage}Title page.\end{titlepage}' \
+      '\part{A part}' 'Part page.' '\newpage' 'Body page.' '\end{document}' > "$1/doc.tex"
+  }
+  # cbuild <dir> [VAR=value...]: build it outside any member's context but the one given.
+  cbuild() { local d="$1"; shift
+    env -u CC_MEMBER_SANDBOX -u DOC_MEMBER -u DOC_KIND -u DOC_PROJECT -u DESIGN_TOKENS \
+      -u SOURCE_DATE_EPOCH -u FORCE_SOURCE_DATE "$@" "$REPO/scripts/build.sh" "$d/doc.tex" > "$d.out" 2>&1; }
+  # cfoot <dir> <ERE>: every one of the three pages carries exactly one
+  # copyright sign, on a line matching <ERE>.
+  cfoot() { local i
+    for i in 1 2 3; do
+      [ "$(pdftotext -f $i -l $i "$1/doc.pdf" - | grep -c "$cs")" = 1 ] || return 1
+      pdftotext -layout -f $i -l $i "$1/doc.pdf" - | tr -s ' ' | grepq -E "$2" || return 1
+    done; }
+  cnone() { ! pdftotext "$1/doc.pdf" - | grepq "$cs"; }
+  year=$(date +%Y)
+  cs=$(printf '\302\251')  # the copyright sign, spelled out so the style check passes this file
+
+  cmk "$C/def" ''
+  cmk "$C/named" '\hscopyrightholder{A Member}\hscopyrightyear{2025}'
+  cmk "$C/own" '\fancyfoot[L]{\hsrunlabel{\textcopyright{} 2026 Copyright Holder}}'
+  cmk "$C/memkind" ''
+  # A member's repo: the marker sits in the main checkout, untracked, and the
+  # document is built in a worktree of it, where the marker is not.
+  git init -q "$C/mrepo" && git -C "$C/mrepo" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init \
+    && git -C "$C/mrepo" worktree add -q "$C/mwt" 2>/dev/null
+  mkdir -p "$C/mrepo/.cc"; : > "$C/mrepo/.cc/member-workspace"
+  cmk "$C/mwt/doc" ''
+  # A member's workspace whose design system names the holder; a document
+  # there that names its own holder overrides it.
+  mkdir -p "$C/trepo/.git" "$C/trepo/.cc"
+  printf '{"copyright": {"holder": "A Member"}}\n' > "$C/trepo/.cc/design-tokens.json"
+  cmk "$C/trepo/theme" ''
+  cmk "$C/trepo/over" '\hscopyrightholder{Another Member}'
+
+  for d in def named own; do cbuild "$C/$d" & done
+  cbuild "$C/memkind" DOC_KIND=member &
+  cbuild "$C/mwt/doc" &
+  cbuild "$C/trepo/theme" CC_MEMBER_SANDBOX=1 &
+  cbuild "$C/trepo/over" CC_MEMBER_SANDBOX=1
+  wait
+  bad=""
+  cfoot "$C/def" "^$cs $year IHSAN SALARI\. ALL RIGHTS RESERVED\." || bad="$bad; the default build has no '(c) $year Ihsan Salari' line on every page"
+  cfoot "$C/named" "^$cs 2025 A MEMBER\. ALL RIGHTS RESERVED\." || bad="$bad; \\hscopyrightholder and \\hscopyrightyear did not name the line"
+  cfoot "$C/own" "^$cs 2026 COPYRIGHT HOLDER( [0-9])?$" || bad="$bad; a document's own \\fancyfoot[L] did not print exactly its one line"
+  for d in memkind mwt/doc; do
+    cnone "$C/$d" || bad="$bad; the member build in $d printed a copyright line with no holder named"
+    grepq 'names no copyright holder' "$C/$d.out" || bad="$bad; the member build in $d did not warn"
+  done
+  cfoot "$C/trepo/theme" "^$cs $year A MEMBER\. ALL RIGHTS RESERVED\." || bad="$bad; the design system's holder did not print in a member's build"
+  cfoot "$C/trepo/over" "^$cs $year ANOTHER MEMBER\. ALL RIGHTS RESERVED\." || bad="$bad; a document's own holder did not win over the design system's"
+  for d in def named own trepo/theme; do grepq 'names no copyright' "$C/$d.out" && bad="$bad; $d warned of a missing holder"; done
+  printf '{"copyright": {"holder": "A \\\\relax"}}\n' > "$C/badh.json"
+  printf '{"copyright": {"owner": "A"}}\n' > "$C/badk.json"
+  for f in badh badk; do python3 "$REPO/apply-design-system/ds.py" check "$C/$f.json" >/dev/null 2>&1 && bad="$bad; ds.py check passed $f.json"; done
+  if [ -n "$bad" ]; then
+    fail "copyright foot: ${bad#; }"; head -4 "$C/def.out" | sed 's/^/  /'
+  else
+    pass "copyright foot: on every page by default; a holder the document or the design system names; a member's build without one prints none and warns"
   fi
 fi
 
