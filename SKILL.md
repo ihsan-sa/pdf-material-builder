@@ -182,7 +182,7 @@ A companion lands inside its lesson instead: `<COURSE>/claude_lessons/<slug>/<co
 - `scripts/build.sh` -- the build: renders `figures/*.json` through diagram-maker, then three lualatex passes, temp jobname, fails on any `!` error and on an Overfull `\hbox`. With `DOC_PROJECT` and `DOC_TITLE` set it numbers the document and files it in the register (`cc-docs`).
 - `scripts/sync-diagram-maker.sh` -- brings `diagram-maker/` to its latest main; a quiet no-op offline or in a vendored copy. `build.sh` calls it.
 - `install.sh` -- fast-forwards the installed skill at `~/.claude/skills/pdf-material-builder` to main and updates its diagram-maker; the landing runs it after every merge.
-- `scripts/page-break-check.sh` -- warns, with page numbers, on a widow at a page top, a heading or listing caption at a page foot, and a listing split with one line on a side; `--strict` exits 1 on any. `build.sh` runs it after a clean build.
+- `scripts/page-break-check.sh` -- warns, with page numbers, on a widow at a page top, a heading or listing caption at a page foot, and a listing split with one line on a side; `--min-fill <pct>` also flags a page, the last aside, whose text stops above that share of the text block; `--strict` exits 1 on any. `build.sh` runs it, without `--min-fill`, after a clean build.
 - `scripts/style-check.sh` -- the style gate.
 - `scripts/voice-drift.sh` -- reports drift of the vendored voice spec from lesson-builder; `--refresh` updates it.
 - `tests/check.sh` -- this repo's gate.

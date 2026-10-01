@@ -281,10 +281,28 @@
 % needs room for its heading and three lines, a subsection for its heading and
 % two, or it starts the next page. Titlesec already glues a heading to the
 % first line after it; this stops it standing over one or two lines at a foot.
-% A heading set straight under another one skips the check: needspace leaves a
-% legal break behind it, which would strand the heading above at the foot.
+% A heading set straight under another one skips the check: a break before it
+% would strand the heading above at the foot.
+% The check measures the room left on the page and starts a new page only when
+% it is short. The package's \needspace instead offered a break with its own
+% stretch of the room asked for, taken back straight after it. With the
+% penalties above, a house page has almost no stretch, so every other break on
+% a page that is not exactly full costs TeX the same flat worst price, while
+% that one break looked cheap up to about 4.6 times the room asked for: TeX
+% ended the page before a section with up to three quarters of it empty,
+% with \raggedbottom or \flushbottom alike. No break here is preferred either:
+% LaTeX's -300 before a section and -51 around a list item are 0, so the
+% fullest page wins.
 \RequirePackage{needspace}
 \RequirePackage{etoolbox}
+\renewcommand{\needspace}[1]{\ifhmode\ifinner\@LRmoderr\else\par\fi\fi
+  \begingroup\setlength\dimen@{#1}%
+  \dimen@ii\pagegoal\advance\dimen@ii-\pagetotal
+  \ifdim\dimen@>\dimen@ii\ifdim\dimen@ii>\z@\newpage\fi\fi\endgroup}
+\@secpenalty=\z@
+\@beginparpenalty=\z@
+\@endparpenalty=\z@
+\@itempenalty=\z@
 \newcommand{\hs@headroom}[1]{\if@nobreak\else\needspace{#1\baselineskip}\fi}
 \pretocmd{\section}{\hs@headroom{7}}{}%
   {\PackageWarning{housestyle}{could not patch \string\section; its heading may sit at a page foot}}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # page-break-check.sh -- report bad page breaks in a built house-style PDF.
 #
-#   scripts/page-break-check.sh [--strict] [--tex <file.tex>] <file.pdf>
+#   scripts/page-break-check.sh [--strict] [--tex <file.tex>] [--min-fill <pct>] <file.pdf>
 #
 # Reads each page's body with pdftotext -layout, cropped to the text block so
 # the running head and the foot are left out, and warns, with page numbers:
@@ -11,7 +11,11 @@
 #   heading  a page ends with a heading (a \part, \section, \subsection or
 #            \subsubsection title in the source) or with a listing caption;
 #   listing  a listing breaks across pages with fewer than two of its lines on
-#            one side of the break.
+#            one side of the break;
+#   sparse   only with --min-fill: a page, the last one aside, whose text stops
+#            above <pct> per cent of the way down the text block. A page that
+#            ends early on purpose (a title page, one before a \newpage) is
+#            flagged too, so this is for a document with none, or for a test.
 # The source is <file>.tex beside the PDF unless --tex names it; the files it
 # \input{}s or \include{}s are read too. With no source the heading rule knows
 # only "Listing N" captions and the listing rule does not run.
@@ -21,27 +25,30 @@
 # anything. Exit 2 on a usage error or when pdftotext or pdfinfo is missing.
 set -euo pipefail
 
-strict=0; tex=""
+usage() { echo "usage: $0 [--strict] [--tex file.tex] [--min-fill pct] <file.pdf>" >&2; exit 2; }
+strict=0; tex=""; minfill=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --strict) strict=1; shift ;;
-    --tex) [ $# -ge 2 ] || { echo "usage: $0 [--strict] [--tex file.tex] <file.pdf>" >&2; exit 2; }
-           tex="$2"; shift 2 ;;
-    -*) echo "usage: $0 [--strict] [--tex file.tex] <file.pdf>" >&2; exit 2 ;;
+    --tex) [ $# -ge 2 ] || usage; tex="$2"; shift 2 ;;
+    --min-fill) [ $# -ge 2 ] || usage
+                [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 100 ] || usage
+                minfill="$2"; shift 2 ;;
+    -*) usage ;;
     *) break ;;
   esac
 done
-[ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: $0 [--strict] [--tex file.tex] <file.pdf>" >&2; exit 2; }
+[ $# -eq 1 ] && [ -f "$1" ] || usage
 for t in pdftotext pdfinfo python3; do
   command -v "$t" >/dev/null || { echo "page-break-check: $t is not installed" >&2; exit 2; }
 done
 pdf="$1"
 [ -n "$tex" ] || tex="${pdf%.pdf}.tex"
 
-python3 - "$pdf" "$tex" "$strict" <<'PYEOF'
+python3 - "$pdf" "$tex" "$strict" "$minfill" <<'PYEOF'
 import os, re, subprocess, sys
 
-pdf, tex, strict = sys.argv[1], sys.argv[2], sys.argv[3] == '1'
+pdf, tex, strict, minfill = sys.argv[1], sys.argv[2], sys.argv[3] == '1', int(sys.argv[4])
 
 # The text block of housestyle.sty: top=92pt, bottom=70pt. Crop a little
 # outside it so the first and last lines' ascenders and descenders are in.
@@ -162,6 +169,23 @@ for caption, code in listings:
             label = detex(caption).strip() if caption else 'a listing'
             warn(split[0] if head < 2 else split[-1], 'listing',
                  f'{label}: {head} line(s) on p.{split[0]}, {tail} on p.{split[-1]}')
+
+# ---- sparse: a page whose text stops well above the foot ---------------------
+# The fill is how far down the text block the lowest word on the page reaches;
+# the block is TOP_BLOCK pt from the top to BOTTOM_BLOCK pt from the bottom.
+if minfill:
+    TOP_BLOCK, BOTTOM_BLOCK = 92, 70
+    bbox = subprocess.run(['pdftotext', '-bbox', pdf, '-'],
+                          capture_output=True, text=True, check=True).stdout
+    for p, m in enumerate(re.finditer(r'<page width="[\d.]+" height="([\d.]+)">(.*?)</page>', bbox, re.S), 1):
+        if p == max(pages):
+            break
+        h = float(m.group(1))
+        low = [float(b) for t, b in re.findall(r'yMin="([\d.]+)" xMax="[\d.]+" yMax="([\d.]+)"', m.group(2))
+               if float(t) >= TOP and float(b) <= h - BOTTOM]
+        fill = round(100 * (max(low, default=TOP_BLOCK) - TOP_BLOCK) / (h - TOP_BLOCK - BOTTOM_BLOCK))
+        if fill < minfill:
+            warn(p, 'sparse', f'the text stops {fill}% of the way down the page')
 
 for page, kind, text in sorted(found):
     print(f'page-break-check: p.{page}: {kind}: {text}')

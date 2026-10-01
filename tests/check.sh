@@ -71,12 +71,13 @@
 #      without DOC_TITLE exits 2 and calls nothing.
 #  16  Page breaks. A fixture builds with the style and with \pbcold, which puts
 #      back what the style did before (150 widow and club penalties, a caption
-#      the code could break from, fvextra's breakable overlap glue) or might
-#      have done (a subsection's room check run straight under a section
-#      heading) and strands a heading at a page foot. The styled build has no
-#      widow, moves a five-line listing whole onto the next page with its
-#      caption, moves a section 420pt down a page onto p.6 with the subsection
-#      under it, and page-break-check.sh --strict passes it. The old build
+#      the code could break from, fvextra's breakable overlap glue, needspace's
+#      own \needspace) or might have done (a subsection's room check run
+#      straight under a section heading) and strands a heading at a page foot.
+#      The styled build has no widow, moves a five-line listing whole onto the
+#      next page with its caption, keeps a section 420pt down p.5, where seven
+#      lines fit, moves one 470pt down p.7 onto p.8 with the subsection under
+#      it, and page-break-check.sh --strict passes it. The old build
 #      still exits 0 but build.sh reports the widow on p.2, the one-line listing
 #      split on p.3, the heading on p.5 and the section left alone at the foot
 #      of p.7; the check exits 0 on it, 1 under --strict, and 2 on a missing
@@ -99,7 +100,13 @@
 #      order, to its own anchor (part.1, section.1, subsection.1.1, section.2),
 #      and each link's rect is at least 80% of the 432 pt Letter text width --
 #      not just the title words, which is what housestyle.sty did before.
-#   6 to 13, 15, 16, 17's builds and 18 are SKIPPED, with the reason printed, when lualatex is absent;
+#  19  A page never ends nearly empty before a section. A fixture whose
+#      first section runs onto p.2 and whose second overflows it builds with
+#      \raggedbottom and with \flushbottom, and page-break-check.sh --strict
+#      --min-fill 60 passes both. With \rbold, needspace's own \needspace and
+#      LaTeX's -300 and -51 preferred breaks, p.2 ends a third full and the
+#      check flags it sparse; a --min-fill outside 1 to 100 exits 2.
+#   6 to 13, 15, 16, 17's builds, 18 and 19 are SKIPPED, with the reason printed, when lualatex is absent;
 #   8's and 9's font checks are skipped the same way when pdffonts is absent.
 #
 # Exit: 0 all pass (skips are not failures), 1 any failure.
@@ -965,13 +972,18 @@ lorem = ("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmo
          "esse cillum dolore.")
 # \pbcold puts back what the style did before: LaTeX's 150 widow and club
 # penalties, a caption the code could break away from, fvextra's breakable
-# overlap glue, no short-listing rule, a subsection's room check that runs
-# straight under a section heading; and it strands a heading at a foot.
+# overlap glue, no short-listing rule, needspace's own \needspace, a
+# subsection's room check that runs straight under a section heading; and it
+# strands a heading at a foot.
 doc = r"""\input{preamble-template}
 \makeatletter\ifdefined\pbcold
   \widowpenalty=150 \clubpenalty=150 \@clubpenalty=150 \def\hs@lstshort{0}
   \renewcommand{\hslisting}[1]{\par\vspace{24pt}{\hsfull\hslabel{#1}\par}\vspace{8pt}}
   \def\FV@bgcoloroverlap{\vspace{-\FV@backgroundcolorboxoverlap}}
+  \@secpenalty=-300 \@beginparpenalty=-51 \@endparpenalty=-51 \@itempenalty=-51
+  \renewcommand{\needspace}[1]{\par\begingroup\@tempskipb\lastskip\vskip-\@tempskipb
+    \setlength\dimen@{#1}\advance\dimen@\@tempskipb\vskip\z@\@plus\dimen@\penalty-100
+    \vskip\z@\@plus-\dimen@\vskip\dimen@\penalty9999\vskip-\dimen@\vskip\@tempskipb\endgroup}
   \pretocmd{\subsection}{\needspace{5\baselineskip}}{}{}
 \fi\makeatother
 \begin{document}
@@ -1006,6 +1018,14 @@ Filler line.
 """ + lorem + r"""
 
 """ + lorem + r"""
+\newpage
+\section{Short}
+Text.\par\vspace*{470pt}
+Filler line.
+
+\section{Moved}
+\subsection{Under it}
+""" + lorem + r"""
 \end{document}
 """
 open(f"{d}/breaks.tex", "w").write(doc)
@@ -1021,12 +1041,14 @@ PYEOF
   "$chk" --strict "$P/breaks.pdf" >/dev/null || bad="$bad; --strict failed the fixed build"
   pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grepq 'alpha line one' \
     && pdftotext -f 4 -l 4 "$P/breaks.pdf" - | grepq -i 'listing 1' || bad="$bad; the short listing and its caption are not together on page 4"
-  pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grepq '^Results' \
-    && pdftotext -f 6 -l 6 "$P/breaks.pdf" - | grepq '^Setup' || bad="$bad; the section and the subsection under it are not together on page 6"
+  pdftotext -f 5 -l 5 "$P/breaks.pdf" - | grepq '^Results' \
+    && pdftotext -f 5 -l 5 "$P/breaks.pdf" - | grepq '^Setup' || bad="$bad; the section with room for seven lines left page 5"
+  pdftotext -f 8 -l 8 "$P/breaks.pdf" - | grepq '^Moved' \
+    && pdftotext -f 8 -l 8 "$P/breaks.pdf" - | grepq '^Under it' || bad="$bad; the section short of room and the subsection under it are not together on page 8"
   if [ -n "$bad" ]; then
     fail "page breaks: the style: ${bad#; }"; printf '%s\n' "$new" | head -8 | sed 's/^/  /'
   else
-    pass "page breaks: no widow, a short listing moves whole with its caption, a section moves with the subsection under it, the check stays quiet"
+    pass "page breaks: no widow, a short listing moves whole with its caption, a section stays where seven lines fit and moves with its subsection where they do not, the check stays quiet"
   fi
   bad=""
   [ "$oldrc" -eq 0 ] || bad="$bad; build.sh exited $oldrc on bad breaks, but they only warn"
@@ -1216,6 +1238,66 @@ PYEOF
     else
       pass "contents links: part, section and subsection entries are each one GoTo link spanning the line"
     fi
+  fi
+fi
+
+# --- 19. a page never ends nearly empty before a section ----------------------
+# needspace's \needspace offered a break with its own stretch, taken back
+# right after it, so a page with little stretch of its own ended before a
+# section with most of it empty. \rbold puts that \needspace and LaTeX's
+# preferred section and list breaks back. The styled build, ragged and flush,
+# passes page-break-check.sh --strict --min-fill 60; the old one is flagged
+# sparse on p.2; a --min-fill that is not 1 to 100 exits 2.
+if ! command -v lualatex >/dev/null || ! command -v pdftotext >/dev/null || ! command -v pdfinfo >/dev/null; then
+  skip "sparse pages" "no lualatex, pdftotext or pdfinfo on this machine"
+else
+  R="$TMPROOT/sparse"; mkdir -p "$R"
+  cp "$REPO/assets/preamble-template.tex" "$R/"
+  python3 - "$R" <<'PYEOF'
+import sys
+d = sys.argv[1]
+lorem = ("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut "
+         "labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "
+         "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit "
+         "esse cillum dolore.")
+item = r"\item " + lorem[:150]
+# The first section runs eleven lines onto p.2, and the next one overflows it.
+doc = r"""\input{preamble-template}
+\makeatletter\ifdefined\rbflush\flushbottom\else\raggedbottom\fi
+\ifdefined\rbold
+  \@secpenalty=-300 \@beginparpenalty=-51 \@endparpenalty=-51 \@itempenalty=-51
+  \renewcommand{\needspace}[1]{\par\begingroup\@tempskipb\lastskip\vskip-\@tempskipb
+    \setlength\dimen@{#1}\advance\dimen@\@tempskipb\vskip\z@\@plus\dimen@\penalty-100
+    \vskip\z@\@plus-\dimen@\vskip\dimen@\penalty9999\vskip-\dimen@\vskip\@tempskipb\endgroup}
+\fi\makeatother
+\begin{document}
+\section{Spill}
+""" + "\n\n".join([lorem] * 11) + r"""
+\section{Long}
+""" + "\n\n".join([lorem] * 12) + r"""
+\begin{itemize}""" + item * 6 + r"""\end{itemize}
+""" + "\n\n".join([lorem] * 10) + "\n\\end{document}\n"
+open(f"{d}/rb.tex", "w").write(doc)
+open(f"{d}/fb.tex", "w").write("\\def\\rbflush{}\\input{rb}\n")
+open(f"{d}/rbold.tex", "w").write("\\def\\rbold{}\\input{rb}\n")
+PYEOF
+  for f in fb rbold; do "$REPO/scripts/build.sh" "$R/$f.tex" > "$R/$f.out" 2>&1 & done
+  "$REPO/scripts/build.sh" "$R/rb.tex" > "$R/rb.out" 2>&1; rbrc=$?
+  wait
+  chk="$REPO/scripts/page-break-check.sh"
+  bad=""
+  [ "$rbrc" -eq 0 ] && [ -s "$R/fb.pdf" ] || bad="$bad; a styled build failed"
+  for f in rb fb; do
+    out=$("$chk" --strict --min-fill 60 "$R/$f.pdf" 2>&1) || bad="$bad; $f.pdf: $(printf '%s' "$out" | head -1)"
+  done
+  out=$("$chk" --strict --min-fill 60 "$R/rbold.pdf" 2>&1)
+  [ $? -eq 1 ] && printf '%s\n' "$out" | grepq 'p\.2: sparse' || bad="$bad; the old build's empty p.2 was not flagged sparse"
+  "$chk" --min-fill 0 "$R/rb.pdf" >/dev/null 2>&1; [ $? -eq 2 ] || bad="$bad; --min-fill 0 did not exit 2"
+  "$chk" --min-fill x "$R/rb.pdf" >/dev/null 2>&1; [ $? -eq 2 ] || bad="$bad; --min-fill x did not exit 2"
+  if [ -n "$bad" ]; then
+    fail "sparse pages: ${bad#; }"; head -8 "$R/rb.out" | sed 's/^/  /'
+  else
+    pass "sparse pages: no page ends nearly empty before a section, ragged or flush; the old needspace's empty p.2 is flagged"
   fi
 fi
 
