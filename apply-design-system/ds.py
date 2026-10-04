@@ -7,18 +7,27 @@ A workspace selects a design system by committing one file at its repo root:
 
 and everything generated inside that repo wears it. A repo without the file
 keeps the owner's house look: `find` prints nothing, and a generator that
-finds nothing does exactly what it did before. Standard library only.
+finds nothing does exactly what it did before. Standard library only, bar
+fontTools when an export ships its own font files.
 
     ds.py find [dir]                  print the tokens file that applies to dir
                                       (default: the current directory); exit 1
                                       and print nothing when none does
-    ds.py import <export> [-o out] [--logo file]
+    ds.py import [<export>] [-o out] [--logo file|name] [--voice file]...
                                       turn a Claude Design export (a folder
                                       whose tokens/*.css hold :root custom
                                       properties) into a tokens file, default
-                                      .cc/design-tokens.json; the logo is copied
-                                      beside it
+                                      .cc/design-tokens.json. Beside it go the
+                                      logo (an SVG converted to PDF), the
+                                      icons as design-icons.pdf, and the
+                                      @font-face files the type stacks name as
+                                      static OTF/TTF in design-fonts/. With no
+                                      <export> it re-imports the one the
+                                      tokens file's "source" names, keeping
+                                      its logo, voice guides and copyright
     ds.py check <tokens.json>         validate a tokens file
+    ds.py voice <tokens.json>         print the voice guides it names, one
+                                      absolute path a line
     ds.py latex <tokens.json>         print the LaTeX theme pdf-material-builder
                                       loads after housestyle.sty
     ds.py xlsx <data.csv> -o out.xlsx [--title T] [--tokens file] [--sheet S]
@@ -41,8 +50,20 @@ The tokens file (SKILL.md beside this script has the full list):
                "heading-case": "none" | "uppercase"},
      "table": {"header-fill", "header-text", "rule", "stripe"},
      "logo":  "logo.png",                  relative to the tokens file
-     "copyright": {"holder": "..."}}       who the PDFs' copyright line names
-Every key is optional: one left out keeps the house value.
+     "copyright": {"holder": "..."},       who the PDFs' copyright line names
+     "fonts": {family: {"regular", "bold", "italic", "bolditalic"}},
+                                           font files, loaded by path
+     "icons": {"file": "design-icons.pdf", "names": [...]},
+                                           page n of file is names[n-1]
+     "voice": ["guide.html", ...],         the writer follows these
+     "source": {"path": dir, "logo": file}}  what `import` re-reads
+Every key is optional: one left out keeps the house value. Every path is
+relative to the tokens file.
+
+SVGs become PDF through rsvg-convert, or headless Chrome when it is not
+installed; with neither the import keeps no logo or icons and says so. Font
+files need fontTools (and brotli for woff2); without it the families come by
+name, as before.
 
 Exit codes: 0 done, 1 nothing found / invalid tokens / no tokens for xlsx,
 2 usage or a missing file.
@@ -62,7 +83,10 @@ COLOR_KEYS = ('ink', 'ink-secondary', 'ink-muted', 'paper', 'fill',
               'code-fill', 'accent', 'rule')
 TABLE_KEYS = ('header-fill', 'header-text', 'rule', 'stripe')
 TYPE_LISTS = ('body', 'heading', 'mono')
-TOP_KEYS = ('name', 'color', 'type', 'table', 'logo', 'copyright')
+TOP_KEYS = ('name', 'color', 'type', 'table', 'logo', 'copyright', 'fonts',
+            'icons', 'voice', 'source')
+FACE_KEYS = ('regular', 'bold', 'italic', 'bolditalic')
+ICON_NAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]*$')
 HEX = re.compile(r'^#[0-9A-Fa-f]{6}$')
 # A family name or logo path goes into LaTeX source as typed.
 TEX_UNSAFE = re.compile(r'[\\{}%#$&^~\n]')
@@ -148,7 +172,45 @@ def check(tokens):
             probs.append('copyright.holder is not a name')
         elif TEX_UNSAFE.search(v):
             probs.append('copyright.holder has a TeX special character')
+    fonts = tokens.get('fonts', {})
+    if not isinstance(fonts, dict):
+        probs.append('fonts is not an object')
+        fonts = {}
+    for fam, faces in fonts.items():
+        if not (isinstance(faces, dict) and isinstance(faces.get('regular'), str)):
+            probs.append(f'fonts.{fam} has no "regular" file')
+            continue
+        for k, v in faces.items():
+            if k not in FACE_KEYS:
+                probs.append(f'unknown fonts.{fam} key {k!r} (known: {", ".join(FACE_KEYS)})')
+            elif not (isinstance(v, str) and v) or TEX_UNSAFE.search(v) or ' ' in v:
+                probs.append(f'fonts.{fam}.{k} is not a file name without spaces or TeX specials')
+    icons = tokens.get('icons')
+    if icons is not None:
+        if not (isinstance(icons, dict) and isinstance(icons.get('file'), str)
+                and isinstance(icons.get('names'), list)):
+            probs.append('icons is not {"file": ..., "names": [...]}')
+        elif not all(isinstance(n, str) and ICON_NAME.match(n) for n in icons['names']):
+            probs.append('icons.names holds a name that is not letters, digits and hyphens')
+    voice = tokens.get('voice', [])
+    if not (isinstance(voice, list) and all(isinstance(v, str) and v for v in voice)):
+        probs.append('voice is not a list of file names')
+    src = tokens.get('source')
+    if src is not None and not (isinstance(src, dict) and isinstance(src.get('path'), str)
+                                and all(k in ('path', 'logo') and isinstance(v, str)
+                                        for k, v in src.items())):
+        probs.append('source is not {"path": ..., "logo": ...}')
     return probs
+
+
+def _beside(path, rel, what):
+    """rel, a file the tokens file names, as an absolute path LaTeX can read."""
+    full = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(path)), rel))
+    if not os.path.isfile(full):
+        die(f'{path} names {what} {rel}, which is not there')
+    if TEX_UNSAFE.search(full) or ' ' in full:
+        die(f'the {what} path {full} has a space or a TeX special character')
+    return full
 
 
 def load(path):
@@ -162,14 +224,19 @@ def load(path):
     probs = check(tokens)
     if probs:
         die(f'{path} is not a valid tokens file:\n  ' + '\n  '.join(probs))
-    logo = tokens.get('logo')
-    if logo:
-        full = os.path.join(os.path.dirname(os.path.abspath(path)), logo)
-        if not os.path.isfile(full):
-            die(f'{path} names logo {logo}, which is not beside it')
-        if TEX_UNSAFE.search(full) or ' ' in full:
-            die(f'the logo path {full} has a space or a TeX special character')
-        tokens['logo'] = full
+    if tokens.get('logo'):
+        tokens['logo'] = _beside(path, tokens['logo'], 'logo')
+    for fam, faces in tokens.get('fonts', {}).items():
+        faces = {k: _beside(path, v, 'font') for k, v in faces.items()}
+        if len({os.path.dirname(v) for v in faces.values()}) != 1:
+            die(f'{path}: the files of fonts.{fam} are not all in one directory')
+        tokens['fonts'][fam] = faces
+    if tokens.get('icons'):
+        tokens['icons']['file'] = _beside(path, tokens['icons']['file'], 'icons')
+    # A voice guide is a pointer the writer reads, never set in type, so one
+    # that has moved is reported by `voice` and never stops a build.
+    tokens['voice'] = [os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(path)), v))
+                       for v in tokens.get('voice', [])]
     return tokens
 
 
@@ -247,31 +314,188 @@ def _families(value):
 
 # Which of the export's semantic roles fills which token. The first name that
 # the export defines wins; a token none of them fills keeps the house value.
+# Two naming schemes so far: --text-*/--surface-*/--border-* and the numbered
+# --fg-1/--bg-page/--border-1 of a Claude Design export like Bayesian
+# Squirrel's. A new export with other names gets a row here, not a special case.
 IMPORT_COLOR = {
-    'ink': ('--text-primary', '--color-text', '--ink'),
-    'ink-secondary': ('--text-secondary',),
-    'ink-muted': ('--text-muted',),
-    'paper': ('--surface-page', '--color-background', '--background'),
-    'fill': ('--surface-subtle',),
+    'ink': ('--text-primary', '--color-text', '--ink', '--fg-1'),
+    'ink-secondary': ('--text-secondary', '--fg-2'),
+    'ink-muted': ('--text-muted', '--fg-3'),
+    'paper': ('--surface-page', '--color-background', '--background', '--bg-page'),
+    'fill': ('--surface-subtle', '--surface-sunken'),
     'code-fill': ('--surface-sunken',),
-    'accent': ('--brand-accent', '--color-primary', '--primary', '--accent'),
-    'rule': ('--border-default', '--border'),
+    'accent': ('--brand-accent', '--color-primary', '--primary', '--accent',
+               '--fg-accent', '--action-accent'),
+    'rule': ('--border-default', '--border', '--border-1'),
 }
 IMPORT_TABLE = {
     'header-fill': ('--surface-sunken',),
-    'header-text': ('--text-primary',),
+    'header-text': ('--text-primary', '--fg-1'),
     'rule': ('--border-strong', '--border-default'),
     'stripe': ('--surface-subtle',),
 }
 IMPORT_TYPE = {
     'body': ('--type-body-family', '--font-sans', '--font-body'),
-    'heading': ('--type-heading-family', '--font-heading', '--font-sans'),
+    'heading': ('--type-heading-family', '--font-heading', '--font-display',
+                '--font-sans'),
     'mono': ('--type-data-family', '--font-mono'),
 }
+HOUSE_INK = '#15140F'  # housestyle.sty's ink, for icons when the system sets none
 
 
-def import_export(export, out, logo=None):
+def _font_faces(export):
+    """{family: [(italic, weight, file)]} from the export's @font-face rules."""
+    tokdir = os.path.join(export, 'tokens')
+    base = tokdir if os.path.isdir(tokdir) else export
+    faces = {}
+    for f in sorted(os.listdir(base)):
+        if not f.endswith('.css'):
+            continue
+        with open(os.path.join(base, f), encoding='utf-8') as fh:
+            css = re.sub(r'/\*.*?\*/', '', fh.read(), flags=re.S)
+        for m in re.finditer(r'@font-face\s*\{([^}]*)\}', css):
+            body = m.group(1)
+            fam = re.search(r'font-family\s*:\s*([^;]+)', body)
+            url = re.search(r'url\(\s*[\'"]?([^\'")]+\.(?:woff2|woff|ttf|otf))[\'"]?\s*\)', body, re.I)
+            if not (fam and url):
+                continue
+            w = re.search(r'font-weight\s*:\s*(\w+)', body)
+            w = {'normal': 400, 'bold': 700}.get(w.group(1), w.group(1)) if w else 400
+            italic = bool(re.search(r'font-style\s*:\s*(italic|oblique)', body))
+            path = os.path.normpath(os.path.join(base, url.group(1)))
+            if os.path.isfile(path) and str(w).isdigit():
+                faces.setdefault(fam.group(1).strip().strip('"\''), []).append(
+                    (italic, int(w), path))
+    return faces
+
+
+def _choose_faces(faces):
+    """{'regular': (weight, file), ...}: 400 upright and italic, and the
+    heaviest weight above it as bold, the one nearest 700."""
+    out = {}
+    for italic, reg, bold in ((False, 'regular', 'bold'), (True, 'italic', 'bolditalic')):
+        fs = sorted((w, p) for i, w, p in faces if i == italic)
+        if not fs:
+            continue
+        out[reg] = min(fs, key=lambda f: (abs(f[0] - 400), f[0]))
+        heavy = [f for f in fs if f[0] > out[reg][0]]
+        if heavy:
+            out[bold] = min(heavy, key=lambda f: abs(f[0] - 700))
+    return out if 'regular' in out else {}
+
+
+def _font_file(src, weight, dest_stem):
+    """Write src (woff2, woff, ttf or otf) as a static TrueType or OpenType
+    file fontspec loads by path; a variable font is cut at weight. Returns the
+    file name written."""
+    from fontTools.ttLib import TTFont
+    f = TTFont(src, recalcTimestamp=False)
+    if 'fvar' in f:
+        from fontTools.varLib import instancer
+        pins = {a.axisTag: (min(max(weight, a.minValue), a.maxValue)
+                            if a.axisTag == 'wght' else a.defaultValue)
+                for a in f['fvar'].axes}
+        f = instancer.instantiateVariableFont(f, pins)
+    f.flavor = None
+    out = dest_stem + ('.ttf' if 'glyf' in f else '.otf')
+    f.save(out)
+    return os.path.basename(out)
+
+
+def _chrome():
+    c = os.environ.get('CHROME')
+    if c:
+        return c
+    for n in ('google-chrome', 'chromium', 'chromium-browser'):
+        if shutil.which(n):
+            return n
+    import glob
+    found = sorted(glob.glob(os.path.expanduser(
+        '~/.cache/puppeteer/chrome/*/chrome-linux64/chrome')))
+    return found[-1] if found else None
+
+
+def _svg_size(svg):
+    tag = re.search(r'<svg\b[^>]*>', svg, re.S)
+    tag = tag.group(0) if tag else ''
+
+    def attr(n):
+        m = re.search(r'\s%s\s*=\s*"\s*([\d.]+)(?:px)?\s*"' % n, tag)
+        return float(m.group(1)) if m else None
+    w, h = attr('width'), attr('height')
+    if not (w and h):
+        vb = re.search(r'viewBox\s*=\s*"\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', tag)
+        if vb:
+            w, h = float(vb.group(1)), float(vb.group(2))
+    return (w or 24.0), (h or 24.0)
+
+
+def svgs_to_pdf(svgs, out, color=None):
+    """Write the SVG files as one PDF, a page each at its own size, for
+    \\includegraphics; currentColor is painted color when one is given.
+    rsvg-convert when installed, else headless Chrome (as diagram-maker's
+    export.sh does). False when the machine has neither."""
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        texts = []
+        for i, p in enumerate(svgs):
+            with open(p, encoding='utf-8') as f:
+                t = f.read()
+            if color:
+                t = t.replace('currentColor', color)
+            texts.append(t)
+        if shutil.which('rsvg-convert'):
+            files = []
+            for i, t in enumerate(texts):
+                files.append(os.path.join(tmp, f'{i}.svg'))
+                with open(files[-1], 'w', encoding='utf-8') as f:
+                    f.write(t)
+            subprocess.run(['rsvg-convert', '-f', 'pdf', '-o', out] + files, check=True)
+            return True
+        chrome = _chrome()
+        if not chrome:
+            return False
+        css, body = ['html,body{margin:0}'], []
+        for i, t in enumerate(texts):
+            w, h = _svg_size(t)
+            t = re.sub(r'<\?xml[^>]*\?>|<!DOCTYPE[^>]*>', '', t)
+            css.append(f'@page p{i}{{size:{w}px {h}px;margin:0}}'
+                       f'.p{i}{{page:p{i};width:{w}px;height:{h}px;overflow:hidden;break-after:page}}'
+                       f'.p{i}>svg{{display:block;width:{w}px;height:{h}px}}')
+            body.append(f'<div class="p{i}">{t}</div>')
+        html = os.path.join(tmp, 'page.html')
+        with open(html, 'w', encoding='utf-8') as f:
+            f.write('<!doctype html><meta charset="utf-8"><style>' + ''.join(css)
+                    + '</style>' + ''.join(body))
+        subprocess.run([chrome, '--headless=new', '--disable-gpu', '--no-sandbox',
+                        '--no-first-run', f'--user-data-dir={tmp}/profile',
+                        '--no-pdf-header-footer', f'--print-to-pdf={out}',
+                        'file://' + html], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=False)
+        if not (os.path.isfile(out) and os.path.getsize(out)):
+            die(f'{chrome} wrote no PDF for the SVGs')
+        return True
+
+
+def _rel(path, outdir):
+    return os.path.relpath(os.path.abspath(path), outdir)
+
+
+def import_export(export, out, logo=None, voice=()):
+    """Write the tokens file out from the export folder; returns the notes.
+    A tokens file already at out keeps its copyright and its voice guides, so
+    a re-import after the design changes loses nothing set by hand."""
     vars_ = _css_vars(export)
+    outdir = os.path.dirname(os.path.abspath(out))
+    os.makedirs(outdir, exist_ok=True)
+    old = {}
+    if os.path.isfile(out):
+        with open(out, encoding='utf-8') as f:
+            try:
+                old = json.load(f)
+            except ValueError:
+                old = {}
 
     def first(names, conv):
         for n in names:
@@ -280,7 +504,8 @@ def import_export(export, out, logo=None):
                 if v:
                     return v
         return None
-    tokens = {'name': os.path.basename(os.path.normpath(export))}
+    tokens = {'name': old.get('name') if isinstance(old.get('name'), str)
+              else os.path.basename(os.path.normpath(os.path.abspath(export)))}
     for group, table, conv in (('color', IMPORT_COLOR, _color),
                                ('table', IMPORT_TABLE, _color),
                                ('type', IMPORT_TYPE, _families)):
@@ -296,25 +521,126 @@ def import_export(export, out, logo=None):
         tokens.setdefault('type', {})['heading-case'] = 'uppercase'
 
     notes = []
+    # Fonts by file: a family the type stacks name and the export ships in an
+    # @font-face is written as static OTF/TTF beside the tokens file, which
+    # fontspec loads by path, so nothing is installed on the machine.
+    faces = _font_faces(export)
+    wanted = []
+    for k in TYPE_LISTS:
+        for fam in tokens.get('type', {}).get(k, []):
+            if fam in faces and fam not in wanted:
+                wanted.append(fam)
+    if wanted:
+        try:
+            import fontTools  # noqa: F401
+        except ImportError:
+            notes.append('fontTools is not installed, so ' + ', '.join(wanted)
+                         + ' still come by name (pip install fonttools brotli)')
+            wanted = []
+    fontdir = os.path.join(outdir, 'design-fonts')
+    if os.path.isdir(fontdir):
+        shutil.rmtree(fontdir)
+    for fam in wanted:
+        chosen = _choose_faces(faces[fam])
+        if not chosen:
+            notes.append(f'{fam} has no upright face in the export, so it comes by name')
+            continue
+        os.makedirs(fontdir, exist_ok=True)
+        slug = re.sub(r'[^a-z0-9]+', '-', fam.lower()).strip('-')
+        entry = {}
+        for role, (w, src) in chosen.items():
+            stem = os.path.join(fontdir, f'{slug}-{w}' + ('-italic' if 'italic' in role else ''))
+            entry[role] = 'design-fonts/' + _font_file(src, w, stem)
+        tokens.setdefault('fonts', {})[fam] = entry
+
+    # The logo: one named with --logo (a file, or a name in assets/logo/), the
+    # one a re-import remembers, or the only one the export has. An SVG is
+    # converted to PDF for LaTeX.
+    src = old.get('source', {}) if isinstance(old.get('source'), dict) else {}
     logodir = os.path.join(export, 'assets', 'logo')
+    if logo and not os.path.isfile(logo):
+        named = [os.path.join(logodir, logo + e) for e in ('', '.svg', '.pdf', '.png', '.jpg')]
+        named = [n for n in named if os.path.isfile(n)]
+        if not named:
+            die(f'--logo {logo} is not a file, nor a logo in {logodir}', 2)
+        logo = named[0]
+    if logo is None and src.get('logo'):
+        logo = os.path.join(outdir, src['logo'])
+        if not os.path.isfile(logo):
+            notes.append(f'the logo the last import took, {src["logo"]}, is gone; none taken')
+            logo = None
     if logo is None and os.path.isdir(logodir):
         cands = sorted(f for f in os.listdir(logodir)
-                       if f.lower().endswith(('.png', '.pdf', '.jpg')))
+                       if f.lower().endswith(('.png', '.pdf', '.jpg', '.svg')))
         if len(cands) == 1:
             logo = os.path.join(logodir, cands[0])
         elif cands:
             notes.append('several logos, none taken; name one with --logo: '
                          + ', '.join(cands))
-    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    for f in os.listdir(outdir):
+        if f.startswith('design-logo.'):
+            os.remove(os.path.join(outdir, f))
+    ink = tokens.get('color', {}).get('ink', HOUSE_INK)
     if logo:
-        if not os.path.isfile(logo):
-            die(f'--logo {logo} is not a file', 2)
-        name = 'design-logo' + os.path.splitext(logo)[1].lower()
-        shutil.copyfile(logo, os.path.join(os.path.dirname(os.path.abspath(out)), name))
-        tokens['logo'] = name
-    for key in COLOR_KEYS:
-        if key not in tokens.get('color', {}):
-            notes.append(f'color.{key} not in the export; the house value stays')
+        ext = os.path.splitext(logo)[1].lower()
+        if ext == '.svg':
+            if svgs_to_pdf([logo], os.path.join(outdir, 'design-logo.pdf'), ink):
+                tokens['logo'] = 'design-logo.pdf'
+            else:
+                notes.append('no SVG converter here (rsvg-convert or Chrome), so no logo')
+        else:
+            shutil.copyfile(logo, os.path.join(outdir, 'design-logo' + ext))
+            tokens['logo'] = 'design-logo' + ext
+
+    # Icons: every SVG in assets/icons/ as one page of design-icons.pdf, drawn
+    # in the system's ink; \dsicon{name} places one inline.
+    icondir = os.path.join(export, 'assets', 'icons')
+    icons = sorted(f for f in os.listdir(icondir)
+                   if f.lower().endswith('.svg')) if os.path.isdir(icondir) else []
+    icons = [f for f in icons if ICON_NAME.match(f[:-4])]
+    iconpdf = os.path.join(outdir, 'design-icons.pdf')
+    if os.path.isfile(iconpdf):
+        os.remove(iconpdf)
+    if icons:
+        if svgs_to_pdf([os.path.join(icondir, f) for f in icons], iconpdf, ink):
+            tokens['icons'] = {'file': 'design-icons.pdf', 'names': [f[:-4] for f in icons]}
+        else:
+            notes.append('no SVG converter here (rsvg-convert or Chrome), so no icons')
+
+    # The voice guide: a pointer the writer follows, never a copy of it.
+    guides = [os.path.join(outdir, v) for v in old.get('voice', []) if isinstance(v, str)]
+    gdir = os.path.join(export, 'guidelines')
+    if os.path.isdir(gdir):
+        guides += [os.path.join(gdir, f) for f in sorted(os.listdir(gdir))
+                   if 'voice' in f.lower() and f.lower().endswith(('.html', '.md', '.txt'))]
+    for v in voice:
+        if not os.path.isfile(v):
+            die(f'--voice {v} is not a file', 2)
+        guides.append(v)
+    rels = []
+    for g in guides:
+        r = _rel(g, outdir)
+        if os.path.isfile(g) and r not in rels:
+            rels.append(r)
+    if rels:
+        tokens['voice'] = rels
+
+    if isinstance(old.get('copyright'), dict):
+        tokens['copyright'] = old['copyright']
+    tokens['source'] = {'path': _rel(export, outdir)}
+    if logo:
+        tokens['source']['logo'] = _rel(logo, outdir)
+
+    for group, keys in (('color', COLOR_KEYS), ('table', TABLE_KEYS),
+                        ('type', TYPE_LISTS)):
+        missing = [k for k in keys if k not in tokens.get(group, {})]
+        if missing:
+            notes.append(f'not in the export, so the house value stays: '
+                         + ', '.join(f'{group}.{k}' for k in missing))
+    for k in TYPE_LISTS:
+        fams = tokens.get('type', {}).get(k, [])
+        if fams and not any(f in tokens.get('fonts', {}) for f in fams):
+            notes.append(f'type.{k} ({fams[0]}) comes by name: the export ships no file for it')
     probs = check(tokens)
     if probs:
         die('the import made an invalid tokens file:\n  ' + '\n  '.join(probs))
@@ -358,26 +684,44 @@ def latex(tokens):
         for f in fams:
             out += generic.get(f, [f])
         return out
+    files = tokens.get('fonts', {})
+
+    def face(macro, fams):
+        # A family the system ships as files is loaded by path, ahead of the
+        # stack's installed faces; otherwise the first installed one wins.
+        # Returns the lines that pick it, the font argument, the options every
+        # fontspec call adds, and the guard around those calls.
+        for f in fams:
+            if f in files:
+                ff = files[f]
+                opts = f'Path={os.path.dirname(ff["regular"])}/,'
+                for k, key in (('bold', 'BoldFont'), ('italic', 'ItalicFont'),
+                               ('bolditalic', 'BoldItalicFont')):
+                    if k in ff:
+                        opts += f'{key}={os.path.basename(ff[k])},'
+                return [], os.path.basename(ff['regular']), opts, '', ''
+        return ([_pick(macro, stack(fams))], macro, '', f'\\ifdefined{macro}', '\\fi')
     if 'body' in t:
-        o.append(_pick('\\ds@body', stack(t['body'])))
-        o += ['\\ifdefined\\ds@body',
-              '  \\setmainfont{\\ds@body}[Numbers={Proportional,Lining}]',
-              '  \\renewfontfamily\\labelfont{\\ds@body}[Letters=SmallCaps,LetterSpace=5.0]',
-              '  \\renewfontfamily\\hs@eyebrowfont{\\ds@body}[Letters=SmallCaps,LetterSpace=6.0]',
-              '  \\renewfontfamily\\hs@runfont{\\ds@body}[Letters=SmallCaps,LetterSpace=9.0]',
-              '  \\renewfontfamily\\hs@notefont{\\ds@body}[Ligatures=TeXOff]',
-              '  \\renewfontfamily\\hs@figfont{\\ds@body}[Numbers={Lining,Tabular}]',
-              '\\fi']
+        pick, fn, op, on, off = face('\\ds@body', t['body'])
+        o += pick + [on,
+                     f'  \\setmainfont{{{fn}}}[{op}Numbers={{Proportional,Lining}}]',
+                     f'  \\renewfontfamily\\labelfont{{{fn}}}[{op}Letters=SmallCaps,LetterSpace=5.0]',
+                     f'  \\renewfontfamily\\hs@eyebrowfont{{{fn}}}[{op}Letters=SmallCaps,LetterSpace=6.0]',
+                     f'  \\renewfontfamily\\hs@runfont{{{fn}}}[{op}Letters=SmallCaps,LetterSpace=9.0]',
+                     f'  \\renewfontfamily\\hs@notefont{{{fn}}}[{op}Ligatures=TeXOff]',
+                     f'  \\renewfontfamily\\hs@figfont{{{fn}}}[{op}Numbers={{Lining,Tabular}}]',
+                     off]
     if 'heading' in t:
-        o.append(_pick('\\ds@heading', stack(t['heading'])))
-        o += ['\\ifdefined\\ds@heading',
-              '  \\renewfontfamily\\hssubheadfont{\\ds@heading}[]',
-              '  \\renewfontfamily\\hsdisplayfont{\\ds@heading}[]',
-              '  \\renewfontfamily\\statfont{\\ds@heading}[Numbers={Lining,Tabular}]',
-              '\\fi']
+        pick, fn, op, on, off = face('\\ds@heading', t['heading'])
+        o += pick + [on,
+                     f'  \\renewfontfamily\\hssubheadfont{{{fn}}}[{op}]',
+                     f'  \\renewfontfamily\\hsdisplayfont{{{fn}}}[{op}]',
+                     f'  \\renewfontfamily\\statfont{{{fn}}}[{op}Numbers={{Lining,Tabular}}]',
+                     off]
     if 'mono' in t:
-        o.append(_pick('\\ds@mono', stack(t['mono'])))
-        o += ['\\ifdefined\\ds@mono \\setmonofont{\\ds@mono}[Scale=0.86]\\fi']
+        pick, fn, op, on, off = face('\\ds@mono', t['mono'])
+        o += pick + [f'{on} \\setmonofont{{{fn}}}[{op}Scale=0.86]{off}']
+    o = [line for line in o if line]
     if t.get('heading-case') == 'uppercase':
         # Headings, the title, labels and the running head print in capitals,
         # whatever case the source writes them in. The theme loads right after
@@ -412,6 +756,18 @@ def latex(tokens):
         # style leaves the head empty.
         o += ['\\fancypagestyle{hsfirst}{\\fancyhead{}\\renewcommand{\\headrule}{}%',
               f'  \\fancyhead[R]{{\\includegraphics[height=14pt]{{{tokens["logo"]}}}}}}}']
+    icons = tokens.get('icons')
+    if icons:
+        # \dsicon[height]{name}: one of the system's icons, inline, at the
+        # height of a capital unless a height is given; an unknown name stops
+        # the build and says so.
+        o += [f'\\@namedef{{ds@icon@{n}}}{{{i + 1}}}' for i, n in enumerate(icons['names'])]
+        o += ['\\NewDocumentCommand\\dsicon{O{0.75em}m}{%',
+              '  \\ifcsname ds@icon@#2\\endcsname',
+              '    \\raisebox{-0.1em}{\\includegraphics[height=#1,page=\\csname ds@icon@#2\\endcsname]'
+              f'{{{icons["file"]}}}}}%',
+              '  \\else\\PackageError{design system}{No icon named #2}{The icons are: '
+              + ', '.join(icons['names']) + '}\\fi}']
     holder = tokens.get('copyright', {}).get('holder')
     if holder:
         # The foot's copyright line names the workspace's holder; a document's
@@ -626,10 +982,26 @@ def main(argv):
         return 1
     if cmd == 'import':
         out, logo = _opt(args, '-o'), _opt(args, '--logo')
-        if len(args) != 1 or not os.path.isdir(args[0]):
-            die('usage: ds.py import <export-dir> [-o out] [--logo file]', 2)
-        out = out or TOKENS_REL
-        for n in import_export(args[0], out, logo):
+        voice = []
+        while '--voice' in args:
+            voice.append(_opt(args, '--voice'))
+        usage = 'usage: ds.py import [<export-dir>] [-o out] [--logo file] [--voice file]...'
+        if len(args) > 1:
+            die(usage, 2)
+        out = out or (find('.') if not args else None) or TOKENS_REL
+        if args:
+            export = args[0]
+        else:
+            # A re-import: the export is the one the tokens file came from.
+            try:
+                with open(out, encoding='utf-8') as f:
+                    src = json.load(f).get('source', {})
+                export = os.path.join(os.path.dirname(os.path.abspath(out)), src['path'])
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                die(f'{out} names no source export to re-import; give the export folder', 2)
+        if not os.path.isdir(export):
+            die(f'{export} is not a folder\n{usage}', 2)
+        for n in import_export(export, out, logo, voice):
             print(f'note: {n}', file=sys.stderr)
         print(f'wrote {out}')
         return 0
@@ -638,6 +1010,16 @@ def main(argv):
             die('usage: ds.py check <tokens.json>', 2)
         load(args[0])
         print(f'{args[0]}: ok')
+        return 0
+    if cmd == 'voice':
+        if len(args) != 1:
+            die('usage: ds.py voice <tokens.json>', 2)
+        for v in load(args[0])['voice']:
+            if os.path.isfile(v):
+                print(v)
+            else:
+                print(f'ds.py: {args[0]} names voice guide {v}, which is not there;'
+                      ' re-import to drop it', file=sys.stderr)
         return 0
     if cmd == 'latex':
         if len(args) != 1:

@@ -30,14 +30,15 @@ jobs:
 
       # git goes in before the checkouts so they are real clones, which the
       # submodule fetch below needs.
-      - name: Install git, TeX, poppler and rsvg-convert
+      - name: Install git, TeX, poppler, rsvg-convert and fontTools
         run: |
           rm -f /etc/apt/apt.conf.d/docker-clean
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends \
             git ca-certificates python3 zip \
             texlive-luatex texlive-latex-recommended texlive-latex-extra \
-            texlive-pictures lmodern poppler-utils librsvg2-bin fontconfig
+            texlive-pictures lmodern poppler-utils librsvg2-bin fontconfig \
+            python3-fonttools python3-brotli
           git config --global --add safe.directory '*'
 
       # This repo and lesson-builder sit side by side, so voice-drift.sh
