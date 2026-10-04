@@ -33,7 +33,9 @@
 # `apply-design-system/ds.py find` names a token file for the document's
 # directory (.cc/design-tokens.json at the repo root, or $DESIGN_TOKENS),
 # build.sh writes its LaTeX theme to _tmp_<name>.theme.tex and has lualatex
-# load it right after housestyle.sty, and prints "design system: <file>".
+# load it right after housestyle.sty, and prints "design system: <file>",
+# followed by the system's voice guides when its token file names any: the
+# writer follows those over references/voice.md where the two disagree.
 # With no token file, or no python3, the lualatex command is exactly what it
 # was before design systems existed, so the PDF is too.
 #
@@ -130,7 +132,8 @@ if command -v python3 >/dev/null; then
     python3 "$ds" latex "$tokens" > "_tmp_$name.theme.tex" || { echo "build.sh: the design system at $tokens could not be applied" >&2; exit 1; }
     [ "$input" = "$name.tex" ] && input="\\input{$name.tex}"
     input="\\AddToHook{package/housestyle/after}{\\input{_tmp_$name.theme.tex}}$input"
-    echo "design system: $tokens"
+    voice=$(python3 "$ds" voice "$tokens" | paste -sd ' ')
+    echo "design system: $tokens${voice:+; voice guide (wins over references/voice.md): $voice}"
   elif [ "$rc" -ne 1 ]; then
     exit 1
   fi

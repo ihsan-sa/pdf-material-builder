@@ -93,7 +93,17 @@
 #      `import` reads a fixture Claude Design export (var() chains, an oklch
 #      colour, a [data-brand] block it must ignore, one logo) into a valid
 #      token file. `xlsx` writes the same bytes twice, carries the header fill
-#      and the rows, and exits 1 where no design system applies.
+#      and the rows, and exits 1 where no design system applies. A second
+#      fixture export, named like Bayesian Squirrel's (--fg-1, --bg-page,
+#      --border-1), with a woff2 font of its own, two SVG logos, two SVG
+#      icons and a voice guide, imports with --logo naming one: every colour
+#      maps, the notes name table.stripe and the heading face that has no
+#      file, the font is a static OTF/TTF beside the token file, the logo and
+#      icons are PDFs, and a re-import with no arguments from a subdirectory
+#      picks up a changed colour and keeps the logo and a holder set by hand.
+#      Its build carries the renamed font, puts the logo's and an icon's own
+#      colours on page 1, and names the voice guide. Font parts skip without
+#      fontTools and brotli, SVG parts without rsvg-convert or Chrome.
 #  18  Contents entries are whole-line hidden links. A part, two sections and a
 #      subsection build with PDF compression off, so /Link /Rect values read
 #      straight out of the PDF. Every entry carries exactly one GoTo link, in
@@ -1144,6 +1154,100 @@ if not ok:
 PYEOF2
 [ -n "$bad" ] && fail "design system: import: ${bad#; }" || pass "design system: import reads a Claude Design export's :root tokens, resolves var() and oklch, ignores a [data-brand] block"
 
+# import, part two: an export shaped like Bayesian Squirrel's -- numbered
+# --fg-1/--bg-page names, its own font as woff2 in an @font-face, several SVG
+# logos of which one is named, an icon set, a voice guide -- then a re-import
+# from the source the token file remembers, and a build that wears all of it.
+EX2="$DS/repo2/design"; mkdir -p "$DS/repo2/.git" "$DS/repo2/sub" "$EX2/tokens" "$EX2/fonts" "$EX2/assets/logo" "$EX2/assets/icons" "$EX2/guidelines"
+cat > "$EX2/tokens/colors.css" <<'CSSEOF'
+:root{--navy-900:#0B1A30;--fg-1:var(--navy-900);--fg-2:#3D4A63;--fg-3:#646D82;--bg-page:#F5F0E4;
+--surface-sunken:#ECE5D4;--fg-accent:#A9611D;--border-1:#DDD3BD;--border-strong:var(--navy-900);}
+[data-theme="dark"]{--fg-1:#F5F0E4;}
+CSSEOF
+cat > "$EX2/tokens/fonts.css" <<'CSSEOF'
+@font-face{font-family:'Fixture Face';font-style:normal;font-weight:400;src:url('../fonts/fixture-400.woff2') format('woff2');}
+CSSEOF
+printf ":root{--font-sans:'Fixture Face',system-ui,sans-serif;--font-display:'Nowhere Serif',serif;}\n" > "$EX2/tokens/typography.css"
+# The logo and the icon paint colours no house element uses, so the rendered
+# page shows whether each was placed.
+printf '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><rect width="40" height="20" fill="#12AB34"/></svg>\n' > "$EX2/assets/logo/lockup-horizontal.svg"
+printf '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="#0000FF"/></svg>\n' > "$EX2/assets/logo/mark.svg"
+printf '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="#AB1290"/></svg>\n' > "$EX2/assets/icons/dot.svg"
+printf '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16"/></svg>\n' > "$EX2/assets/icons/line.svg"
+printf '<p>Write plainly.</p>\n' > "$EX2/guidelines/brand-voice.html"
+fontsok=0; python3 -c 'import fontTools.ttLib, brotli' 2>/dev/null && fontsok=1
+svgok=0; { command -v rsvg-convert || command -v google-chrome || command -v chromium || command -v chromium-browser; } >/dev/null 2>&1 && svgok=1
+if [ "$fontsok" = 1 ]; then
+  # A house font renamed, so the PDF can only name it if it came from this file.
+  python3 - "$REPO/assets/fonts/IBMPlexMono-Medium.otf" "$EX2/fonts/fixture-400.woff2" <<'PYEOF2'
+import sys
+from fontTools.ttLib import TTFont
+f = TTFont(sys.argv[1])
+for r in f['name'].names:
+    if r.nameID in (1, 4, 16):
+        r.string = 'Fixture Face'
+    elif r.nameID == 6:
+        r.string = 'FixtureFace-Regular'
+if 'CFF ' in f:
+    f['CFF '].cff.fontNames = ['FixtureFace-Regular']
+f.flavor = 'woff2'
+f.save(sys.argv[2])
+PYEOF2
+fi
+bad=""
+T2="$DS/repo2/.cc/design-tokens.json"
+notes=$(cd "$DS/repo2" && python3 "$DSPY" import design --logo lockup-horizontal 2>&1 >/dev/null) || bad="$bad; import exited non-zero: $notes"
+printf '%s\n' "$notes" | grepq 'table.stripe' || bad="$bad; the notes do not name table.stripe as kept from the house"
+printf '%s\n' "$notes" | grepq 'Nowhere Serif' || bad="$bad; the notes do not say the heading face comes by name"
+python3 - "$T2" "$fontsok" "$svgok" <<'PYEOF2' || bad="$bad; the imported values are wrong"
+import json, os, sys
+t = json.load(open(sys.argv[1])); d = os.path.dirname(sys.argv[1])
+fonts, svg = sys.argv[2] == '1', sys.argv[3] == '1'
+want = {'ink': '#0B1A30', 'ink-secondary': '#3D4A63', 'ink-muted': '#646D82',
+        'paper': '#F5F0E4', 'fill': '#ECE5D4', 'code-fill': '#ECE5D4',
+        'accent': '#A9611D', 'rule': '#DDD3BD'}
+ok = t['color'] == want and t['type']['heading'][0] == 'Nowhere Serif'
+ok = ok and t['voice'] == ['../design/guidelines/brand-voice.html']
+ok = ok and t['source'] == {'path': '../design', 'logo': '../design/assets/logo/lockup-horizontal.svg'}
+if fonts:
+    reg = t['fonts']['Fixture Face']['regular']
+    ok = ok and reg.endswith(('.otf', '.ttf')) and os.path.isfile(os.path.join(d, reg))
+if svg:
+    ok = ok and t['logo'] == 'design-logo.pdf' and os.path.isfile(os.path.join(d, 'design-logo.pdf'))
+    ok = ok and t['icons'] == {'file': 'design-icons.pdf', 'names': ['dot', 'line']}
+if not ok:
+    print('  imported:', json.dumps(t)); sys.exit(1)
+PYEOF2
+# A re-import is one command: no export, no --logo, and the holder set by hand stays.
+python3 - "$T2" <<'PYEOF2'
+import json, sys
+t = json.load(open(sys.argv[1])); t['copyright'] = {'holder': 'A Member'}
+json.dump(t, open(sys.argv[1], 'w'))
+PYEOF2
+sed -i 's/#3D4A63/#3D4A64/' "$EX2/tokens/colors.css"
+( cd "$DS/repo2/sub" && env -u DESIGN_TOKENS python3 "$DSPY" import >/dev/null 2>&1 ) || bad="$bad; the re-import with no arguments failed"
+python3 - "$T2" "$svgok" <<'PYEOF2' || bad="$bad; the re-import lost the logo or the holder, or missed the change"
+import json, sys
+t = json.load(open(sys.argv[1]))
+ok = t['color']['ink-secondary'] == '#3D4A64' and t['copyright'] == {'holder': 'A Member'}
+ok = ok and t['source']['logo'].endswith('lockup-horizontal.svg')
+ok = ok and (sys.argv[2] != '1' or t['logo'] == 'design-logo.pdf')
+sys.exit(0 if ok else 1)
+PYEOF2
+python3 "$DSPY" check "$T2" >/dev/null 2>&1 || bad="$bad; the imported file does not pass check"
+got=$(python3 "$DSPY" voice "$T2"); [ "$got" = "$EX2/guidelines/brand-voice.html" ] || bad="$bad; ds.py voice printed '$got'"
+if [ "$svgok" = 1 ]; then
+  python3 "$DSPY" latex "$T2" | grepq -F '\dsicon' || bad="$bad; the theme defines no \\dsicon"
+fi
+if [ "$fontsok" = 1 ]; then
+  python3 "$DSPY" latex "$T2" | grepq -F "\\setmainfont{fixture-face-400." || bad="$bad; the theme does not load the font by its file"
+fi
+sed 's#"design-fonts/[^"]*"#"design-fonts/none.otf"#' "$T2" > "$DS/repo2/.cc/bad.json"
+[ "$fontsok" = 1 ] && python3 "$DSPY" check "$DS/repo2/.cc/bad.json" >/dev/null 2>&1 && bad="$bad; check passed a font file that is not there"
+[ "$fontsok" = 1 ] || skip "design system: font by file" "python3 has no fontTools or brotli"
+[ "$svgok" = 1 ] || skip "design system: SVG logo and icons" "no rsvg-convert or Chrome here"
+[ -n "$bad" ] && fail "design system: import a full export: ${bad#; }" || pass "design system: import maps --fg-1 style names, converts a woff2 font, an SVG logo and icons, points at the voice guide, and re-imports from its source in one command"
+
 # xlsx
 printf 'Item,Count,Price\nA,3,4.50\nB & C,12,10\n' > "$DS/repo/sub/rows.csv"
 bad=""
@@ -1195,6 +1299,31 @@ else
     pdftotext -l 1 "$DS/themed/short-template.pdf" - | grepq -F '<DOCUMENT TITLE>' || bad="$bad; the themed title is not in capitals"
   fi
   [ -n "$bad" ] && fail "design system: builds: ${bad#; }" || pass "design system: no token file builds byte-identical to bare lualatex; a token file restyles the same source"
+
+  # The full export's build: its font from the file, its logo and an icon on
+  # the page, its voice guide named on the build's line.
+  bad=""
+  cp "$REPO/assets/short-template.tex" "$REPO/assets/preamble-template.tex" "$DS/repo2/sub/"
+  if [ "$svgok" = 1 ]; then
+    sed -i 's/\\begin{document}/\\begin{document}\\dsicon{dot} \\dsicon[1em]{line}/' "$DS/repo2/sub/short-template.tex"
+  fi
+  out2=$(env -u DESIGN_TOKENS "$REPO/scripts/build.sh" "$DS/repo2/sub/short-template.tex" 2>&1) || bad="$bad; the build failed: $out2"
+  printf '%s\n' "$out2" | grepq -F "design system: $T2; voice guide (wins over references/voice.md): $EX2/guidelines/brand-voice.html" || bad="$bad; the build's line does not name the voice guide"
+  if [ "$fontsok" = 1 ] && command -v pdffonts >/dev/null; then
+    pdffonts "$DS/repo2/sub/short-template.pdf" | grepq 'FixtureFace' || bad="$bad; the PDF does not carry the font from the export's file"
+  fi
+  if [ "$svgok" = 1 ] && command -v pdftoppm >/dev/null; then
+    pdftoppm -r 72 -f 1 -l 1 "$DS/repo2/sub/short-template.pdf" "$DS/repo2/sub/p1"
+    python3 - "$DS/repo2/sub/p1-1.ppm" <<'PYEOF2' || bad="$bad; the logo or the icon is not on page 1"
+import sys
+data = open(sys.argv[1], 'rb').read()
+head = data.split(b'\n', 3); px = head[3]
+seen = {(px[i], px[i + 1], px[i + 2]) for i in range(0, len(px) - 2, 3)}
+def near(c): return any(all(abs(a - b) <= 6 for a, b in zip(c, s)) for s in seen)
+sys.exit(0 if near((0x12, 0xAB, 0x34)) and near((0xAB, 0x12, 0x90)) else 1)
+PYEOF2
+  fi
+  [ -n "$bad" ] && fail "design system: a full export's build: ${bad#; }" || pass "design system: a full export builds with its own font file, SVG logo and icon, and names its voice guide"
 fi
 
 # --- 18. contents entries are whole-line hidden links --------------------------
