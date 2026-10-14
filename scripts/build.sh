@@ -51,7 +51,8 @@
 # prints it in the foot of every page; after a clean build it runs `cc-docs
 # file` on the PDF and prints what the register did. DOC_KIND
 # (work|course|member) and DOC_MEMBER pass on as --kind and --member;
-# DOC_NO_STAMP=1 prints no number and files with --no-stamp. DOC_PROJECT
+# DOC_NO_STAMP=1 prints no number and files with --no-stamp. DOC_NOTE, a
+# line saying what changed in this revision, is filed with it as --note. DOC_PROJECT
 # without DOC_TITLE exits 2 before compiling, and a filing cc-docs refuses
 # exits 1 with its reason. With DOC_PROJECT unset, or no cc-docs, nothing of
 # this runs: a draft builds exactly as before.
@@ -184,6 +185,7 @@ if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
 fi
 if [ ${#docargs[@]} -gt 0 ]; then
   [ "${DOC_NO_STAMP:-}" = 1 ] && docargs+=(--no-stamp)
+  [ -n "${DOC_NOTE:-}" ] && docargs+=(--note "$DOC_NOTE")
   filed=$(cc-docs file "$(pwd)/$name.pdf" "${docargs[@]}") || { echo "build.sh: cc-docs did not file $name.pdf" >&2; exit 1; }
   echo "register: $filed"
 fi
