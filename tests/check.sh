@@ -67,8 +67,9 @@
 #      after, passing each flag and the source path, and every page carries
 #      the number under the foot while the rest of each page's text, the
 #      copyright line and page number included, is what the draft printed.
-#      DOC_NO_STAMP=1 prints no number and files with --no-stamp; DOC_PROJECT
-#      without DOC_TITLE exits 2 and calls nothing.
+#      DOC_NO_STAMP=1 prints no number and files with --no-stamp; DOC_NOTE is
+#      filed as --note with its text, and a build without it passes no --note;
+#      DOC_PROJECT without DOC_TITLE exits 2 and calls nothing.
 #  16  Page breaks. A fixture builds with the style and with \pbcold, which puts
 #      back what the style did before (150 widow and club penalties, a caption
 #      the code could break from, fvextra's breakable overlap glue, needspace's
@@ -966,6 +967,15 @@ SHEOF
     fail "register: DOC_NO_STAMP=1 (exit $rc), calls: $(cat "$N/nostamp.log")"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
   else
     pass "register: DOC_NO_STAMP=1 prints no number and files with --no-stamp"
+  fi
+
+  mk note; out=$(run note "$N/bin:$bare" DOC_PROJECT=P DOC_TITLE=T DOC_NOTE="Fixed the table on page 2"); rc=$?
+  want_n="number --project P --title T --source $N/note/doc.tex --tex"
+  want_f="file $N/note/doc.pdf --project P --title T --source $N/note/doc.tex --note Fixed the table on page 2"
+  if [ "$rc" -ne 0 ] || [ "$(cat "$N/note.log")" != "$(printf '%s\n%s' "$want_n" "$want_f")" ] || grepq -- '--note' "$N/final.log"; then
+    fail "register: DOC_NOTE (exit $rc), calls: $(cat "$N/note.log")"; printf '%s\n' "$out" | head -6 | sed 's/^/  /'
+  else
+    pass "register: DOC_NOTE is filed as --note, and a build without it passes no --note"
   fi
 
   mk notitle; out=$(run notitle "$N/bin:$bare" DOC_PROJECT=P); rc=$?

@@ -87,7 +87,7 @@ A mental image at most twice, in prose; the neighbour relation in a sentence wit
 - `.gitignore`: the workspace ignores `*.pdf` and `*.tex` globally and un-ignores course-level documents one filename at a time. Lesson-level companions need a pattern that reaches into `claude_lessons/<slug>/`, and it has to sit before the trailing secret-exclusion block, which must stay last.
 - `build-all.sh`: it publishes `<COURSE>/*.pdf` at the course level only, so a companion inside a lesson directory is invisible to it. It needs the same guarded copy (symlink resolution, hard-link refusal, member-tree sandboxing) for `<COURSE>/claude_lessons/<slug>/*.pdf`, landing at `dist/<prefix>/<slug>/`.
 
-**The finished build.** Draft with the register variables unset. Build the copy the reader gets with `DOC_PROJECT` and `DOC_TITLE` set, as `SKILL.md` says under "Numbering the finished build", so it carries its number and is filed.
+**The finished build.** Draft with the register variables unset. Build the copy the reader gets with `DOC_PROJECT` and `DOC_TITLE` set, as `SKILL.md` says under "Numbering the finished build", so it carries its number and is filed. A rebuild of a filed document is filed as its next revision; set `DOC_NOTE` to a line saying what changed.
 
 ## cheat-sheet
 
@@ -105,6 +105,6 @@ What does not apply, and must not be bolted on: the teaching arc, retrieval prom
 
 This is the recipe the twelve blocks were drawn for: the claim, the flow diagram, the stat row with its provenance footline, the callout for the objection, the numbered sources. Of the teaching affordances, `\insight` (the lead line) and `derivation` carry over; `\opt` marks depth a first reader can skip. A mental image is usually wrong here, because a colleague reading a design note wants the structure diagram, not a picture of it.
 
-**The finished build.** A short doc is drafted like any other, with the register variables unset. The version you hand over is built with `DOC_PROJECT` and `DOC_TITLE` set, as `SKILL.md` says under "Numbering the finished build", so it carries its number and is filed; `DOC_NO_STAMP=1` when it goes outside and must not show one.
+**The finished build.** A short doc is drafted like any other, with the register variables unset. The version you hand over is built with `DOC_PROJECT` and `DOC_TITLE` set, as `SKILL.md` says under "Numbering the finished build", so it carries its number and is filed; `DOC_NO_STAMP=1` when it goes outside and must not show one, and `DOC_NOTE` saying what changed when it is a rebuild.
 
 Structure follows the document, not a template: a design note leads with the decision and its constraints; an incident write-up with what happened and what changed. Length band is wide because the recipe is: 5pp for a design note, 40pp for a full evaluation with results.
