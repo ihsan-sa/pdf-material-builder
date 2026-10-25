@@ -1,0 +1,3 @@
+# LANDING-deploy.toml — the one installer the box's lander runs after it pulls a merge (iiks1 core/lander/deploy.py).
+# Without this file the lander pulls only. install.sh brings the installed skill up to main.
+installer = "install.sh"
