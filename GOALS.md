@@ -2,6 +2,19 @@
 
 A Claude Code skill that builds teaching material and technical documentation as LaTeX PDFs, at any length, in one house style and one voice. A one-page cheat sheet, a short companion to a single lesson, a long set of course notes and a design note all share the same page and the same author.
 
+## Standing goals
+
+The owner's lines. Runs never edit this section; each proposed goal names the one it serves.
+
+### Any length
+It builds teaching material and technical documentation as LaTeX PDFs, at any length: a one-page cheat sheet, a short companion to a single lesson, a long set of course notes and a design note.
+
+### One house style
+Every document, whatever its length, shares the same page.
+
+### One voice
+Every document, whatever its length, shares the same author.
+
 ## Proposed goals
 
 Filed by runs. Each says what done looks like as something a run can check, and keeps its status (open, done, failed, dropped) with the pull requests that moved it. At most three are open at once.
